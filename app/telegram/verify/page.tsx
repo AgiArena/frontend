@@ -188,10 +188,8 @@ function TelegramVerifyContent() {
 
           {/* Step 2: Sign Message */}
           <div className={`flex items-start gap-3 ${!isConnected ? 'opacity-50' : ''}`}>
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-black font-bold ${
-              status === 'success' ? 'bg-white' : 'bg-white/40'
-            }`}>
-              {status === 'success' ? '✓' : '2'}
+            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-black font-bold bg-white/40">
+              2
             </div>
             <div className="flex-grow">
               <h3 className="text-white font-medium">Sign Verification Message</h3>
@@ -234,7 +232,7 @@ function TelegramVerifyContent() {
         </button>
 
         {/* Telegram User Info */}
-        {telegramUserId && status !== 'success' && (
+        {telegramUserId && (
           <p className="mt-4 text-center text-sm text-white/40">
             Linking to Telegram user ID: {telegramUserId}
           </p>
