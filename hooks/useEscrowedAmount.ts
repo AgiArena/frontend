@@ -33,20 +33,26 @@ export function useEscrowedAmount(): UseEscrowedAmountReturn {
     queryFn: async (): Promise<BetRecord[]> => {
       if (!address) return []
 
-      let backendUrl: string
-      try {
-        backendUrl = getBackendUrl()
-      } catch {
-        return []
-      }
+      const backendUrl = getBackendUrl() // Throws if not configured
 
       const response = await fetch(`${backendUrl}/api/bets/user/${address}`)
 
       if (!response.ok) {
-        return []
+        throw new Error(`Failed to fetch user bets: ${response.status} ${response.statusText}`)
       }
 
-      return response.json()
+      const data = await response.json()
+      // Handle both raw array and wrapped responses (e.g., { bets: [...] } or { data: [...] })
+      if (Array.isArray(data)) {
+        return data
+      }
+      if (data && Array.isArray(data.bets)) {
+        return data.bets
+      }
+      if (data && Array.isArray(data.data)) {
+        return data.data
+      }
+      return []
     },
     enabled: isConnected && !!address,
     refetchInterval: 5000,
@@ -72,7 +78,7 @@ export function useEscrowedAmount(): UseEscrowedAmountReturn {
  * @returns Total escrowed amount in base units
  */
 function calculateEscrowed(bets: BetRecord[] | undefined): bigint {
-  if (!bets || bets.length === 0) {
+  if (!bets || !Array.isArray(bets) || bets.length === 0) {
     return BigInt(0)
   }
 

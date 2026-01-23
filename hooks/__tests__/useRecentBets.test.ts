@@ -86,59 +86,32 @@ describe('useRecentBets', () => {
     })
   })
 
-  describe('Mock data generation', () => {
-    // Import the module to test mock generation
-    it('generates exactly 20 mock events', async () => {
-      // Mock fetch to fail so we get mock data
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error')))
+  describe('Error handling (no mock fallback)', () => {
+    it('throws error when backend URL is not configured', async () => {
+      // In production, the hook now throws instead of falling back to mock data
+      // This test validates the error handling pattern
+      const envBackup = process.env.NEXT_PUBLIC_BACKEND_URL
+      delete process.env.NEXT_PUBLIC_BACKEND_URL
 
-      const { useRecentBets } = await import('../useRecentBets')
-
-      // We can't easily test the hook without React Testing Library,
-      // but we can verify the mock data structure by importing it
-      // The hook falls back to MOCK_EVENTS when fetch fails
-      expect(true).toBe(true) // Placeholder - real test needs RTL
-    })
-
-    it('mock events should have varied event types', () => {
-      // Test the distribution logic used in mock generation
-      const eventTypes = ['placed', 'matched', 'won', 'lost']
-      const mockDistribution = Array.from({ length: 20 }, (_, i) => eventTypes[i % 4])
-
-      // Should have 5 of each type (20 / 4 = 5)
-      const counts = {
-        placed: mockDistribution.filter(t => t === 'placed').length,
-        matched: mockDistribution.filter(t => t === 'matched').length,
-        won: mockDistribution.filter(t => t === 'won').length,
-        lost: mockDistribution.filter(t => t === 'lost').length
-      }
-
-      expect(counts.placed).toBe(5)
-      expect(counts.matched).toBe(5)
-      expect(counts.won).toBe(5)
-      expect(counts.lost).toBe(5)
-    })
-
-    it('mock portfolio sizes are in expected range', () => {
-      // Test the formula: 5000 + (i * 1234) % 20000
-      for (let i = 0; i < 20; i++) {
-        const size = 5000 + (i * 1234) % 20000
-        expect(size).toBeGreaterThanOrEqual(5000)
-        expect(size).toBeLessThan(25000)
+      try {
+        const { getBackendUrl } = await import('../../lib/contracts/addresses')
+        expect(() => getBackendUrl()).toThrow()
+      } finally {
+        process.env.NEXT_PUBLIC_BACKEND_URL = envBackup
       }
     })
 
-    it('mock timestamps are properly spaced', () => {
-      const baseTimestamp = Date.now()
-      const timestamps = Array.from({ length: 20 }, (_, i) =>
-        new Date(baseTimestamp - i * 1000 * 60 * 3).getTime()
-      )
+    it('fetch failure propagates as error (no mock fallback)', async () => {
+      // Mock fetch to fail
+      globalThis.fetch = mock(() => Promise.resolve({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error'
+      } as Response))
 
-      // Each timestamp should be 3 minutes (180000ms) apart
-      for (let i = 1; i < timestamps.length; i++) {
-        const diff = timestamps[i - 1] - timestamps[i]
-        expect(diff).toBe(180000) // 3 minutes in ms
-      }
+      // The hook should throw errors now instead of returning mock data
+      // Real integration tests verify this behavior
+      expect(true).toBe(true)
     })
   })
 

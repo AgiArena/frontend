@@ -1,15 +1,22 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { truncateAddress } from '@/lib/utils/address'
 
 export function WalletConnectButton() {
+  const [mounted, setMounted] = useState(false)
   const { address, isConnected, isConnecting, isReconnecting } = useAccount()
   const { connect, connectors, isPending, error: connectError } = useConnect()
   const { disconnect } = useDisconnect()
   const chainId = useChainId()
   const { switchChain, isPending: isSwitching } = useSwitchChain()
+
+  // Prevent hydration mismatch by only rendering wallet state after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Find injected connector (MetaMask, etc.)
   const injectedConnector = connectors.find(c => c.id === 'injected')
@@ -19,6 +26,18 @@ export function WalletConnectButton() {
 
   // Loading state during connection or reconnection
   const isLoading = isConnecting || isReconnecting || isPending
+
+  // Render placeholder during SSR and initial hydration to prevent mismatch
+  if (!mounted) {
+    return (
+      <button
+        disabled
+        className="px-6 py-3 bg-black border border-white text-white font-mono opacity-50 cursor-not-allowed"
+      >
+        Connect Wallet
+      </button>
+    )
+  }
 
   // Handle connect click
   const handleConnect = () => {

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { useUsdcBalance } from '@/hooks/useUsdcBalance'
 import { useEscrowedAmount } from '@/hooks/useEscrowedAmount'
@@ -14,7 +15,13 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
  * Auto-refreshes every 5 seconds via hooks
  */
 export function USDCBalanceCard() {
+  const [mounted, setMounted] = useState(false)
   const { address, isConnected } = useAccount()
+
+  // Prevent hydration mismatch by only rendering wallet-dependent UI after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const { balance, formatted: totalFormatted, isLoading: balanceLoading, isError: balanceError } = useUsdcBalance()
   const { escrowed, formatted: escrowedFormatted, isLoading: escrowLoading } = useEscrowedAmount()
 
@@ -26,6 +33,17 @@ export function USDCBalanceCard() {
     : BigInt(0)
 
   const availableFormatted = formatUsdcAmount(available)
+
+  // SSR placeholder - render consistent skeleton during hydration
+  if (!mounted) {
+    return (
+      <Card className="border-white/20">
+        <CardContent className="p-6">
+          <p className="text-white/60 text-center">Connect wallet to view balance</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   // Disconnected state
   if (!isConnected) {

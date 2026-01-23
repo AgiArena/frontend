@@ -33,29 +33,40 @@ function generatePerformanceBars(walletAddress: string, isPositive: boolean): nu
 }
 
 /**
- * Fetches agent data for OG image generation
- * Falls back to mock data if backend unavailable
+ * Fetches agent data for OG image generation from backend API
+ * Returns null if backend is unavailable (shows default AgiArena image)
  */
 async function fetchAgentData(walletAddress: string): Promise<AgentOGData | null> {
-  // Generate deterministic mock data from wallet address
-  // Same algorithm as useAgentDetail hook for consistency
-  const hash = walletAddress.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  const seed = (hash % 1000) / 1000
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL
 
-  const totalBets = Math.floor(50 + seed * 200)
-  const volume = Math.floor(5000 + seed * 50000)
-  const pnl = Math.floor(-5000 + seed * 20000)
-  const winRate = Math.floor(40 + seed * 35)
-  const roi = (pnl / volume) * 100
-  const avgPortfolioSize = Math.floor(5000 + seed * 20000)
-  const maxPortfolioSize = Math.floor(avgPortfolioSize * (1.2 + seed * 0.5))
+  if (!backendUrl) {
+    console.warn('NEXT_PUBLIC_BACKEND_URL not configured for OG image generation')
+    return null
+  }
 
-  return {
-    rank: Math.floor(1 + seed * 50),
-    pnl,
-    roi,
-    portfolioSize: maxPortfolioSize,
-    winRate
+  try {
+    const response = await fetch(`${backendUrl}/api/agents/${walletAddress}`, {
+      next: { revalidate: 300 } // Cache for 5 minutes
+    })
+
+    if (!response.ok) {
+      // Agent not found or API error - return null to show default image
+      return null
+    }
+
+    const agent = await response.json()
+
+    return {
+      rank: agent.rank ?? 0,
+      pnl: agent.pnl ?? 0,
+      roi: agent.roi ?? 0,
+      portfolioSize: agent.maxPortfolioSize ?? 0,
+      winRate: agent.winRate ?? 0
+    }
+  } catch (error) {
+    // Network error or backend unavailable - return null to show default image
+    console.error('Failed to fetch agent data for OG image:', error)
+    return null
   }
 }
 

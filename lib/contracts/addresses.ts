@@ -1,6 +1,11 @@
 /**
  * Contract addresses for the AgiArena platform
- * Loaded from environment variables
+ * Loaded from environment variables (production configuration)
+ *
+ * Production addresses (Base mainnet):
+ * - AgiArenaCore: 0xdbDD446F158cA403e70521497CC33E0A53205f74
+ * - ResolutionDAO: 0xed4F750fBdc860ECa19E7286452d61737D733f23
+ * - USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
  */
 
 /**
@@ -9,10 +14,10 @@
  */
 export function getContractAddress(): `0x${string}` {
   const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
-  if (!address) {
+  if (!address || address === '0x0000000000000000000000000000000000000000') {
     throw new Error(
-      'NEXT_PUBLIC_CONTRACT_ADDRESS environment variable is not set. ' +
-      'Add it to frontend/.env.local'
+      'NEXT_PUBLIC_CONTRACT_ADDRESS is not configured. ' +
+      'Set it to 0xdbDD446F158cA403e70521497CC33E0A53205f74 in frontend/.env.local'
     )
   }
   return address as `0x${string}`
@@ -50,11 +55,16 @@ export function getBackendUrl(): string {
  */
 export function getResolutionContractAddress(): `0x${string}` {
   const address = process.env.NEXT_PUBLIC_RESOLUTION_CONTRACT_ADDRESS
-  if (!address) {
+  if (!address || address === '0x0000000000000000000000000000000000000000') {
     throw new Error(
-      'NEXT_PUBLIC_RESOLUTION_CONTRACT_ADDRESS environment variable is not set. ' +
-      'Add it to frontend/.env.local'
+      'NEXT_PUBLIC_RESOLUTION_CONTRACT_ADDRESS is not configured. ' +
+      'Set it to 0xed4F750fBdc860ECa19E7286452d61737D733f23 in frontend/.env.local'
     )
   }
   return address as `0x${string}`
 }
+
+/**
+ * Base chain ID (8453 for Base mainnet)
+ */
+export const BASE_CHAIN_ID = 8453

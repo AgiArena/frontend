@@ -50,104 +50,24 @@ interface UseAgentPerformanceReturn {
 }
 
 /**
- * Mock data for development when backend is not ready
- */
-function generateMockData(walletAddress: string, range: '7d' | '30d' | '90d' | 'all'): PerformanceResponse {
-  const now = Date.now()
-  const msPerDay = 24 * 60 * 60 * 1000
-
-  // Determine number of days based on range
-  let days: number
-  switch (range) {
-    case '7d': days = 7; break
-    case '30d': days = 30; break
-    case '90d': days = 90; break
-    case 'all': days = 180; break
-  }
-
-  // Generate data points (roughly 1-3 bets per day)
-  const dataPoints: PerformanceDataPoint[] = []
-  let cumulativePnL = 0
-  let betNumber = 0
-
-  // Use wallet address to seed randomness for consistency
-  const seed = parseInt(walletAddress.slice(2, 10), 16)
-
-  for (let d = days; d >= 0; d--) {
-    // 50-80% chance of a bet each day
-    const betsToday = Math.floor((seed + d) % 3)
-
-    for (let b = 0; b < betsToday; b++) {
-      betNumber++
-      const timestamp = new Date(now - d * msPerDay + b * 3600000).toISOString()
-      const portfolioSize = 5000 + ((seed + d + b) % 20000)
-      const amount = 50 + ((seed + d * 3 + b) % 200)
-
-      // Simulate P&L with slight positive bias
-      const resultPercent = -30 + ((seed + d * 7 + b * 11) % 60)
-      const result = (amount * resultPercent) / 100
-      cumulativePnL += result
-
-      dataPoints.push({
-        timestamp,
-        cumulativePnL,
-        betId: `bet-${walletAddress.slice(2, 8)}-${betNumber}`,
-        betNumber,
-        portfolioSize,
-        amount,
-        result,
-        resultPercent
-      })
-    }
-  }
-
-  return {
-    walletAddress,
-    range,
-    dataPoints,
-    summary: {
-      totalPnL: cumulativePnL,
-      startingPnL: 0,
-      endingPnL: cumulativePnL,
-      totalBets: betNumber
-    }
-  }
-}
-
-/**
  * Fetches agent performance data from backend API
- * Falls back to mock data if backend is unavailable
+ * Throws error if backend is unavailable - NO MOCK FALLBACKS IN PRODUCTION
  */
 async function fetchAgentPerformance(
   walletAddress: string,
   range: '7d' | '30d' | '90d' | 'all'
 ): Promise<PerformanceResponse> {
-  let backendUrl: string
-  try {
-    backendUrl = getBackendUrl()
-  } catch {
-    // Backend URL not configured - return mock data
-    console.warn('Backend URL not configured, using mock performance data')
-    return generateMockData(walletAddress, range)
+  const backendUrl = getBackendUrl() // Throws if not configured
+
+  const response = await fetch(
+    `${backendUrl}/api/agents/${walletAddress}/performance?range=${range}`
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch performance data: ${response.status} ${response.statusText}`)
   }
 
-  try {
-    const response = await fetch(
-      `${backendUrl}/api/agents/${walletAddress}/performance?range=${range}`
-    )
-
-    if (!response.ok) {
-      // Backend returned error - fall back to mock data
-      console.warn(`Performance API returned ${response.status}, using mock data`)
-      return generateMockData(walletAddress, range)
-    }
-
-    return response.json()
-  } catch (error) {
-    // Network error - fall back to mock data
-    console.warn('Failed to fetch performance data, using mock data:', error)
-    return generateMockData(walletAddress, range)
-  }
+  return response.json()
 }
 
 /**
