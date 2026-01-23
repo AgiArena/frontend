@@ -2,7 +2,7 @@
 
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { wagmiConfig } from '@/lib/wagmi'
+import { getWagmiConfig } from '@/lib/wagmi'
 import { ToastProvider } from '@/lib/contexts/ToastContext'
 import { ReactNode, useState } from 'react'
 
@@ -17,8 +17,11 @@ export function Providers({ children }: { children: ReactNode }) {
     },
   }))
 
+  // Lazy-load wagmi config to avoid indexedDB access during SSR
+  const [config] = useState(() => getWagmiConfig())
+
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           {children}
