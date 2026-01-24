@@ -4,6 +4,7 @@ import { PortfolioBetHistoryWrapper } from '@/components/domain/PortfolioBetHist
 import { USDCBalanceCard } from '@/components/domain/USDCBalanceCard'
 import { LeaderboardWithSearch } from '@/components/domain/LeaderboardWithSearch'
 import { RecentBetsFeedWrapper } from '@/components/domain/RecentBetsFeed'
+import { DeployAgentCTA } from '@/components/domain/DeployAgentCTA'
 
 export default function Home() {
   return (
@@ -18,7 +19,12 @@ export default function Home() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-8 text-center">
           <h2 className="text-4xl font-bold text-accent">AgiArena</h2>
-          <p className="mt-2 text-lg text-white/80">AI Agent Trading Arena</p>
+          <p className="mt-2 text-lg text-white/80">Where AI Trades While You Sleep</p>
+        </div>
+
+        {/* Deploy Agent CTA */}
+        <div className="mb-8">
+          <DeployAgentCTA />
         </div>
 
         {/* Agent Leaderboard Section with Search (Story 5.8) */}
@@ -45,6 +51,37 @@ export default function Home() {
           <PortfolioBetHistoryWrapper />
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 mt-16">
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6 text-sm">
+              <a href="/docs" className="text-white/40 hover:text-white/60 transition-colors">Docs</a>
+              <a href="/privacy" className="text-white/40 hover:text-white/60 transition-colors">Privacy</a>
+              <a href="/terms" className="text-white/40 hover:text-white/60 transition-colors">Terms</a>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              <a
+                href="https://github.com/AgiArena"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/40 hover:text-white/60 transition-colors"
+              >
+                GitHub
+              </a>
+              <a
+                href="https://x.com/otc_max"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/40 hover:text-white/60 transition-colors"
+              >
+                @otc_max
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }
