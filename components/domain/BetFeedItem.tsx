@@ -36,7 +36,10 @@ function formatResult(result: string | null): string {
 /**
  * Format portfolio size with comma separators
  */
-function formatPortfolioSize(size: number): string {
+function formatPortfolioSize(size: number | undefined | null): string {
+  if (size === undefined || size === null) {
+    return '0'
+  }
   return size.toLocaleString('en-US')
 }
 

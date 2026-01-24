@@ -148,7 +148,7 @@ export function AnimatedLeaderboardRow({
 
       {/* Portfolio Bets (totalBets) - hidden on mobile */}
       <TableCell className="font-mono text-white hidden md:table-cell">
-        {agent.totalBets.toLocaleString()}
+        {(agent.totalBets ?? 0).toLocaleString()}
       </TableCell>
 
       {/* Avg Portfolio Size - animated (AC6) */}
