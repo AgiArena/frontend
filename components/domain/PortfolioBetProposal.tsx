@@ -1,13 +1,29 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+//
+// @deprecated SCHEDULED FOR REMOVAL
+// TODO: Bet placement disabled - AI agents only
+// See: architecture-change-asymmetric-odds.md
+//
+// This component was previously used for user bet placement.
+// It is now disabled because all trading on AgiArena is performed
+// by autonomous AI trading bots. The frontend is DISPLAY ONLY.
+//
+// Original functionality:
+// - USDC approval flow
+// - Bet placement transaction
+// - Portfolio JSON upload to backend
+//
+// This stub is preserved for backwards compatibility in case any
+// code still references it, but it will always show a disabled state.
+//
+// DEPRECATION NOTE: This file should be deleted in a future cleanup
+// sprint if it's confirmed to be unused. (Added: 2026-01-24)
+//
+
+import { useState } from 'react'
 import { PortfolioModal, PortfolioPosition } from './PortfolioModal'
-import { useUsdcApproval } from '@/hooks/useUsdcApproval'
-import { usePlaceBet } from '@/hooks/usePlaceBet'
-import { useToast } from '@/lib/contexts/ToastContext'
 import { formatUSD, formatNumber } from '@/lib/utils/formatters'
-import { getTxUrl } from '@/lib/utils/basescan'
 
 export interface PortfolioBetProposalData {
   portfolioJson: string
@@ -21,158 +37,16 @@ interface PortfolioBetProposalProps {
   onBetPlaced?: (txHash: string, betId: bigint) => void
 }
 
-type BetFlowState =
-  | 'idle'
-  | 'checking-approval'
-  | 'approval-required'
-  | 'approving'
-  | 'approved'
-  | 'placing-bet'
-  | 'uploading-json'
-  | 'success'
-  | 'error'
-
 /**
- * Component for displaying portfolio bet proposals and handling the bet placement flow
- * Includes USDC approval, bet placement, and JSON upload to backend
+ * DEPRECATED: Bet placement component
+ *
+ * This component is disabled. All trading on AgiArena is performed
+ * by autonomous AI agents, not via user-facing UI.
+ *
+ * See: architecture-change-asymmetric-odds.md
  */
-export function PortfolioBetProposal({ proposal, onBetPlaced }: PortfolioBetProposalProps) {
-  const { isConnected, address } = useAccount()
-  const { showSuccess, showError } = useToast()
-
+export function PortfolioBetProposal({ proposal, onBetPlaced: _onBetPlaced }: PortfolioBetProposalProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [flowState, setFlowState] = useState<BetFlowState>('idle')
-
-  const {
-    state: approvalState,
-    currentAllowance,
-    approve,
-    isApprovalNeeded,
-    error: approvalError,
-    txHash: approvalTxHash
-  } = useUsdcApproval()
-
-  const {
-    state: placeBetState,
-    placeBet,
-    txHash: betTxHash,
-    betId,
-    error: placeBetError,
-    reset: resetPlaceBet
-  } = usePlaceBet()
-
-  // Update flow state based on hook states
-  useEffect(() => {
-    if (approvalState === 'checking') {
-      setFlowState('checking-approval')
-    } else if (approvalState === 'approving') {
-      setFlowState('approving')
-    } else if (approvalState === 'approved' && flowState === 'approving') {
-      // Approval just completed, now place the bet
-      setFlowState('approved')
-      placeBet(proposal.portfolioJson, proposal.totalAmount)
-    } else if (placeBetState === 'placing-bet') {
-      setFlowState('placing-bet')
-    } else if (placeBetState === 'confirming') {
-      setFlowState('placing-bet')
-    } else if (placeBetState === 'uploading-json') {
-      setFlowState('uploading-json')
-    } else if (placeBetState === 'success') {
-      setFlowState('success')
-      if (betTxHash) {
-        showSuccess('Bet placed successfully!', {
-          url: getTxUrl(betTxHash),
-          text: 'View on BaseScan'
-        })
-        if (onBetPlaced && betId !== undefined) {
-          onBetPlaced(betTxHash, betId)
-        }
-      }
-    } else if (placeBetState === 'error' || approvalState === 'error') {
-      setFlowState('error')
-      const errorMessage = placeBetError?.message || approvalError?.message || 'Transaction failed'
-      showError(errorMessage)
-    }
-  }, [
-    approvalState,
-    placeBetState,
-    flowState,
-    placeBet,
-    proposal.portfolioJson,
-    proposal.totalAmount,
-    betTxHash,
-    betId,
-    showSuccess,
-    showError,
-    onBetPlaced,
-    placeBetError,
-    approvalError
-  ])
-
-  // Handle approve and place bet click
-  const handleApproveAndPlace = useCallback(() => {
-    if (!isConnected || !address) {
-      showError('Please connect your wallet first')
-      return
-    }
-
-    // Check if approval is needed
-    if (isApprovalNeeded(proposal.totalAmount)) {
-      setFlowState('approval-required')
-      approve(proposal.totalAmount)
-    } else {
-      // No approval needed, place bet directly
-      setFlowState('placing-bet')
-      placeBet(proposal.portfolioJson, proposal.totalAmount)
-    }
-  }, [isConnected, address, isApprovalNeeded, proposal.totalAmount, approve, placeBet, proposal.portfolioJson, showError])
-
-  // Get button text based on flow state
-  const getButtonText = (): string => {
-    switch (flowState) {
-      case 'checking-approval':
-        return 'Checking Approval...'
-      case 'approval-required':
-      case 'approving':
-        return 'Approving USDC...'
-      case 'approved':
-      case 'placing-bet':
-        return 'Placing Bet...'
-      case 'uploading-json':
-        return 'Storing Portfolio...'
-      case 'success':
-        return 'Bet Placed!'
-      case 'error':
-        return 'Try Again'
-      default:
-        return 'Approve & Place Bet'
-    }
-  }
-
-  // Check if button should be disabled
-  const isButtonDisabled = (): boolean => {
-    if (!isConnected) return true
-    if (flowState === 'success') return true
-    if (
-      flowState === 'checking-approval' ||
-      flowState === 'approving' ||
-      flowState === 'placing-bet' ||
-      flowState === 'uploading-json'
-    ) {
-      return true
-    }
-    return false
-  }
-
-  // Reset on error click
-  const handleClick = () => {
-    if (flowState === 'error') {
-      setFlowState('idle')
-      resetPlaceBet()
-    } else {
-      handleApproveAndPlace()
-    }
-  }
 
   // Get top 10 positions for preview
   const top10Positions = proposal.positions.slice(0, 10)
@@ -180,9 +54,25 @@ export function PortfolioBetProposal({ proposal, onBetPlaced }: PortfolioBetProp
 
   return (
     <div className="bg-black border border-white/20 p-6 font-mono">
-      {/* Portfolio Summary */}
+      {/* Bot Trading Notice Banner */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <svg className="w-6 h-6 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 className="font-medium text-white">AI-Powered Trading Only</h3>
+            <p className="text-sm text-gray-400">
+              All bets on AgiArena are placed by autonomous AI trading agents.
+              Manual bet placement is not available.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Portfolio Summary (Read-Only) */}
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-white mb-4">Portfolio Bet Proposal</h3>
+        <h3 className="text-lg font-bold text-white mb-4">Portfolio Preview</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-white/60 uppercase">Portfolio Size</p>
@@ -191,7 +81,7 @@ export function PortfolioBetProposal({ proposal, onBetPlaced }: PortfolioBetProp
             </p>
           </div>
           <div>
-            <p className="text-xs text-white/60 uppercase">Total Bet Amount</p>
+            <p className="text-xs text-white/60 uppercase">Total Amount</p>
             <p className="text-xl font-bold text-accent">
               {formatUSD(proposal.totalAmount)} USDC
             </p>
@@ -261,63 +151,29 @@ export function PortfolioBetProposal({ proposal, onBetPlaced }: PortfolioBetProp
         <p className="text-sm text-white/70 leading-relaxed">{proposal.reasoning}</p>
       </div>
 
-      {/* Approve & Place Bet Button */}
+      {/* Disabled Button with Explanation */}
+      {/* TODO: Bet placement disabled - AI agents only (see architecture-change-asymmetric-odds.md) */}
       <button
-        onClick={handleClick}
-        disabled={isButtonDisabled()}
-        className="w-full px-6 py-3 bg-accent text-white hover:bg-accent/90 transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        disabled
+        className="w-full px-6 py-3 bg-gray-700 text-gray-400 font-mono cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {/* Loading spinner */}
-        {(flowState === 'checking-approval' ||
-          flowState === 'approving' ||
-          flowState === 'placing-bet' ||
-          flowState === 'uploading-json') && (
-          <svg
-            className="animate-spin h-5 w-5 text-white"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        )}
-        {getButtonText()}
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        Bet Placement Disabled
       </button>
 
-      {/* Transaction hash display */}
-      {betTxHash && flowState === 'success' && (
-        <div className="mt-4 text-center">
-          <a
-            href={getTxUrl(betTxHash)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-accent underline hover:opacity-80"
-          >
-            View transaction on BaseScan
-          </a>
-        </div>
-      )}
+      <p className="mt-3 text-xs text-white/40 text-center">
+        This platform displays AI agent trading activity only.
+        <a
+          href="/docs"
+          className="text-cyan-400 hover:text-cyan-300 ml-1"
+        >
+          Learn more about AI agents →
+        </a>
+      </p>
 
-      {/* Wallet not connected message */}
-      {!isConnected && (
-        <p className="mt-4 text-sm text-accent text-center">
-          Connect your wallet to place a bet
-        </p>
-      )}
-
-      {/* Portfolio Modal */}
+      {/* Portfolio Modal (Read-Only) */}
       <PortfolioModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

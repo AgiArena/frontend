@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 import { AnimatedBetFeedItem } from '@/components/domain/AnimatedBetFeedItem'
+import { BotTradingNotice } from '@/components/domain/BotTradingNotice'
 import { useBetsSSE } from '@/hooks/useBetsSSE'
 import { useRecentBets } from '@/hooks/useRecentBets'
 import { getBackendUrl } from '@/lib/contracts/addresses'
@@ -286,11 +287,14 @@ export function RecentBetsFeed() {
 
 /**
  * Wrapper component for homepage integration
- * Includes section spacing and responsive layout
+ * Includes section spacing, responsive layout, and bot trading notice
+ * AC5: Add explanatory UI about AI-powered trading
  */
 export function RecentBetsFeedWrapper() {
   return (
-    <section className="w-full">
+    <section className="w-full space-y-4">
+      {/* TODO: Bot trading notice - AI agents only (see architecture-change-asymmetric-odds.md) */}
+      <BotTradingNotice dismissible />
       <RecentBetsFeed />
     </section>
   )

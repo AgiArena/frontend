@@ -10,6 +10,7 @@ export type BetEventType = 'placed' | 'matched' | 'won' | 'lost'
 
 /**
  * Recent bet event interface matching backend API response
+ * Updated for Story 7-12: Includes odds fields for asymmetric betting
  */
 export interface RecentBetEvent {
   /** Bet ID (string representation of bigint) */
@@ -20,8 +21,12 @@ export interface RecentBetEvent {
   eventType: BetEventType
   /** Number of markets in portfolio */
   portfolioSize: number
-  /** Bet amount in USDC */
+  /** Bet amount in USDC (creator stake) */
   amount: string // Decimal as string from API
+  /** Required match amount for asymmetric odds */
+  requiredMatch?: string // Decimal as string from API
+  /** Odds in basis points: 10000 = 1.00x, 20000 = 2.00x */
+  oddsBps?: number
   /** P&L result for won/lost events (null for placed/matched) */
   result: string | null // Decimal as string from API
   /** ISO timestamp of event */

@@ -1,18 +1,12 @@
-'use client'
+//
+// TODO: Bet placement disabled - AI agents only
+// See: architecture-change-asymmetric-odds.md
+//
+// All betting on AgiArena is performed by autonomous AI trading bots.
+// This hook is intentionally disabled. The platform is read-only for users.
+//
 
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { agiArenaCoreAbi } from '@/lib/contracts/abi'
-import { getContractAddress, getBackendUrl } from '@/lib/contracts/addresses'
-import { generateBetHash } from '@/lib/utils/hash'
-import { useState, useCallback, useEffect, useRef } from 'react'
-
-type PlaceBetState =
-  | 'idle'
-  | 'placing-bet'
-  | 'confirming'
-  | 'uploading-json'
-  | 'success'
-  | 'error'
+type PlaceBetState = 'idle' | 'error'
 
 interface UsePlaceBetReturn {
   state: PlaceBetState
@@ -23,172 +17,61 @@ interface UsePlaceBetReturn {
   reset: () => void
 }
 
+// Singleton error - avoid creating new Error on every call
+const DISABLED_ERROR = new Error(
+  'Bet placement is not available via frontend. ' +
+  'All trading on AgiArena is performed by AI agents. ' +
+  'See documentation for more information.'
+)
+
 /**
- * Hook for placing bets on the AgiArenaCore contract
- * Handles transaction submission, confirmation, and JSON upload to backend
+ * Stubbed hook for bet placement.
+ *
+ * This hook previously handled bet placement transactions.
+ * It is now disabled because all trading on AgiArena is performed
+ * by autonomous AI agents, not by users via the frontend.
+ *
+ * @returns Object with error state - placeBet() always throws
  */
 export function usePlaceBet(): UsePlaceBetReturn {
-  const [state, setState] = useState<PlaceBetState>('idle')
-  const [betId, setBetId] = useState<bigint | undefined>()
-  const [jsonError, setJsonError] = useState<Error | null>(null)
-  const [pendingJson, setPendingJson] = useState<string | null>(null)
-  const [pendingStorageRef, setPendingStorageRef] = useState<string | null>(null)
-
-  // Get contract address
-  let contractAddress: `0x${string}` | undefined
-  try {
-    contractAddress = getContractAddress()
-  } catch (err) {
-    // Contract address not configured - log for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Contract address not configured:', err)
-    }
+  const placeBet = async (_portfolioJson: string, _amount: bigint): Promise<void> => {
+    throw DISABLED_ERROR
   }
 
-  // Write contract for placing bet
-  const {
-    writeContract,
-    data: txHash,
-    isPending: isWritePending,
-    error: writeError,
-    reset: resetWrite
-  } = useWriteContract()
-
-  // Wait for transaction confirmation
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: confirmError
-  } = useWaitForTransactionReceipt({
-    hash: txHash
-  })
-
-  // Upload JSON to backend after confirmation
-  const uploadJson = useCallback(async (storageRef: string, portfolioJson: string) => {
-    setState('uploading-json')
-    try {
-      const backendUrl = getBackendUrl()
-      const response = await fetch(`${backendUrl}/api/bets/${storageRef}/portfolio`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ portfolio: portfolioJson })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload portfolio JSON: ${response.statusText}`)
-      }
-
-      setState('success')
-    } catch (err) {
-      setJsonError(err instanceof Error ? err : new Error('Failed to upload JSON'))
-      setState('error')
-    }
-  }, [])
-
-  // Track previous states to detect changes
-  const prevIsWritePending = useRef(false)
-  const prevIsConfirming = useRef(false)
-  const prevIsConfirmed = useRef(false)
-
-  // Handle state transitions in useEffect to avoid side effects during render
-  useEffect(() => {
-    // Handle confirmation and trigger JSON upload
-    if (isConfirmed && !prevIsConfirmed.current && state === 'confirming' && pendingJson && pendingStorageRef) {
-      uploadJson(pendingStorageRef, pendingJson)
-      setPendingJson(null)
-      setPendingStorageRef(null)
-    }
-
-    // Update state based on transaction progress
-    if (isWritePending && !prevIsWritePending.current && state === 'idle') {
-      setState('placing-bet')
-    }
-    if (isConfirming && !prevIsConfirming.current && state === 'placing-bet') {
-      setState('confirming')
-    }
-
-    // Update refs for next render
-    prevIsWritePending.current = isWritePending
-    prevIsConfirming.current = isConfirming
-    prevIsConfirmed.current = isConfirmed
-  }, [isWritePending, isConfirming, isConfirmed, state, pendingJson, pendingStorageRef, uploadJson])
-
-  // Place a bet
-  const placeBet = useCallback(async (portfolioJson: string, amount: bigint) => {
-    if (!contractAddress) {
-      setJsonError(new Error('Contract address not configured'))
-      setState('error')
-      return
-    }
-
-    // Validate inputs
-    if (!portfolioJson || portfolioJson.trim() === '') {
-      setJsonError(new Error('Portfolio JSON cannot be empty'))
-      setState('error')
-      return
-    }
-
-    if (amount <= 0n) {
-      setJsonError(new Error('Bet amount must be greater than zero'))
-      setState('error')
-      return
-    }
-
-    // Validate JSON is parseable
-    try {
-      JSON.parse(portfolioJson)
-    } catch {
-      setJsonError(new Error('Invalid portfolio JSON format'))
-      setState('error')
-      return
-    }
-
-    // Generate bet hash
-    const betHash = generateBetHash(portfolioJson)
-
-    // Generate storage reference
-    const timestamp = Date.now()
-    const storageRef = `bet-${timestamp}`
-
-    // Store for later upload
-    setPendingJson(portfolioJson)
-    setPendingStorageRef(storageRef)
-
-    // Reset state
-    setJsonError(null)
-    resetWrite()
-    setState('idle')
-
-    // Call contract
-    writeContract({
-      address: contractAddress,
-      abi: agiArenaCoreAbi,
-      functionName: 'placeBet',
-      args: [betHash, storageRef, amount]
-    })
-  }, [contractAddress, writeContract, resetWrite])
-
-  // Reset hook state
-  const reset = useCallback(() => {
-    setState('idle')
-    setBetId(undefined)
-    setJsonError(null)
-    setPendingJson(null)
-    setPendingStorageRef(null)
-    resetWrite()
-  }, [resetWrite])
-
-  // Get first error
-  const error = writeError || confirmError || jsonError
+  const reset = () => {
+    // No-op - hook is disabled
+  }
 
   return {
-    state,
+    state: 'error',
     placeBet,
-    txHash,
-    betId,
-    error,
+    txHash: undefined,
+    betId: undefined,
+    error: DISABLED_ERROR,
     reset
   }
 }
+
+// Original implementation preserved for reference:
+//
+// export function usePlaceBet(): UsePlaceBetReturn {
+//   const [state, setState] = useState<PlaceBetState>('idle')
+//   const [betId, setBetId] = useState<bigint | undefined>()
+//   const [jsonError, setJsonError] = useState<Error | null>(null)
+//   ...
+//   const {
+//     writeContract,
+//     data: txHash,
+//     isPending: isWritePending,
+//     error: writeError,
+//     reset: resetWrite
+//   } = useWriteContract()
+//   ...
+//   writeContract({
+//     address: contractAddress,
+//     abi: agiArenaCoreAbi,
+//     functionName: 'placeBet',
+//     args: [betHash, storageRef, amount]
+//   })
+//   ...
+// }

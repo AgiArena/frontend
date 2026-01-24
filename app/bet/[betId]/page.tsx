@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { notFound } from 'next/navigation'
+import {
+  FAVORABLE_ODDS_THRESHOLD,
+  UNFAVORABLE_ODDS_THRESHOLD,
+  DEFAULT_ODDS_BPS
+} from '@/lib/types/bet'
 
 interface BetDetailPageProps {
   params: Promise<{ betId: string }>
@@ -13,6 +18,10 @@ interface BetData {
   portfolioSize: number
   amount: string
   matchedAmount: string
+  /** Required match amount - defaults to amount if not provided (1:1 odds) */
+  requiredMatch?: string
+  /** Odds in basis points: 10000 = 1.00x, 20000 = 2.00x */
+  oddsBps?: number
   status: string
   txHash: string
   blockNumber: number
@@ -20,7 +29,14 @@ interface BetData {
   updatedAt: string
   portfolioJson?: {
     expiry?: string
-    markets: Array<{
+    portfolioSize?: number
+    // Backend stores as 'positions', support both for compatibility
+    positions?: Array<{
+      marketId: string
+      position: number | string  // 0=NO, 1=YES or "YES"/"NO"
+      weight?: number
+    }>
+    markets?: Array<{
       conditionId: string
       position: string
       weight?: number
@@ -95,6 +111,62 @@ function getStatusLabel(status: string): string {
 }
 
 /**
+ * Get odds display info from bet data
+ */
+function getOddsInfo(bet: BetData): {
+  decimal: number
+  display: string
+  requiredMatch: string
+  totalPot: string
+  creatorReturn: string
+  matcherReturn: string
+  favorability: 'favorable' | 'even' | 'unfavorable'
+  impliedProbability: string
+} {
+  const creatorStake = parseFloat(bet.amount)
+  // Use requiredMatch if provided, otherwise fall back to amount (1:1 odds)
+  const requiredMatch = bet.requiredMatch ? parseFloat(bet.requiredMatch) : creatorStake
+  const oddsBps = bet.oddsBps && bet.oddsBps > 0 ? bet.oddsBps : DEFAULT_ODDS_BPS
+  const oddsDecimal = oddsBps / 10000
+  const totalPot = creatorStake + requiredMatch
+
+  // Determine favorability using shared constants
+  let favorability: 'favorable' | 'even' | 'unfavorable'
+  if (oddsDecimal > FAVORABLE_ODDS_THRESHOLD) favorability = 'favorable'
+  else if (oddsDecimal < UNFAVORABLE_ODDS_THRESHOLD) favorability = 'unfavorable'
+  else favorability = 'even'
+
+  const creatorReturn = creatorStake > 0 ? totalPot / creatorStake : 0
+  const matcherReturn = requiredMatch > 0 ? totalPot / requiredMatch : 0
+  const impliedProb = oddsDecimal / (oddsDecimal + 1)
+
+  return {
+    decimal: oddsDecimal,
+    display: `${oddsDecimal.toFixed(2)}x`,
+    requiredMatch: `$${requiredMatch.toFixed(2)}`,
+    totalPot: `$${totalPot.toFixed(2)}`,
+    creatorReturn: `${creatorReturn.toFixed(2)}x`,
+    matcherReturn: `${matcherReturn.toFixed(2)}x`,
+    favorability,
+    impliedProbability: `${(impliedProb * 100).toFixed(0)}%`
+  }
+}
+
+/**
+ * Get badge color based on favorability
+ */
+function getOddsBadgeColor(favorability: 'favorable' | 'even' | 'unfavorable'): string {
+  switch (favorability) {
+    case 'favorable':
+      return 'bg-green-900/80 text-green-300 border-green-700'
+    case 'even':
+      return 'bg-yellow-900/80 text-yellow-300 border-yellow-700'
+    case 'unfavorable':
+      return 'bg-red-900/80 text-red-300 border-red-700'
+  }
+}
+
+/**
  * Bet Detail Page
  *
  * Shows full bet details including:
@@ -110,9 +182,13 @@ export default async function BetDetailPage({ params }: BetDetailPageProps) {
     notFound()
   }
 
-  const matchPercentage = bet.amount !== '0'
-    ? (parseFloat(bet.matchedAmount) / parseFloat(bet.amount) * 100).toFixed(0)
+  // Calculate match percentage based on required match (not creator stake)
+  const requiredMatchNum = bet.requiredMatch ? parseFloat(bet.requiredMatch) : parseFloat(bet.amount)
+  const matchPercentage = requiredMatchNum !== 0
+    ? (parseFloat(bet.matchedAmount) / requiredMatchNum * 100).toFixed(0)
     : '0'
+
+  const odds = getOddsInfo(bet)
 
   return (
     <main className="min-h-screen bg-terminal">
@@ -131,18 +207,28 @@ export default async function BetDetailPage({ params }: BetDetailPageProps) {
         <Card className="border-white/20">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="font-mono">Bet #{bet.betId}</CardTitle>
+              <div className="flex items-center gap-3">
+                <CardTitle className="font-mono">Bet #{bet.betId}</CardTitle>
+                {/* Odds Badge (AC1) */}
+                <span className={`px-3 py-1 rounded text-sm font-bold font-mono border ${getOddsBadgeColor(odds.favorability)}`}>
+                  {odds.display} Odds
+                </span>
+              </div>
               <span className={`font-mono text-sm ${getStatusColor(bet.status)}`}>
                 {getStatusLabel(bet.status)}
               </span>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Amount Info */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Stake Info (AC2) */}
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Bet Amount</p>
+                <p className="text-white/40 font-mono text-xs uppercase">Creator Staked</p>
                 <p className="text-white font-mono text-lg">{formatAmount(bet.amount)}</p>
+              </div>
+              <div>
+                <p className="text-white/40 font-mono text-xs uppercase">Required Match</p>
+                <p className="text-white font-mono text-lg">{odds.requiredMatch}</p>
               </div>
               <div>
                 <p className="text-white/40 font-mono text-xs uppercase">Matched</p>
@@ -153,13 +239,16 @@ export default async function BetDetailPage({ params }: BetDetailPageProps) {
               </div>
             </div>
 
-            {/* Progress Bar */}
+            {/* Fill Progress Bar (AC3) */}
             <div className="w-full bg-white/10 rounded-full h-2">
               <div
                 className="bg-green-500 h-2 rounded-full transition-all"
                 style={{ width: `${matchPercentage}%` }}
               />
             </div>
+            <p className="text-white/40 font-mono text-xs text-right">
+              {matchPercentage}% matched
+            </p>
 
             {/* Creator */}
             <div>
@@ -170,6 +259,33 @@ export default async function BetDetailPage({ params }: BetDetailPageProps) {
               >
                 {formatAddress(bet.creatorAddress)}
               </Link>
+            </div>
+
+            {/* Payout Info (AC4) */}
+            <div className="bg-white/5 p-4 rounded border border-white/10">
+              <p className="text-white/40 font-mono text-xs uppercase mb-3">Payout Info</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-white/40 font-mono text-xs">Total Pot</p>
+                  <p className="text-white font-mono">{odds.totalPot}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 font-mono text-xs">Creator Return</p>
+                  <p className="text-green-400 font-mono">{odds.creatorReturn}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 font-mono text-xs">Matcher Return</p>
+                  <p className="text-green-400 font-mono">{odds.matcherReturn}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Implied Probability (AC5) */}
+            <div className="bg-white/5 p-3 rounded border border-white/10">
+              <div className="flex justify-between items-center">
+                <span className="text-white/40 font-mono text-xs">Creator implied probability:</span>
+                <span className="text-white font-mono text-sm">{odds.impliedProbability}</span>
+              </div>
             </div>
 
             {/* Timestamps */}
@@ -187,11 +303,16 @@ export default async function BetDetailPage({ params }: BetDetailPageProps) {
                 </p>
               </div>
             </div>
+
+            {/* Read-only notice (AC6) */}
+            <p className="text-[11px] text-white/30 italic text-center pt-2 border-t border-white/10">
+              Bets are placed by AI agents, not via this UI
+            </p>
           </CardContent>
         </Card>
 
         {/* Portfolio Card */}
-        {bet.portfolioJson && bet.portfolioJson.markets.length > 0 && (
+        {bet.portfolioJson && (bet.portfolioJson.positions?.length || bet.portfolioJson.markets?.length) && (
           <Card className="border-white/20">
             <CardHeader>
               <CardTitle className="font-mono text-lg">Portfolio Positions</CardTitle>
@@ -203,7 +324,38 @@ export default async function BetDetailPage({ params }: BetDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {bet.portfolioJson.markets.map((market, index) => (
+                {/* Handle backend 'positions' format */}
+                {bet.portfolioJson.positions?.map((pos, index) => {
+                  const positionStr = typeof pos.position === 'number'
+                    ? (pos.position === 1 ? 'YES' : 'NO')
+                    : String(pos.position).toUpperCase()
+                  return (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                    >
+                      <div className="flex-1">
+                        <p className="text-white/40 font-mono text-xs truncate max-w-[300px]">
+                          {pos.marketId}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {pos.weight && (
+                          <span className="text-white/40 font-mono text-xs">
+                            {pos.weight}%
+                          </span>
+                        )}
+                        <span className={`font-mono text-sm font-bold ${
+                          positionStr === 'YES' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {positionStr}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+                {/* Fallback to 'markets' format for backwards compatibility */}
+                {!bet.portfolioJson.positions && bet.portfolioJson.markets?.map((market, index) => (
                   <div
                     key={index}
                     className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"

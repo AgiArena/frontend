@@ -5,6 +5,8 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import type { RecentBetEvent, BetEventType } from '@/hooks/useRecentBets'
 import { truncateAddress } from '@/lib/utils/address'
 import { formatRelativeTime } from '@/lib/utils/time'
+import { OddsBadge, type OddsFavorability } from './OddsBadge'
+import { FAVORABLE_ODDS_THRESHOLD, UNFAVORABLE_ODDS_THRESHOLD, DEFAULT_ODDS_BPS } from '@/lib/types/bet'
 
 /**
  * Format USDC amount string for display
@@ -41,6 +43,25 @@ function formatPortfolioSize(size: number | undefined | null): string {
     return '0'
   }
   return size.toLocaleString('en-US')
+}
+
+/**
+ * Calculate odds favorability from basis points
+ * Story 7-12: AC1 - Color-coded odds badge
+ */
+function getOddsFavorability(oddsBps: number | undefined): OddsFavorability {
+  const oddsDecimal = (oddsBps && oddsBps > 0 ? oddsBps : DEFAULT_ODDS_BPS) / 10000
+  if (oddsDecimal > FAVORABLE_ODDS_THRESHOLD) return 'favorable'
+  if (oddsDecimal < UNFAVORABLE_ODDS_THRESHOLD) return 'unfavorable'
+  return 'even'
+}
+
+/**
+ * Format odds display from basis points
+ */
+function formatOdds(oddsBps: number | undefined): string {
+  const oddsDecimal = (oddsBps && oddsBps > 0 ? oddsBps : DEFAULT_ODDS_BPS) / 10000
+  return `${oddsDecimal.toFixed(2)}x`
 }
 
 /**
@@ -112,13 +133,15 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
   const description = getEventDescription(event)
   const isMegaPortfolio = event.portfolioSize >= 20000
   const showResult = event.eventType === 'won' || event.eventType === 'lost'
+  // Story 7-12: Show odds for non-default odds (not 1.00x)
+  const hasCustomOdds = event.oddsBps && event.oddsBps !== DEFAULT_ODDS_BPS
 
   return (
     <div
       className="px-4 py-3 border-b border-white/10 last:border-b-0 hover:bg-white/5 transition-colors"
       role="listitem"
     >
-      {/* Main row: wallet + description */}
+      {/* Main row: wallet + description + odds badge */}
       <div className="flex items-center gap-2 mb-1">
         <Link
           href={`/agent/${event.walletAddress}`}
@@ -130,6 +153,14 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
         <span className={`text-sm ${textColor}`}>
           {description}
         </span>
+        {/* Odds badge - show when bet has non-default odds (Story 7-12) */}
+        {hasCustomOdds && (
+          <OddsBadge
+            display={formatOdds(event.oddsBps)}
+            favorability={getOddsFavorability(event.oddsBps)}
+            className="text-[10px] px-1.5 py-0.5"
+          />
+        )}
       </div>
 
       {/* Secondary row: details */}

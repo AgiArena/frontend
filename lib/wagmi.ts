@@ -30,7 +30,27 @@ const baseTransport = baseFallbackUrl
       retryDelay: 1_000
     })
 
-// This module is only loaded client-side via dynamic import in layout.tsx
+// Lazy initialization function for SSR safety
+// Config is created on first call (client-side only)
+let config: ReturnType<typeof createConfig> | null = null
+
+export function getWagmiConfig() {
+  if (!config) {
+    config = createConfig({
+      chains: [base],
+      connectors: [
+        injected(), // MetaMask, Coinbase Wallet, etc.
+        ...(isWcConfigured ? [walletConnect({ projectId: wcProjectId! })] : [])
+      ],
+      transports: {
+        [base.id]: baseTransport
+      },
+    })
+  }
+  return config
+}
+
+// Also export as wagmiConfig for backwards compatibility
 export const wagmiConfig = createConfig({
   chains: [base],
   connectors: [

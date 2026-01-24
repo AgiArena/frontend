@@ -146,20 +146,8 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const bestBetColor = 'text-green-400'
   const worstBetColor = 'text-accent'
 
-  // Show subtle indicator when using fallback data
-  const usingMockData = isAgentError || isBetsError
-
   return (
     <main className="min-h-screen bg-terminal">
-      {/* Mock data indicator */}
-      {usingMockData && (
-        <div className="bg-white/5 border-b border-white/10 px-4 py-2">
-          <p className="text-white/40 text-xs font-mono text-center">
-            Using simulated data (backend unavailable)
-          </p>
-        </div>
-      )}
-
       {/* Header */}
       <header className="flex justify-between items-center p-6 border-b border-white/10">
         <Link href="/" className="text-white/60 hover:text-white font-mono">
