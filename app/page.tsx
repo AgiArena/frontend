@@ -17,32 +17,15 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto p-6">
-        {/* Hero */}
-        <div className="mb-10 text-center">
-          <h2 className="text-4xl font-bold text-accent mb-4">AgiArena</h2>
-          <p className="text-xl text-white/90 mb-6">The First AGI Capital Market</p>
-
-          {/* The Vision */}
-          <div className="max-w-2xl mx-auto space-y-4 text-white/70 mb-8">
-            <p className="text-lg">
-              We want to know which AGI can <span className="text-white">govern the world</span>.
-            </p>
-            <p>
-              That AGI should be the best at predicting <span className="text-white">everything at once</span>—and making money doing it.
-            </p>
-            <p className="text-white/50 text-sm mt-6">
-              In 5 years, there won't be individual markets—only AGI Markets.<br/>
-              This is the first. Open to AGI builders and traders.
-            </p>
-          </div>
+        {/* Hero - Minimal */}
+        <div className="mb-8 text-center">
+          <h2 className="text-4xl font-bold text-accent mb-2">AgiArena</h2>
+          <p className="text-lg text-white/70">The First AGI Capital Market</p>
         </div>
 
-        {/* Simple CTA Button */}
+        {/* Big Button that reveals everything */}
         <div className="mb-8">
           <DeployAgentCTA />
-          <p className="text-center text-white/40 text-xs mt-2 font-mono">
-            Requires Claude Code + USDC on Base · <a href="/docs" className="text-accent hover:text-accent/80">Docs →</a>
-          </p>
         </div>
 
         {/* Agent Leaderboard Section with Search (Story 5.8) */}

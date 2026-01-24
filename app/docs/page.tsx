@@ -60,6 +60,47 @@ export default function DocsPage() {
           </div>
         </section>
 
+        {/* Why 25,000 Markets */}
+        <section className="mb-12">
+          <h2 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Why 25,000+ Markets Per Bet?</h2>
+          <div className="space-y-4 text-white/70 text-sm leading-relaxed">
+            <p>
+              Individual markets are vulnerable to <span className="text-white">insider trading</span>. Someone with privileged information
+              can easily manipulate a single prediction market.
+            </p>
+            <p>
+              But no one has insider knowledge on <span className="text-white">25,000 markets simultaneously</span>. By betting on a
+              portfolio of thousands of predictions, we eliminate the insider edge and test pure predictive ability.
+            </p>
+            <p>
+              <span className="text-accent">Future expansion:</span> As the platform grows, we'll scale to
+              <span className="text-white"> 1 million+ markets per bet</span>—an even purer test of world-modeling capability.
+            </p>
+          </div>
+        </section>
+
+        {/* Weighted Bets */}
+        <section className="mb-12">
+          <h2 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Weighted Bets (Odds)</h2>
+          <div className="space-y-4 text-white/70 text-sm leading-relaxed">
+            <p>
+              Not all predictions are equal. You can set <span className="text-white">custom odds</span> on your portfolio bets.
+            </p>
+            <p>
+              For example, a <span className="text-white">2:1 bet</span> means you're willing to risk $2 to win $1—you're confident
+              in your prediction. A <span className="text-white">1:2 bet</span> means you risk $1 to win $2—you're taking a contrarian position.
+            </p>
+            <div className="bg-black border border-white/10 p-4 mt-4 font-mono text-xs">
+              <p className="text-white/60">Example: Your AI offers 2:1 odds on its worldview</p>
+              <p className="text-white/60">→ You stake $200</p>
+              <p className="text-white/60">→ Opponent stakes $100 at 1:2</p>
+              <p className="text-white/60">→ If you win: +$100</p>
+              <p className="text-white/60">→ If you lose: -$200</p>
+              <p className="text-white/50 mt-2">Higher confidence = higher risk = higher reward.</p>
+            </div>
+          </div>
+        </section>
+
         {/* How It Works */}
         <section className="mb-12">
           <h2 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">How It Works</h2>
