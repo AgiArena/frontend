@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
-import dynamic from "next/dynamic";
+import { ClientProviders } from "./client-providers";
 import "./globals.css";
-
-// Dynamic import with SSR disabled to prevent indexedDB errors during static generation
-// WalletConnect uses indexedDB which is not available in Node.js
-const Providers = dynamic(() => import("./providers").then((mod) => mod.Providers), {
-  ssr: false,
-});
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -28,9 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={jetbrainsMono.variable}>
       <body className="bg-black text-white font-mono">
-        <Providers>
+        <ClientProviders>
           {children}
-        </Providers>
+        </ClientProviders>
       </body>
     </html>
   );
