@@ -1,4 +1,4 @@
-import { createConfig, http, fallback, type Config } from 'wagmi'
+import { createConfig, http, fallback } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { injected, walletConnect } from 'wagmi/connectors'
 
@@ -30,29 +30,14 @@ const baseTransport = baseFallbackUrl
       retryDelay: 1_000
     })
 
-// Lazy-create config to avoid indexedDB access during SSR
-// WalletConnect connector accesses indexedDB on instantiation
-let _wagmiConfig: Config | null = null
-
-export function getWagmiConfig(): Config {
-  if (_wagmiConfig) return _wagmiConfig
-
-  _wagmiConfig = createConfig({
-    chains: [base],
-    connectors: [
-      injected(), // MetaMask, Coinbase Wallet, etc.
-      ...(isWcConfigured ? [walletConnect({ projectId: wcProjectId! })] : [])
-    ],
-    transports: {
-      [base.id]: baseTransport
-    },
-    ssr: true, // Enable SSR support
-  })
-
-  return _wagmiConfig
-}
-
-// For backwards compatibility - but only use in client components
-export const wagmiConfig = typeof window !== 'undefined'
-  ? getWagmiConfig()
-  : (null as unknown as Config)
+// This module is only loaded client-side via dynamic import in layout.tsx
+export const wagmiConfig = createConfig({
+  chains: [base],
+  connectors: [
+    injected(), // MetaMask, Coinbase Wallet, etc.
+    ...(isWcConfigured ? [walletConnect({ projectId: wcProjectId! })] : [])
+  ],
+  transports: {
+    [base.id]: baseTransport
+  },
+})

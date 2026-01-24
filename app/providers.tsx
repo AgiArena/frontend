@@ -2,12 +2,12 @@
 
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { getWagmiConfig } from '@/lib/wagmi'
+import { wagmiConfig } from '@/lib/wagmi'
 import { ToastProvider } from '@/lib/contexts/ToastContext'
 import { ReactNode, useState } from 'react'
 
 export function Providers({ children }: { children: ReactNode }) {
-  // Create QueryClient inside component to prevent SSR state leaking between requests
+  // Create QueryClient inside component to prevent state leaking between requests
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -17,11 +17,8 @@ export function Providers({ children }: { children: ReactNode }) {
     },
   }))
 
-  // Lazy-load wagmi config to avoid indexedDB access during SSR
-  const [config] = useState(() => getWagmiConfig())
-
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           {children}

@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: "standalone",
-  outputFileTracingRoot: path.join(__dirname, ".."),
+  // Webpack config to handle WalletConnect's pino-pretty optional dependency
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      "pino-pretty": false,
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
