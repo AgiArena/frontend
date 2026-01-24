@@ -3,6 +3,10 @@
   "framework": "nextjs",
   "rewrites": [
     {
+      "source": "/api/config",
+      "destination": "https://63.179.141.230/api/config"
+    },
+    {
       "source": "/api/leaderboard",
       "destination": "https://63.179.141.230/api/leaderboard"
     },

@@ -6,12 +6,12 @@
 /**
  * AgiArenaCore contract address on Base mainnet
  */
-export const CONTRACT_ADDRESS = '0x241c5B8860223862d7722edE230C855A905C27eB' as const
+export const CONTRACT_ADDRESS = '0xcb6C040bd4E1742840AD5542C6fDDaF74dB73AF6' as const
 
 /**
  * ResolutionDAO contract address on Base mainnet
  */
-export const RESOLUTION_CONTRACT_ADDRESS = '0x270cb03cfE881dA9e6D210e7F8a56D96f8D6Ae00' as const
+export const RESOLUTION_CONTRACT_ADDRESS = '0x2A57a0420be53C235b28681760cAE868FFb85118' as const
 
 /**
  * USDC token address on Base mainnet
