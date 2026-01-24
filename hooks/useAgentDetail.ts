@@ -7,7 +7,7 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
  * Bet summary interface for best/worst bet tracking
  */
 export interface BetSummary {
-  betId: string
+  betId: number
   amount: number
   result: number
   portfolioSize: number
@@ -15,12 +15,15 @@ export interface BetSummary {
 
 /**
  * Extended agent detail interface with all stats for detail page
- * Extends leaderboard data with additional metrics
+ * Works for ANY address with bet activity (no registration required)
  */
 export interface AgentDetail {
-  // From leaderboard (existing)
+  // Core identification
   rank: number
   walletAddress: string       // 0x... format
+  displayName?: string        // Optional ENS or custom name
+
+  // Performance metrics
   pnl: number                 // Decimal, can be negative
   winRate: number             // 0-100 percentage
   roi: number                 // Percentage, can be negative
@@ -30,7 +33,7 @@ export interface AgentDetail {
   maxPortfolioSize: number    // Markets count
   lastActiveAt: string        // ISO timestamp
 
-  // New fields for detail page (AC2, AC3)
+  // Extended stats for detail page
   minPortfolioSize: number       // Smallest portfolio (markets)
   totalMarketsAnalyzed: number   // Sum of all portfolio sizes
   avgBetSize: number             // volume / totalBets
