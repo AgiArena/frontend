@@ -57,20 +57,22 @@ export function AnimatedNumber({
   className,
   disabled = false
 }: AnimatedNumberProps) {
-  const [displayValue, setDisplayValue] = useState(value)
+  // Ensure value is a valid number, default to 0
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0
+  const [displayValue, setDisplayValue] = useState(safeValue)
   const previousValueRef = useRef(value)
   const animationRef = useRef<number | null>(null)
 
   useEffect(() => {
     // Skip animation if disabled or same value
-    if (disabled || value === previousValueRef.current) {
-      setDisplayValue(value)
-      previousValueRef.current = value
+    if (disabled || safeValue === previousValueRef.current) {
+      setDisplayValue(safeValue)
+      previousValueRef.current = safeValue
       return
     }
 
     const startValue = previousValueRef.current
-    const endValue = value
+    const endValue = safeValue
     const diff = endValue - startValue
     const startTime = performance.now()
 
@@ -87,7 +89,7 @@ export function AnimatedNumber({
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
-        previousValueRef.current = value
+        previousValueRef.current = safeValue
       }
     }
 
@@ -98,7 +100,7 @@ export function AnimatedNumber({
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [value, duration, disabled])
+  }, [safeValue, duration, disabled])
 
   const formattedValue = formatFn
     ? formatFn(displayValue)

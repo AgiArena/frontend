@@ -40,6 +40,7 @@ export function formatUsdcAmount(amount: bigint): string {
  * @returns Formatted string with commas (e.g., "1,234,567")
  */
 export function formatNumber(num: number): string {
+  if (typeof num !== 'number' || isNaN(num)) return '0'
   return num.toLocaleString('en-US')
 }
 
@@ -50,6 +51,7 @@ export function formatNumber(num: number): string {
  * @returns Formatted string like "12.5%"
  */
 export function formatPercentage(value: number, decimals: number = 1): string {
+  if (typeof value !== 'number' || isNaN(value)) return '0%'
   return `${(value * 100).toFixed(decimals)}%`
 }
 
@@ -86,6 +88,7 @@ export function formatWalletAddress(address: string): string {
  * @returns Formatted string like "18.5K markets" or "850 markets"
  */
 export function formatPortfolioSize(num: number): string {
+  if (typeof num !== 'number' || isNaN(num)) return '0 markets'
   if (num >= 1000) {
     return `${(num / 1000).toFixed(1)}K markets`
   }
@@ -98,6 +101,7 @@ export function formatPortfolioSize(num: number): string {
  * @returns Formatted string like "+156.3%" or "-28.7%"
  */
 export function formatROI(value: number): string {
+  if (typeof value !== 'number' || isNaN(value)) return '+0.0%'
   const sign = value >= 0 ? '+' : ''
   return `${sign}${value.toFixed(1)}%`
 }
@@ -108,6 +112,7 @@ export function formatROI(value: number): string {
  * @returns Formatted string like "73.5%"
  */
 export function formatWinRate(value: number): string {
+  if (typeof value !== 'number' || isNaN(value)) return '0.0%'
   return `${value.toFixed(1)}%`
 }
 
@@ -117,6 +122,7 @@ export function formatWinRate(value: number): string {
  * @returns Formatted string like "+$12,567.89" or "-$1,234.56"
  */
 export function formatPnL(value: number): string {
+  if (typeof value !== 'number' || isNaN(value)) return '+$0.00'
   const sign = value >= 0 ? '+' : '-'
   const absValue = Math.abs(value)
   const formatted = absValue.toLocaleString('en-US', {
@@ -132,6 +138,7 @@ export function formatPnL(value: number): string {
  * @returns Formatted string like "$45,678.90"
  */
 export function formatVolume(value: number): string {
+  if (typeof value !== 'number' || isNaN(value)) return '$0.00'
   return `$${value.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -174,14 +181,16 @@ export function formatDate(isoString: string): string {
  * @returns Formatted string like "+$24.50 (+16.3%)" or "-$12.00 (-8.5%)"
  */
 export function formatResultWithPercent(amount: number, percent: number): string {
-  const sign = amount >= 0 ? '+' : '-'
-  const absAmount = Math.abs(amount)
+  const safeAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0
+  const safePercent = typeof percent === 'number' && !isNaN(percent) ? percent : 0
+  const sign = safeAmount >= 0 ? '+' : '-'
+  const absAmount = Math.abs(safeAmount)
   const formattedAmount = absAmount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })
-  const percentSign = percent >= 0 ? '+' : ''
-  return `${sign}$${formattedAmount} (${percentSign}${percent.toFixed(1)}%)`
+  const percentSign = safePercent >= 0 ? '+' : ''
+  return `${sign}$${formattedAmount} (${percentSign}${safePercent.toFixed(1)}%)`
 }
 
 /**
@@ -206,8 +215,10 @@ export function formatAverageBetSize(volume: number, totalBets: number): string 
  * @returns Formatted string like "+$500.00 (18K markets)" or "-$250.00 (12K markets)"
  */
 export function formatBestWorstBet(amount: number, portfolioSize: number): string {
-  const sign = amount >= 0 ? '+' : '-'
-  const absAmount = Math.abs(amount)
+  const safeAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0
+  const safeSize = typeof portfolioSize === 'number' && !isNaN(portfolioSize) ? portfolioSize : 0
+  const sign = safeAmount >= 0 ? '+' : '-'
+  const absAmount = Math.abs(safeAmount)
   const formattedAmount = absAmount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -215,10 +226,10 @@ export function formatBestWorstBet(amount: number, portfolioSize: number): strin
 
   // Format portfolio size
   let portfolioStr: string
-  if (portfolioSize >= 1000) {
-    portfolioStr = `${(portfolioSize / 1000).toFixed(1)}K`
+  if (safeSize >= 1000) {
+    portfolioStr = `${(safeSize / 1000).toFixed(1)}K`
   } else {
-    portfolioStr = portfolioSize.toLocaleString()
+    portfolioStr = safeSize.toLocaleString()
   }
 
   return `${sign}$${formattedAmount} (${portfolioStr} markets)`
