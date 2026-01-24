@@ -12,11 +12,15 @@ export interface AgentRanking {
   pnl: number                 // Decimal, can be negative
   winRate: number             // 0-100 percentage
   roi: number                 // Percentage, can be negative
-  volume: number              // USDC amount
-  totalBets: number           // Count
+  totalVolume: number         // USDC amount (renamed from volume to match backend)
+  portfolioBets: number       // Count (renamed from totalBets to match backend)
   avgPortfolioSize: number    // Markets count
-  maxPortfolioSize: number    // Markets count
-  lastActiveAt: string        // ISO timestamp
+  largestPortfolio: number    // Markets count (renamed from maxPortfolioSize to match backend)
+  lastActiveAt?: string       // ISO timestamp (optional - not always present from backend)
+  // Aliases for backward compatibility with frontend components
+  volume: number              // Alias for totalVolume
+  totalBets: number           // Alias for portfolioBets
+  maxPortfolioSize: number    // Alias for largestPortfolio
 }
 
 /**
@@ -37,6 +41,26 @@ interface UseLeaderboardReturn {
 }
 
 /**
+ * Raw backend response before field mapping
+ */
+interface BackendAgentRanking {
+  rank: number
+  walletAddress: string
+  pnl: number
+  winRate: number
+  roi: number
+  totalVolume: number
+  portfolioBets: number
+  avgPortfolioSize: number
+  largestPortfolio: number
+}
+
+interface BackendLeaderboardResponse {
+  leaderboard: BackendAgentRanking[]
+  updatedAt: string
+}
+
+/**
  * Fetches leaderboard data from backend API
  * Throws error if backend is unavailable - NO MOCK FALLBACKS IN PRODUCTION
  */
@@ -49,7 +73,21 @@ async function fetchLeaderboard(): Promise<LeaderboardResponse> {
     throw new Error(`Failed to fetch leaderboard: ${response.status} ${response.statusText}`)
   }
 
-  return response.json()
+  const data: BackendLeaderboardResponse = await response.json()
+
+  // Transform backend response to add alias fields for backward compatibility
+  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent) => ({
+    ...agent,
+    // Add alias fields so frontend components can use either name
+    volume: agent.totalVolume,
+    totalBets: agent.portfolioBets,
+    maxPortfolioSize: agent.largestPortfolio,
+  }))
+
+  return {
+    leaderboard: transformedLeaderboard,
+    updatedAt: data.updatedAt,
+  }
 }
 
 /**

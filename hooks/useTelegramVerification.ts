@@ -10,7 +10,8 @@
 import { useState, useCallback } from 'react'
 import { useAccount, useSignMessage } from 'wagmi'
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+// Use relative path to go through Vercel rewrites to production backend
+const BACKEND_URL = ''
 
 interface VerificationState {
   status: 'idle' | 'loading' | 'signing' | 'verifying' | 'success' | 'error'

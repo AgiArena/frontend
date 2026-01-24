@@ -38,7 +38,7 @@ export function USDCBalanceCard() {
   if (!mounted) {
     return (
       <Card className="border-white/20">
-        <CardContent className="p-6">
+        <CardContent className="p-6 flex items-center justify-center min-h-[120px]">
           <p className="text-white/60 text-center">Connect wallet to view balance</p>
         </CardContent>
       </Card>
@@ -49,7 +49,7 @@ export function USDCBalanceCard() {
   if (!isConnected) {
     return (
       <Card className="border-white/20">
-        <CardContent className="p-6">
+        <CardContent className="p-6 flex items-center justify-center min-h-[120px]">
           <p className="text-white/60 text-center">Connect wallet to view balance</p>
         </CardContent>
       </Card>

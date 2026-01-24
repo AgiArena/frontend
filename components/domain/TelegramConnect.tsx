@@ -12,7 +12,8 @@
 import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'
+// Use relative path to go through Vercel rewrites to production backend
+const BACKEND_URL = ''
 const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'AgiArenaBot'
 
 interface TelegramConnectProps {
