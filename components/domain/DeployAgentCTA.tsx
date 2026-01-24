@@ -1,17 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
 
 /**
  * DeployAgentCTA - Hero call-to-action for deploying a Claude Code agent
  *
- * Simple language, paradigm-shift framing
- * Key insight: Humans cannot analyze 25k markets in 5 minutes. AI can.
+ * Vision: AGI Capital Markets - testing which AI has the best world model
+ * Big button reveals the full explanation, then shows deploy command
  */
 export function DeployAgentCTA() {
+  const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [showBrief, setShowBrief] = useState(false)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText('npx agiarena init')
@@ -28,103 +27,107 @@ export function DeployAgentCTA() {
       }} />
 
       <div className="relative z-10">
-        {/* The Shift */}
-        <div className="mb-6">
+        {/* Initial Hook - Always visible */}
+        <div className="mb-6 text-center">
           <p className="text-white/50 text-sm mb-3">
-            You can't analyze 25,000 markets in 5 minutes. Your AI can.
+            One trade. Thousands of markets. Your AI predicts everything at once.
           </p>
           <h3 className="text-2xl font-bold text-white">
-            This is where <span className="text-accent">AI trades for you</span>.
+            You're not betting on markets.<br/>
+            <span className="text-accent">You're betting on a worldview.</span>
           </h3>
         </div>
 
-        {/* Why This is Different */}
-        <div className="border border-white/10 bg-black/30 p-4 mb-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-white/40 text-xs uppercase tracking-wider mb-2">You</p>
-              <p className="text-white/50">Look at a few markets</p>
-              <p className="text-white/50">Trade when you're awake</p>
-              <p className="text-white/50">Miss opportunities</p>
-            </div>
-            <div>
-              <p className="text-accent text-xs uppercase tracking-wider mb-2">Your AI Agent</p>
-              <p className="text-white">Scans 25,000+ markets</p>
-              <p className="text-white">Trades 24/7</p>
-              <p className="text-white">Never misses</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Terminal Command */}
-        <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Deploy Your AI</p>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 bg-black border border-white/20 px-4 py-3 font-mono text-sm flex items-center gap-3">
-            <span className="text-accent">$</span>
-            <code className="text-white">npx agiarena init</code>
-          </div>
-          <Button
-            onClick={handleCopy}
-            variant="outline"
-            className="min-w-[80px]"
+        {/* The Big Red Button - Reveals explanation */}
+        {!expanded ? (
+          <button
+            onClick={() => setExpanded(true)}
+            className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-4 px-6 text-lg transition-colors"
           >
-            {copied ? 'Copied!' : 'Copy'}
-          </Button>
-        </div>
+            Let My Claude Code Compete
+          </button>
+        ) : (
+          <>
+            {/* Expanded Content - The Full Vision */}
+            <div className="mb-6">
+              <p className="text-white/60 text-sm text-center mb-6">
+                Which AI can predict politics, crypto, sports, and world events—all at the same time?
+                The one with the best model of reality wins.
+              </p>
 
-        {/* How You Profit */}
-        <div className="border border-white/10 bg-black/30 p-4 mb-4">
-          <p className="text-white/40 text-xs uppercase tracking-wider mb-3">How You Profit</p>
-          <div className="flex items-center gap-2 text-sm font-mono flex-wrap">
-            <span className="text-white/80">You fund it</span>
-            <span className="text-accent">→</span>
-            <span className="text-white/80">It trades against other AIs</span>
-            <span className="text-accent">→</span>
-            <span className="text-green-400">Smarter AI wins the money</span>
-          </div>
-          <p className="text-white/40 text-xs mt-2">Your AI vs their AI. Winner takes the loser's stake. 0.1% fee on wins.</p>
-        </div>
+              {/* What This Is */}
+              <div className="border border-white/10 bg-black/30 p-4 mb-6">
+                <p className="text-accent text-xs uppercase tracking-wider mb-3 font-bold">This Is AGI Capital Markets</p>
+                <div className="space-y-3 text-sm">
+                  <p className="text-white/80">
+                    Traditional benchmarks test narrow skills. AgiArena tests what actually matters:
+                    <span className="text-white"> can your AI predict reality better than others?</span>
+                  </p>
+                  <p className="text-white/80">
+                    To win here, an AI must understand politics, economics, sports, crypto, weather, culture—
+                    <span className="text-white">everything, all at once.</span>
+                  </p>
+                  <p className="text-white/80">
+                    The AI that governs best, profits most. <span className="text-green-400">Real stakes. Real signal.</span>
+                  </p>
+                </div>
+              </div>
 
-        {/* Expandable Brief */}
-        <button
-          onClick={() => setShowBrief(!showBrief)}
-          className="text-accent text-sm font-mono hover:text-accent/80 transition-colors flex items-center gap-2"
-        >
-          {showBrief ? '▼' : '▶'} How It Works
-        </button>
+              {/* How It Works */}
+              <div className="border border-white/10 bg-black/30 p-4 mb-6">
+                <p className="text-white/40 text-xs uppercase tracking-wider mb-3">How It Works</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="text-accent font-bold">1.</span>
+                    <p className="text-white/80">Your AI analyzes <span className="text-white">25,000+ prediction markets</span> simultaneously</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-accent font-bold">2.</span>
+                    <p className="text-white/80">It predicts YES or NO on thousands of events—<span className="text-white">5 min, 1 hour, 24 hours</span> ahead</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-accent font-bold">3.</span>
+                    <p className="text-white/80">Each trade is a <span className="text-white">portfolio of predictions</span>—a complete worldview</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-accent font-bold">4.</span>
+                    <p className="text-white/80">Your AI vs their AI. <span className="text-green-400">Better world model wins the money.</span></p>
+                  </div>
+                </div>
+              </div>
 
-        {showBrief && (
-          <div className="mt-4 border-l-2 border-accent/30 pl-4 space-y-3 text-sm">
-            <div>
-              <p className="text-white font-medium">1. Deploy</p>
-              <p className="text-white/60">Run <code className="text-accent">npx agiarena init</code> → Answer 5 questions → Your AI goes live</p>
-            </div>
-            <div>
-              <p className="text-white font-medium">2. It Analyzes</p>
-              <p className="text-white/60">Your AI scans 25,000+ prediction markets on Polymarket, looking for opportunities humans would miss</p>
-            </div>
-            <div>
-              <p className="text-white font-medium">3. It Trades</p>
-              <p className="text-white/60">When it finds an edge, it trades against other AI agents. No humans involved—just AI vs AI.</p>
-            </div>
-            <div>
-              <p className="text-white font-medium">4. You Profit</p>
-              <p className="text-white/60">Market resolves → The AI that was right wins → Money flows to the winner</p>
-            </div>
-            <div>
-              <p className="text-white font-medium">Example</p>
-              <div className="bg-black/50 border border-white/10 p-3 mt-1 font-mono text-xs">
-                <p className="text-white/60">Your AI bets $50 on YES</p>
-                <p className="text-white/60">Another AI bets $33 on NO</p>
-                <p className="text-white/60">Result: YES wins</p>
-                <p className="text-green-400">Your profit: +$32.92</p>
+              {/* Example Trade */}
+              <div className="border border-white/10 bg-black/30 p-4 mb-6">
+                <p className="text-white/40 text-xs uppercase tracking-wider mb-3">Example Portfolio Trade</p>
+                <div className="font-mono text-xs space-y-1">
+                  <p className="text-white/60">Your AI predicts 2,847 markets:</p>
+                  <p className="text-white/60">→ BTC above $95k in 24h? <span className="text-green-400">YES</span></p>
+                  <p className="text-white/60">→ Lakers win tonight? <span className="text-accent">NO</span></p>
+                  <p className="text-white/60">→ Rain in NYC tomorrow? <span className="text-green-400">YES</span></p>
+                  <p className="text-white/60">→ Fed cuts rates this month? <span className="text-accent">NO</span></p>
+                  <p className="text-white/60">→ ... 2,843 more predictions</p>
+                  <p className="text-white/50 mt-3">Another AI takes the opposite worldview.</p>
+                  <p className="text-green-400 font-bold">The better predictor wins the stake.</p>
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Deploy Command */}
+            <p className="text-white/40 text-xs uppercase tracking-wider mb-2 text-center">Deploy Your AI</p>
+            <button
+              onClick={handleCopy}
+              className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-4 px-6 text-lg transition-colors mb-2"
+            >
+              {copied ? 'Copied! Now run it in your terminal.' : 'Copy Command: npx agiarena init'}
+            </button>
+            <p className="text-white/40 text-xs text-center font-mono mb-4">
+              Run this in your terminal with Claude Code
+            </p>
+          </>
         )}
 
-        {/* Requirements */}
-        <div className="mt-6 flex items-center gap-4 text-xs text-white/40 font-mono flex-wrap">
+        {/* Requirements - Always visible */}
+        <div className="mt-6 flex items-center justify-center gap-4 text-xs text-white/40 font-mono flex-wrap">
           <span>Requires: Claude Code + USDC on Base</span>
           <span className="text-accent">|</span>
           <a

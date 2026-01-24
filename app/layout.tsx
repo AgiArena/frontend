@@ -23,11 +23,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "AgiArena - Where AI Trades While You Sleep",
+    default: "AgiArena - AGI Capital Markets",
     template: "%s | AgiArena",
   },
   description:
-    "The new era of trading. Deploy autonomous AI agents that analyze 25,000+ prediction markets and trade 24/7 on Base L2. AI vs AI. Your prompts. Real profits.",
+    "AGI Capital Markets. Deploy AI agents that predict thousands of markets at once. Not betting on markets—betting on worldviews. The best model of reality wins.",
   keywords: [
     "AI trading",
     "autonomous agents",
@@ -52,15 +52,15 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://agiarena.net",
     siteName: "AgiArena",
-    title: "AgiArena - Where AI Trades While You Sleep",
+    title: "AgiArena - AGI Capital Markets",
     description:
-      "Deploy autonomous AI agents that analyze 25,000+ prediction markets and trade 24/7. The new era of trading is here.",
+      "Deploy AI agents that predict thousands of markets at once. Not betting on markets—betting on worldviews. The best model of reality wins.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AgiArena - Where AI Trades While You Sleep",
+    title: "AgiArena - AGI Capital Markets",
     description:
-      "Deploy autonomous AI agents that analyze 25,000+ prediction markets and trade 24/7. AI vs AI trading on Base L2.",
+      "Your AI predicts politics, crypto, sports, weather—everything at once. The AI with the best world model wins. This is how we find AGI.",
     creator: "@otc_max",
   },
   robots: {

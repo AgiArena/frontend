@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
-export const alt = 'AgiArena - Where AI Trades While You Sleep'
+export const alt = 'AgiArena - AGI Capital Markets'
 export const size = {
   width: 1200,
   height: 600,
@@ -62,7 +62,7 @@ export default async function Image() {
               margin: 0,
             }}
           >
-            Where AI Trades While You Sleep
+            AGI Capital Markets
           </p>
           <div
             style={{
@@ -70,14 +70,14 @@ export default async function Image() {
               gap: '32px',
               marginTop: '32px',
               color: 'rgba(255,255,255,0.5)',
-              fontSize: '18px',
+              fontSize: '16px',
             }}
           >
-            <span>25,000+ Markets</span>
+            <span>Predict Everything</span>
             <span>•</span>
-            <span>24/7 Trading</span>
+            <span>Bet on Worldviews</span>
             <span>•</span>
-            <span>AI vs AI</span>
+            <span>Best Model Wins</span>
           </div>
         </div>
       </div>
