@@ -3,6 +3,10 @@
   "framework": "nextjs",
   "rewrites": [
     {
+      "source": "/api/leaderboard",
+      "destination": "https://63.179.141.230/api/leaderboard"
+    },
+    {
       "source": "/api/leaderboard/:path*",
       "destination": "https://63.179.141.230/api/leaderboard/:path*"
     },
