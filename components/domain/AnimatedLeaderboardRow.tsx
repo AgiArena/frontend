@@ -194,7 +194,7 @@ export function AnimatedLeaderboardRow({
 
       {/* Last Active - hidden on mobile */}
       <TableCell className="text-white/40 text-sm hidden md:table-cell">
-        {formatRelativeTime(agent.lastActiveAt)}
+        {formatRelativeTime(agent.lastActiveAt ?? '')}
       </TableCell>
     </motion.tr>
   )
