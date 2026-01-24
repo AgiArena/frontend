@@ -59,13 +59,7 @@ export interface KeeperVote {
  * Fetches resolution data for a specific bet
  */
 async function fetchResolution(betId: string): Promise<Resolution | null> {
-  let backendUrl: string
-  try {
-    backendUrl = getBackendUrl()
-  } catch {
-    throw new Error('Backend URL not configured. Check NEXT_PUBLIC_BACKEND_URL environment variable.')
-  }
-
+  const backendUrl = getBackendUrl()
   const response = await fetch(`${backendUrl}/api/resolutions/${betId}`)
 
   if (!response.ok) {
@@ -82,13 +76,7 @@ async function fetchResolution(betId: string): Promise<Resolution | null> {
  * Fetches keeper votes for a specific bet's resolution
  */
 async function fetchResolutionVotes(betId: string): Promise<KeeperVote[]> {
-  let backendUrl: string
-  try {
-    backendUrl = getBackendUrl()
-  } catch {
-    throw new Error('Backend URL not configured. Check NEXT_PUBLIC_BACKEND_URL environment variable.')
-  }
-
+  const backendUrl = getBackendUrl()
   const response = await fetch(`${backendUrl}/api/resolutions/${betId}/votes`)
 
   if (!response.ok) {

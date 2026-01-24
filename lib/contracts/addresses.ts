@@ -37,16 +37,13 @@ export const USDC_DECIMALS = 6
 
 /**
  * Backend API URL for JSON storage
+ * Returns empty string for same-origin requests (when using Vercel rewrites)
  */
 export function getBackendUrl(): string {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL
-  if (!url) {
-    throw new Error(
-      'NEXT_PUBLIC_BACKEND_URL environment variable is not set. ' +
-      'Add it to frontend/.env.local'
-    )
-  }
-  return url
+  // Empty string = same-origin (Vercel rewrites proxy to backend)
+  // This allows frontend to call /api/* which Vercel proxies to the backend server
+  return url || ''
 }
 
 /**

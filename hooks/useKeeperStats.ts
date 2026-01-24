@@ -20,13 +20,7 @@ export interface KeeperStats {
  * Fetches keeper statistics
  */
 async function fetchKeeperStats(address: string): Promise<KeeperStats | null> {
-  let backendUrl: string
-  try {
-    backendUrl = getBackendUrl()
-  } catch {
-    throw new Error('Backend URL not configured. Check NEXT_PUBLIC_BACKEND_URL environment variable.')
-  }
-
+  const backendUrl = getBackendUrl()
   const response = await fetch(`${backendUrl}/api/keepers/${address}/stats`)
 
   if (!response.ok) {

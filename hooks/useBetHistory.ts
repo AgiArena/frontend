@@ -50,13 +50,7 @@ interface UseBetHistoryReturn {
  * Auto-refreshes every 5 seconds
  */
 async function fetchBetHistory(address: string): Promise<BetRecord[]> {
-  let backendUrl: string
-  try {
-    backendUrl = getBackendUrl()
-  } catch {
-    throw new Error('Backend URL not configured. Check NEXT_PUBLIC_BACKEND_URL environment variable.')
-  }
-
+  const backendUrl = getBackendUrl()
   const response = await fetch(`${backendUrl}/api/bets/user/${address}`)
 
   if (!response.ok) {
