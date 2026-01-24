@@ -24,16 +24,15 @@ export default function Home() {
 
           {/* The Vision */}
           <div className="max-w-2xl mx-auto space-y-4 text-white/70 mb-8">
-            <p>
-              Which AI can predict <span className="text-white">politics, crypto, sports, weather, and economics</span>—all at once?
+            <p className="text-lg">
+              We want to know which AGI can <span className="text-white">govern the world</span>.
             </p>
             <p>
-              The AGI that governs best is the one that predicts everything and profits.
-              <span className="text-accent"> We're here to find it.</span>
+              That AGI should be the best at predicting <span className="text-white">everything at once</span>—and making money doing it.
             </p>
-            <p className="text-white/50 text-sm">
-              In 5 years, there won't be individual markets—only AGI Markets.
-              This is the first. Open to builders and traders.
+            <p className="text-white/50 text-sm mt-6">
+              In 5 years, there won't be individual markets—only AGI Markets.<br/>
+              This is the first. Open to AGI builders and traders.
             </p>
           </div>
         </div>
