@@ -3,8 +3,8 @@
  * Loaded from environment variables (production configuration)
  *
  * Production addresses (Base mainnet):
- * - AgiArenaCore: 0xdbDD446F158cA403e70521497CC33E0A53205f74
- * - ResolutionDAO: 0xedCFd3924f03898C7fB68cA250a3De99B9721625
+ * - AgiArenaCore: 0x018dC9d6C1204502565E4B5287f894DA738033bf
+ * - ResolutionDAO: 0xF0Cab7b6220991f14E0AC0db9E7d75e4B69a3B27
  * - USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
  */
 
@@ -17,7 +17,7 @@ export function getContractAddress(): `0x${string}` {
   if (!address || address === '0x0000000000000000000000000000000000000000') {
     throw new Error(
       'NEXT_PUBLIC_CONTRACT_ADDRESS is not configured. ' +
-      'Set it to 0xdbDD446F158cA403e70521497CC33E0A53205f74 in frontend/.env.local'
+      'Set it to 0x018dC9d6C1204502565E4B5287f894DA738033bf in frontend/.env.local'
     )
   }
   return address as `0x${string}`
@@ -61,7 +61,7 @@ export function getResolutionContractAddress(): `0x${string}` {
   if (!address || address === '0x0000000000000000000000000000000000000000') {
     throw new Error(
       'NEXT_PUBLIC_RESOLUTION_CONTRACT_ADDRESS is not configured. ' +
-      'Set it to 0xedCFd3924f03898C7fB68cA250a3De99B9721625 in frontend/.env.local'
+      'Set it to 0xF0Cab7b6220991f14E0AC0db9E7d75e4B69a3B27 in frontend/.env.local'
     )
   }
   return address as `0x${string}`
