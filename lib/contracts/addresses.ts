@@ -6,12 +6,12 @@
 /**
  * AgiArenaCore contract address on Base mainnet
  */
-export const CONTRACT_ADDRESS = '0x018dC9d6C1204502565E4B5287f894DA738033bf' as const
+export const CONTRACT_ADDRESS = '0x241c5B8860223862d7722edE230C855A905C27eB' as const
 
 /**
  * ResolutionDAO contract address on Base mainnet
  */
-export const RESOLUTION_CONTRACT_ADDRESS = '0xF0Cab7b6220991f14E0AC0db9E7d75e4B69a3B27' as const
+export const RESOLUTION_CONTRACT_ADDRESS = '0x270cb03cfE881dA9e6D210e7F8a56D96f8D6Ae00' as const
 
 /**
  * USDC token address on Base mainnet
@@ -38,7 +38,7 @@ export const BASE_CHAIN_ID = 8453
  * Backend API URL
  * Empty string = same-origin (Vercel rewrites proxy to backend)
  */
-export const BACKEND_URL = 'https://63.179.141.230'
+export const BACKEND_URL = ''
 
 /**
  * @deprecated Use CONTRACT_ADDRESS directly
