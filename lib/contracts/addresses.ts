@@ -1,73 +1,62 @@
 /**
  * Contract addresses for the AgiArena platform
- * Loaded from environment variables (production configuration)
- *
- * Production addresses (Base mainnet):
- * - AgiArenaCore: 0x018dC9d6C1204502565E4B5287f894DA738033bf
- * - ResolutionDAO: 0xF0Cab7b6220991f14E0AC0db9E7d75e4B69a3B27
- * - USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+ * Hardcoded for Base mainnet production deployment
  */
 
 /**
  * AgiArenaCore contract address on Base mainnet
- * @throws Error if environment variable is not set
  */
-export function getContractAddress(): `0x${string}` {
-  const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
-  if (!address || address === '0x0000000000000000000000000000000000000000') {
-    throw new Error(
-      'NEXT_PUBLIC_CONTRACT_ADDRESS is not configured. ' +
-      'Set it to 0x018dC9d6C1204502565E4B5287f894DA738033bf in frontend/.env.local'
-    )
-  }
-  return address as `0x${string}`
-}
+export const CONTRACT_ADDRESS = '0x018dC9d6C1204502565E4B5287f894DA738033bf' as const
+
+/**
+ * ResolutionDAO contract address on Base mainnet
+ */
+export const RESOLUTION_CONTRACT_ADDRESS = '0xF0Cab7b6220991f14E0AC0db9E7d75e4B69a3B27' as const
 
 /**
  * USDC token address on Base mainnet
- * This is a well-known address and doesn't need env configuration
  */
 export const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
 
 /**
  * USDC decimal places (6 decimals on Base mainnet)
- * 1 USDC = 1_000_000 base units
  */
 export const USDC_DECIMALS = 6
 
 /**
  * Minimum bet amount in USDC base units
- * 1 cent = $0.01 = 10,000 base units (USDC has 6 decimals)
+ * 1 cent = $0.01 = 10,000 base units
  */
 export const MIN_BET_AMOUNT = 10_000n
-
-/**
- * Backend API URL for JSON storage
- * Returns empty string for same-origin requests (when using Vercel rewrites)
- */
-export function getBackendUrl(): string {
-  const url = process.env.NEXT_PUBLIC_BACKEND_URL
-  // Empty string = same-origin (Vercel rewrites proxy to backend)
-  // This allows frontend to call /api/* which Vercel proxies to the backend server
-  return url || ''
-}
-
-/**
- * ResolutionDAO contract address on Base mainnet
- * @throws Error if environment variable is not set
- */
-export function getResolutionContractAddress(): `0x${string}` {
-  const address = process.env.NEXT_PUBLIC_RESOLUTION_CONTRACT_ADDRESS
-  if (!address || address === '0x0000000000000000000000000000000000000000') {
-    throw new Error(
-      'NEXT_PUBLIC_RESOLUTION_CONTRACT_ADDRESS is not configured. ' +
-      'Set it to 0xF0Cab7b6220991f14E0AC0db9E7d75e4B69a3B27 in frontend/.env.local'
-    )
-  }
-  return address as `0x${string}`
-}
 
 /**
  * Base chain ID (8453 for Base mainnet)
  */
 export const BASE_CHAIN_ID = 8453
+
+/**
+ * Backend API URL
+ * Empty string = same-origin (Vercel rewrites proxy to backend)
+ */
+export const BACKEND_URL = 'https://63.179.141.230'
+
+/**
+ * @deprecated Use CONTRACT_ADDRESS directly
+ */
+export function getContractAddress(): `0x${string}` {
+  return CONTRACT_ADDRESS
+}
+
+/**
+ * @deprecated Use RESOLUTION_CONTRACT_ADDRESS directly
+ */
+export function getResolutionContractAddress(): `0x${string}` {
+  return RESOLUTION_CONTRACT_ADDRESS
+}
+
+/**
+ * @deprecated Use BACKEND_URL directly
+ */
+export function getBackendUrl(): string {
+  return BACKEND_URL
+}
