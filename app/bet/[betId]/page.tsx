@@ -1,6 +1,8 @@
+'use client'
+
+import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { notFound } from 'next/navigation'
 import {
   FAVORABLE_ODDS_THRESHOLD,
   UNFAVORABLE_ODDS_THRESHOLD,
@@ -41,25 +43,6 @@ interface BetData {
       position: string
       weight?: number
     }>
-  }
-}
-
-async function getBetData(betId: string): Promise<BetData | null> {
-  try {
-    const backendUrl = process.env.BACKEND_URL || 'https://63.179.141.230'
-    const res = await fetch(`${backendUrl}/api/bets/${betId}`, {
-      next: { revalidate: 10 }, // Revalidate every 10 seconds
-    })
-
-    if (!res.ok) {
-      if (res.status === 404) return null
-      throw new Error(`Failed to fetch bet: ${res.statusText}`)
-    }
-
-    return res.json()
-  } catch (error) {
-    console.error('Error fetching bet:', error)
-    return null
   }
 }
 
@@ -167,6 +150,61 @@ function getOddsBadgeColor(favorability: 'favorable' | 'even' | 'unfavorable'): 
 }
 
 /**
+ * Loading skeleton for bet detail page
+ */
+function BetDetailSkeleton() {
+  return (
+    <main className="min-h-screen bg-terminal">
+      <header className="flex justify-between items-center p-6 border-b border-white/10">
+        <div className="h-6 w-32 bg-white/10 animate-pulse rounded" />
+        <div className="h-8 w-40 bg-white/10 animate-pulse rounded" />
+        <div className="w-20" />
+      </header>
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
+        <div className="bg-white/5 p-6 rounded animate-pulse">
+          <div className="h-6 w-32 bg-white/10 rounded mb-4" />
+          <div className="grid grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i}>
+                <div className="h-4 w-20 bg-white/10 rounded mb-2" />
+                <div className="h-6 w-24 bg-white/10 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+/**
+ * Bet not found component
+ */
+function BetNotFound({ betId }: { betId: string }) {
+  return (
+    <main className="min-h-screen bg-terminal">
+      <header className="flex justify-between items-center p-6 border-b border-white/10">
+        <Link href="/" className="text-white/60 hover:text-white font-mono">
+          ← Back to Home
+        </Link>
+      </header>
+      <div className="max-w-3xl mx-auto p-6 text-center">
+        <h1 className="text-2xl font-bold text-white mb-4">Bet Not Found</h1>
+        <p className="text-white/60 font-mono mb-2">
+          No bet found with ID: {betId}
+        </p>
+        <Link
+          href="/"
+          className="inline-block mt-8 px-4 py-2 border border-white/20 text-white hover:bg-white/10 font-mono"
+        >
+          Return to Home
+        </Link>
+      </div>
+    </main>
+  )
+}
+
+/**
  * Bet Detail Page
  *
  * Shows full bet details including:
@@ -174,12 +212,44 @@ function getOddsBadgeColor(favorability: 'favorable' | 'even' | 'unfavorable'): 
  * - Bet amount and matched status
  * - Transaction history
  */
-export default async function BetDetailPage({ params }: BetDetailPageProps) {
-  const { betId } = await params
-  const bet = await getBetData(betId)
+export default function BetDetailPage({ params }: BetDetailPageProps) {
+  const { betId } = use(params)
+  const [bet, setBet] = useState<BetData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!bet) {
-    notFound()
+  useEffect(() => {
+    async function fetchBet() {
+      try {
+        setIsLoading(true)
+        // Use relative URL to go through Vercel's proxy rewrite
+        const res = await fetch(`/api/bets/${betId}`)
+        if (!res.ok) {
+          if (res.status === 404) {
+            setBet(null)
+          } else {
+            throw new Error(`Failed to fetch bet: ${res.statusText}`)
+          }
+        } else {
+          const data = await res.json()
+          setBet(data)
+        }
+      } catch (err) {
+        console.error('Error fetching bet:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchBet()
+  }, [betId])
+
+  if (isLoading) {
+    return <BetDetailSkeleton />
+  }
+
+  if (error || !bet) {
+    return <BetNotFound betId={betId} />
   }
 
   // Calculate match percentage based on required match (not creator stake)

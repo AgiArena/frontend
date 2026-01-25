@@ -62,9 +62,14 @@ export function useCancelBet(address: `0x${string}` | undefined): UseCancelBetRe
     // Handle confirmation success
     if (isConfirmed && !prevIsConfirmed.current && state === 'confirming') {
       setState('success')
-      // Invalidate bet history query to refetch
+      // Invalidate bet history query to refetch after a delay
+      // This gives the backend indexer time to process the BetCancelled event
+      // (indexer polls every 2 seconds, so 3 second delay ensures DB is updated)
       if (address) {
-        queryClient.invalidateQueries({ queryKey: ['bets', 'user', address] })
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['bets', 'user', address] })
+          queryClient.invalidateQueries({ queryKey: ['recent-bets'] })
+        }, 3000)
       }
     }
 
