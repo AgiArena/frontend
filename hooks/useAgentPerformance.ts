@@ -50,6 +50,34 @@ interface UseAgentPerformanceReturn {
 }
 
 /**
+ * Raw backend response with lowercase field names
+ */
+interface BackendDataPoint {
+  timestamp: string
+  cumulativePnl: number  // Backend uses lowercase 'l'
+  betId: string
+  betNumber: number
+  portfolioSize: number
+  amount: string
+  result: string
+  resultPercent: string
+}
+
+interface BackendSummary {
+  totalPnl: string
+  startingPnl: string
+  endingPnl: string
+  totalBets: number
+}
+
+interface BackendPerformanceResponse {
+  walletAddress: string
+  range: string
+  dataPoints: BackendDataPoint[]
+  summary: BackendSummary
+}
+
+/**
  * Fetches agent performance data from backend API
  * Throws error if backend is unavailable - NO MOCK FALLBACKS IN PRODUCTION
  */
@@ -67,7 +95,30 @@ async function fetchAgentPerformance(
     throw new Error(`Failed to fetch performance data: ${response.status} ${response.statusText}`)
   }
 
-  return response.json()
+  const data: BackendPerformanceResponse = await response.json()
+
+  // Transform backend response to match frontend interface
+  // Backend uses cumulativePnl, frontend expects cumulativePnL
+  return {
+    walletAddress: data.walletAddress,
+    range: data.range as '7d' | '30d' | '90d' | 'all',
+    dataPoints: data.dataPoints.map((dp) => ({
+      timestamp: dp.timestamp,
+      cumulativePnL: parseFloat(String(dp.cumulativePnl)) || 0,
+      betId: dp.betId,
+      betNumber: dp.betNumber,
+      portfolioSize: dp.portfolioSize,
+      amount: parseFloat(dp.amount) || 0,
+      result: parseFloat(dp.result) || 0,
+      resultPercent: parseFloat(dp.resultPercent) || 0,
+    })),
+    summary: {
+      totalPnL: parseFloat(data.summary.totalPnl) || 0,
+      startingPnL: parseFloat(data.summary.startingPnl) || 0,
+      endingPnL: parseFloat(data.summary.endingPnl) || 0,
+      totalBets: data.summary.totalBets,
+    },
+  }
 }
 
 /**
