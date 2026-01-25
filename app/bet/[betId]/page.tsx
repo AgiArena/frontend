@@ -29,6 +29,7 @@ interface BetData {
   blockNumber: number
   createdAt: string
   updatedAt: string
+  resolutionDeadline?: string
   portfolioJson?: {
     expiry?: string
     portfolioSize?: number
@@ -367,9 +368,11 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 </p>
               </div>
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Updated</p>
+                <p className="text-white/40 font-mono text-xs uppercase">Resolution Date</p>
                 <p className="text-white/80 font-mono">
-                  {new Date(bet.updatedAt).toLocaleString()}
+                  {bet.resolutionDeadline
+                    ? new Date(bet.resolutionDeadline).toLocaleString()
+                    : 'Not set'}
                 </p>
               </div>
             </div>
