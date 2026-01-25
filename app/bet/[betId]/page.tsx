@@ -18,6 +18,14 @@ interface BetDetailPageProps {
   params: Promise<{ betId: string }>
 }
 
+interface BetFill {
+  fillerAddress: string
+  amount: string
+  txHash: string
+  blockNumber: number
+  filledAt: string
+}
+
 interface BetData {
   betId: string
   creatorAddress: string
@@ -35,6 +43,8 @@ interface BetData {
   createdAt: string
   updatedAt: string
   resolutionDeadline?: string
+  /** Fills/counterparties for this bet */
+  fills?: BetFill[]
   portfolioJson?: {
     expiry?: string
     portfolioSize?: number
@@ -460,6 +470,48 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 </p>
               </div>
             </div>
+
+            {/* Counterparties / Fills */}
+            {bet.fills && bet.fills.length > 0 && (
+              <div className="bg-white/5 p-4 rounded border border-white/10">
+                <p className="text-white/40 font-mono text-xs uppercase mb-3">
+                  Counterparties ({bet.fills.length})
+                </p>
+                <div className="space-y-2">
+                  {bet.fills.map((fill, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-2 bg-white/5 rounded"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/agent/${fill.fillerAddress}`}
+                          className="text-cyan-400 hover:text-cyan-300 font-mono text-sm"
+                        >
+                          {formatAddress(fill.fillerAddress)}
+                        </Link>
+                        <span className="text-white/40 font-mono text-xs">
+                          {new Date(fill.filledAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-white font-mono text-sm">
+                          {formatAmount(fill.amount)}
+                        </span>
+                        <a
+                          href={`https://basescan.org/tx/${fill.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white/40 hover:text-white/60 font-mono text-xs"
+                        >
+                          tx↗
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Read-only notice (AC6) */}
             <p className="text-[11px] text-white/30 italic text-center pt-2 border-t border-white/10">
