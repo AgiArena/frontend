@@ -7,12 +7,14 @@ import { useEscrowedAmount } from '@/hooks/useEscrowedAmount'
 import { getAddressUrl } from '@/lib/utils/basescan'
 import { formatUsdcAmount } from '@/lib/utils/formatters'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card'
+import { COLLATERAL_SYMBOL, CHAIN_ID } from '@/lib/contracts/addresses'
 
 /**
- * USDC Balance Card Component
- * Displays total USDC balance, available for betting, and escrowed amounts
+ * Collateral Balance Card Component
+ * Displays total balance, available for betting, and escrowed amounts
  * Uses Shadcn/ui Card component with JetBrains Mono font for numbers
  * Auto-refreshes every 5 seconds via hooks
+ * Supports both USDC (Base) and IND (L3) collateral tokens
  */
 export function USDCBalanceCard() {
   const [mounted, setMounted] = useState(false)
@@ -77,7 +79,7 @@ export function USDCBalanceCard() {
     return (
       <Card className="border-white/20">
         <CardHeader>
-          <CardTitle>USDC Balance</CardTitle>
+          <CardTitle>{COLLATERAL_SYMBOL} Balance</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-accent text-sm">Failed to load balance. Retrying...</p>
@@ -86,32 +88,41 @@ export function USDCBalanceCard() {
     )
   }
 
+  // Determine if we should show $ prefix (only for USD stablecoins)
+  const showDollarPrefix = COLLATERAL_SYMBOL === 'USDC' || COLLATERAL_SYMBOL === 'USDT' || COLLATERAL_SYMBOL === 'DAI'
+
   return (
     <Card className="border-white/20">
       <CardHeader>
-        <CardTitle>USDC Balance</CardTitle>
+        <CardTitle>{COLLATERAL_SYMBOL} Balance</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Total Balance - Hero */}
         <div>
           <p className="text-white/60 text-xs mb-1">Total Balance</p>
-          <p className="text-white text-3xl font-mono font-bold">${totalFormatted}</p>
+          <p className="text-white text-3xl font-mono font-bold">
+            {showDollarPrefix ? '$' : ''}{totalFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
+          </p>
         </div>
 
         {/* Available for Betting */}
         <div>
           <p className="text-white/60 text-xs mb-1">Available for Betting</p>
-          <p className="text-white text-xl font-mono">${availableFormatted}</p>
+          <p className="text-white text-xl font-mono">
+            {showDollarPrefix ? '$' : ''}{availableFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
+          </p>
         </div>
 
         {/* Escrowed in Bets */}
         <div>
           <p className="text-white/60 text-xs mb-1">Escrowed in Bets</p>
-          <p className="text-white text-xl font-mono">${escrowedFormatted}</p>
+          <p className="text-white text-xl font-mono">
+            {showDollarPrefix ? '$' : ''}{escrowedFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
+          </p>
         </div>
       </CardContent>
 
-      {/* Verify on BaseScan Link */}
+      {/* Verify on Explorer Link */}
       {address && (
         <CardFooter>
           <a
@@ -120,7 +131,7 @@ export function USDCBalanceCard() {
             rel="noopener noreferrer"
             className="text-white/60 text-xs hover:text-white underline transition-colors"
           >
-            Verify on BaseScan
+            {CHAIN_ID === 8453 ? 'Verify on BaseScan' : 'View on Explorer'}
           </a>
         </CardFooter>
       )}

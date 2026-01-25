@@ -3,6 +3,42 @@
  */
 
 /**
+ * The number of decimals for collateral token (USDC = 6, IND = 18)
+ * This should match COLLATERAL_DECIMALS from addresses.ts
+ */
+const COLLATERAL_DECIMALS = 6
+
+/**
+ * Safely converts a string/number amount to BigInt base units.
+ * Handles both integer strings ("1000000") and decimal strings ("0.010000").
+ * @param value - Amount as string or number (may be decimal or integer)
+ * @returns bigint in base units (6 decimals for USDC)
+ */
+export function toBaseUnits(value: string | number | undefined | null): bigint {
+  if (value === undefined || value === null || value === '') {
+    return BigInt(0)
+  }
+
+  const strValue = String(value)
+
+  // If it's already an integer string (no decimal), convert directly
+  if (!strValue.includes('.')) {
+    try {
+      return BigInt(strValue)
+    } catch {
+      return BigInt(0)
+    }
+  }
+
+  // It's a decimal - convert to base units
+  const floatValue = parseFloat(strValue)
+  if (isNaN(floatValue)) {
+    return BigInt(0)
+  }
+  return BigInt(Math.floor(floatValue * (10 ** COLLATERAL_DECIMALS)))
+}
+
+/**
  * Formats a USDC amount (6 decimals) to USD string
  * @param amount - The amount in USDC base units (6 decimals)
  * @returns Formatted string like "$1,234.56"

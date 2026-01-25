@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAccount } from 'wagmi'
 import { getBackendUrl } from '@/lib/contracts/addresses'
-import { formatUsdcAmount } from '@/lib/utils/formatters'
+import { formatUsdcAmount, toBaseUnits } from '@/lib/utils/formatters'
 import type { BetRecord, BetStatus } from '@/hooks/useBetHistory'
 
 interface UseEscrowedAmountReturn {
@@ -85,9 +85,10 @@ function calculateEscrowed(bets: BetRecord[] | undefined): bigint {
   return bets.reduce((sum: bigint, bet: BetRecord) => {
     if (ESCROWED_STATUSES.includes(bet.status)) {
       // Use remainingAmount directly if available, otherwise calculate
+      // Use toBaseUnits to handle both integer and decimal string formats
       const remaining = bet.remainingAmount
-        ? BigInt(bet.remainingAmount)
-        : BigInt(bet.amount) - BigInt(bet.matchedAmount || '0')
+        ? toBaseUnits(bet.remainingAmount)
+        : toBaseUnits(bet.amount) - toBaseUnits(bet.matchedAmount || '0')
       return sum + remaining
     }
     return sum

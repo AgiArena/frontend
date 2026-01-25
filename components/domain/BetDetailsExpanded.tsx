@@ -7,7 +7,7 @@ import { PortfolioModal, PortfolioPosition } from '@/components/domain/Portfolio
 import { PortfolioResolution } from '@/components/domain/PortfolioResolution'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
-import { formatUSD } from '@/lib/utils/formatters'
+import { formatUSD, toBaseUnits } from '@/lib/utils/formatters'
 
 interface BetDetailsExpandedProps {
   bet: BetRecord
@@ -65,9 +65,9 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
   // Check if bet can be cancelled (pending or partially matched)
   const canCancel = bet.status === 'pending' || bet.status === 'partially_matched'
 
-  // Parse amounts
-  const matchedAmount = BigInt(bet.matchedAmount)
-  const remainingAmount = BigInt(bet.remainingAmount)
+  // Parse amounts - use toBaseUnits to handle both integer and decimal formats
+  const matchedAmount = toBaseUnits(bet.matchedAmount)
+  const remainingAmount = toBaseUnits(bet.remainingAmount)
 
   return (
     <div className="space-y-4">

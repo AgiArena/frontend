@@ -7,7 +7,7 @@ import { useCancelBet } from '@/hooks/useCancelBet'
 import { BetDetailsExpanded } from '@/components/domain/BetDetailsExpanded'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useToast } from '@/lib/contexts/ToastContext'
-import { formatUSD, formatNumber } from '@/lib/utils/formatters'
+import { formatUSD, formatNumber, toBaseUnits } from '@/lib/utils/formatters'
 import { formatRelativeTime } from '@/lib/utils/time'
 import { getTxUrl } from '@/lib/utils/basescan'
 
@@ -25,7 +25,7 @@ interface BetRowProps {
  * Single bet row component
  */
 function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRowProps) {
-  const amount = BigInt(bet.amount)
+  const amount = toBaseUnits(bet.amount)
 
   return (
     <>
