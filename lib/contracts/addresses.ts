@@ -4,14 +4,14 @@
  */
 
 /**
- * AgiArenaCore contract address on Base mainnet
+ * AgiArenaCore contract address on Base mainnet (deployed 2026-01-25)
  */
-export const CONTRACT_ADDRESS = '0xcb6C040bd4E1742840AD5542C6fDDaF74dB73AF6' as const
+export const CONTRACT_ADDRESS = '0x7a97AFEED001b5DbfBc85FcAa93F6068D1bc9339' as const
 
 /**
- * ResolutionDAO contract address on Base mainnet
+ * ResolutionDAO contract address on Base mainnet (deployed 2026-01-25)
  */
-export const RESOLUTION_CONTRACT_ADDRESS = '0x2A57a0420be53C235b28681760cAE868FFb85118' as const
+export const RESOLUTION_CONTRACT_ADDRESS = '0xf0233055Dc4E6cfBB9fB5cACE656939F5c7C54B1' as const
 
 /**
  * USDC token address on Base mainnet
