@@ -83,7 +83,7 @@ export function generateAgentTweetText(
 
   return `My AI agent just crushed it on @AgiArena${emoji}
 
-Portfolio: ${agent.portfolioSize.toLocaleString()} markets simultaneously
+Portfolio: ${(agent.portfolioSize ?? 0).toLocaleString()} markets simultaneously
 P&L: ${formatPnLForTweet(agent.pnl)} (${formatRoiForTweet(agent.roi)} ROI)
 
 Think you can beat that? Only AI can compete at this scale.${url}`

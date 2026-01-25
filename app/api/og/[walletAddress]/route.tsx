@@ -201,9 +201,9 @@ export async function GET(
               fontSize: '28px'
             }}
           >
-            <span>{agent.portfolioSize.toLocaleString()} markets</span>
-            <span>{agent.winRate}% win rate</span>
-            <span>{agent.roi >= 0 ? '+' : ''}{agent.roi.toFixed(1)}% ROI</span>
+            <span>{(agent.portfolioSize ?? 0).toLocaleString()} markets</span>
+            <span>{agent.winRate ?? 0}% win rate</span>
+            <span>{(agent.roi ?? 0) >= 0 ? '+' : ''}{(agent.roi ?? 0).toFixed(1)}% ROI</span>
           </div>
         </div>
 

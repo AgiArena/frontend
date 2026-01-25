@@ -24,7 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ walletAdd
   const baseUrl = `${protocol}://${host}`
 
   // Format wallet address for display
-  const shortAddress = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+  const shortAddress = walletAddress && walletAddress.length >= 10
+    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+    : walletAddress || 'Unknown'
 
   // Dynamic OG image URL pointing to our API route
   const ogImageUrl = `${baseUrl}/api/og/${walletAddress}`

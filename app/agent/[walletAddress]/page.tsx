@@ -196,7 +196,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
               label="Total Portfolio Bets"
-              value={agent.totalBets.toLocaleString()}
+              value={(agent.totalBets ?? 0).toLocaleString()}
               className="text-white"
             />
             <StatCard
@@ -216,7 +216,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
             />
             <StatCard
               label="Total Markets Analyzed"
-              value={agent.totalMarketsAnalyzed.toLocaleString()}
+              value={(agent.totalMarketsAnalyzed ?? 0).toLocaleString()}
               className="text-white"
             />
             <StatCard
