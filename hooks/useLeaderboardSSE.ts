@@ -2,8 +2,63 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { LeaderboardResponse } from '@/hooks/useLeaderboard'
+import { LeaderboardResponse, AgentRanking } from '@/hooks/useLeaderboard'
 import { getBackendUrl } from '@/lib/contracts/addresses'
+
+/**
+ * Transform raw backend data to properly typed LeaderboardResponse
+ * Backend returns decimal values as strings for precision
+ */
+function transformLeaderboardData(rawData: unknown): LeaderboardResponse {
+  const data = rawData as {
+    leaderboard?: Array<{
+      rank: number
+      walletAddress: string
+      pnl: string | number
+      winRate: string | number
+      roi: string | number
+      totalVolume: string | number
+      portfolioBets: number
+      avgPortfolioSize: string | number
+      largestPortfolio: number
+      lastActiveAt?: string
+    }>
+    updatedAt?: string
+  }
+
+  if (!data.leaderboard) {
+    return { leaderboard: [], updatedAt: data.updatedAt || new Date().toISOString() }
+  }
+
+  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent) => {
+    const pnl = typeof agent.pnl === 'string' ? parseFloat(agent.pnl) : agent.pnl
+    const winRate = typeof agent.winRate === 'string' ? parseFloat(agent.winRate) : agent.winRate
+    const roi = typeof agent.roi === 'string' ? parseFloat(agent.roi) : agent.roi
+    const totalVolume = typeof agent.totalVolume === 'string' ? parseFloat(agent.totalVolume) : agent.totalVolume
+    const avgPortfolioSize = typeof agent.avgPortfolioSize === 'string' ? parseFloat(agent.avgPortfolioSize) : agent.avgPortfolioSize
+
+    return {
+      rank: agent.rank,
+      walletAddress: agent.walletAddress,
+      pnl: isNaN(pnl) ? 0 : pnl,
+      winRate: isNaN(winRate) ? 0 : winRate,
+      roi: isNaN(roi) ? 0 : roi,
+      totalVolume: isNaN(totalVolume) ? 0 : totalVolume,
+      portfolioBets: agent.portfolioBets,
+      avgPortfolioSize: isNaN(avgPortfolioSize) ? 0 : avgPortfolioSize,
+      largestPortfolio: agent.largestPortfolio,
+      lastActiveAt: agent.lastActiveAt,
+      volume: isNaN(totalVolume) ? 0 : totalVolume,
+      totalBets: agent.portfolioBets,
+      maxPortfolioSize: agent.largestPortfolio,
+    }
+  })
+
+  return {
+    leaderboard: transformedLeaderboard,
+    updatedAt: data.updatedAt || new Date().toISOString(),
+  }
+}
 
 /**
  * SSE connection states
@@ -70,7 +125,8 @@ export function useLeaderboardSSE(): UseLeaderboardSSEReturn {
     try {
       const response = await fetch(`${backendUrl}/api/leaderboard`)
       if (response.ok) {
-        const data: LeaderboardResponse = await response.json()
+        const rawData = await response.json()
+        const data = transformLeaderboardData(rawData)
         queryClient.setQueryData(['leaderboard'], data)
       }
     } catch {
@@ -155,7 +211,8 @@ export function useLeaderboardSSE(): UseLeaderboardSSEReturn {
         // Handle default message event (leaderboard-update)
         eventSource.onmessage = (event) => {
           try {
-            const data: LeaderboardResponse = JSON.parse(event.data)
+            const rawData = JSON.parse(event.data)
+            const data = transformLeaderboardData(rawData)
 
             // Update TanStack Query cache without triggering refetch
             queryClient.setQueryData(['leaderboard'], data)
@@ -167,15 +224,11 @@ export function useLeaderboardSSE(): UseLeaderboardSSEReturn {
         // Handle specific leaderboard-update events
         eventSource.addEventListener('leaderboard-update', (event: MessageEvent) => {
           try {
-            const data = JSON.parse(event.data)
+            const rawData = JSON.parse(event.data)
+            const data = transformLeaderboardData(rawData)
 
-            // Extract leaderboard and updatedAt from the event
-            if (data.leaderboard) {
-              queryClient.setQueryData(['leaderboard'], {
-                leaderboard: data.leaderboard,
-                updatedAt: data.updatedAt || new Date().toISOString()
-              })
-            }
+            // Update TanStack Query cache
+            queryClient.setQueryData(['leaderboard'], data)
           } catch {
             // Silently ignore malformed events
           }
