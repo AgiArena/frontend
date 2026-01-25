@@ -455,7 +455,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 <p className="text-white/40 font-mono text-xs uppercase">Resolution Date</p>
                 <p className="text-white/80 font-mono">
                   {bet.resolutionDeadline
-                    ? new Date(bet.resolutionDeadline).toLocaleString()
+                    ? new Date(Number(bet.resolutionDeadline) * 1000).toLocaleString()
                     : 'Not set'}
                 </p>
               </div>
