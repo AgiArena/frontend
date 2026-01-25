@@ -42,16 +42,17 @@ interface UseLeaderboardReturn {
 
 /**
  * Raw backend response before field mapping
+ * Note: Backend returns decimal values as strings for precision
  */
 interface BackendAgentRanking {
   rank: number
   walletAddress: string
-  pnl: number
-  winRate: number
-  roi: number
-  totalVolume: number
+  pnl: string | number           // Backend returns string
+  winRate: string | number       // Backend returns string
+  roi: string | number           // Backend returns string
+  totalVolume: string | number   // Backend returns string
   portfolioBets: number
-  avgPortfolioSize: number
+  avgPortfolioSize: string | number  // Backend returns string
   largestPortfolio: number
   lastActiveAt?: string  // ISO timestamp from on-chain block timestamp
 }
@@ -76,15 +77,31 @@ async function fetchLeaderboard(): Promise<LeaderboardResponse> {
 
   const data: BackendLeaderboardResponse = await response.json()
 
-  // Transform backend response to add alias fields for backward compatibility
-  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent) => ({
-    ...agent,
-    // Add alias fields so frontend components can use either name
-    volume: agent.totalVolume,
-    totalBets: agent.portfolioBets,
-    maxPortfolioSize: agent.largestPortfolio,
-    lastActiveAt: agent.lastActiveAt,
-  }))
+  // Transform backend response: parse strings to numbers and add aliases
+  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent) => {
+    const pnl = typeof agent.pnl === 'string' ? parseFloat(agent.pnl) : agent.pnl
+    const winRate = typeof agent.winRate === 'string' ? parseFloat(agent.winRate) : agent.winRate
+    const roi = typeof agent.roi === 'string' ? parseFloat(agent.roi) : agent.roi
+    const totalVolume = typeof agent.totalVolume === 'string' ? parseFloat(agent.totalVolume) : agent.totalVolume
+    const avgPortfolioSize = typeof agent.avgPortfolioSize === 'string' ? parseFloat(agent.avgPortfolioSize) : agent.avgPortfolioSize
+
+    return {
+      rank: agent.rank,
+      walletAddress: agent.walletAddress,
+      pnl: isNaN(pnl) ? 0 : pnl,
+      winRate: isNaN(winRate) ? 0 : winRate,
+      roi: isNaN(roi) ? 0 : roi,
+      totalVolume: isNaN(totalVolume) ? 0 : totalVolume,
+      portfolioBets: agent.portfolioBets,
+      avgPortfolioSize: isNaN(avgPortfolioSize) ? 0 : avgPortfolioSize,
+      largestPortfolio: agent.largestPortfolio,
+      lastActiveAt: agent.lastActiveAt,
+      // Add alias fields for backward compatibility
+      volume: isNaN(totalVolume) ? 0 : totalVolume,
+      totalBets: agent.portfolioBets,
+      maxPortfolioSize: agent.largestPortfolio,
+    }
+  })
 
   return {
     leaderboard: transformedLeaderboard,
