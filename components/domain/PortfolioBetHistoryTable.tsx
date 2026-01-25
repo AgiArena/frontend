@@ -33,11 +33,11 @@ function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRow
         onClick={onToggle}
         className="cursor-pointer hover:bg-white/5 border-b border-white/10 transition-colors"
       >
-        {/* Portfolio Size */}
+        {/* Portfolio Size - default to 5 when not yet synced */}
         <td className="px-4 py-3 font-mono font-bold text-white">
-          {bet.portfolioSize >= 1000
-            ? `${(bet.portfolioSize / 1000).toFixed(1)}K`
-            : bet.portfolioSize} markets
+          {(bet.portfolioSize || 5) >= 1000
+            ? `${((bet.portfolioSize || 5) / 1000).toFixed(1)}K`
+            : (bet.portfolioSize || 5)} markets
         </td>
 
         {/* Amount */}

@@ -141,12 +141,10 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
         </div>
       )}
 
-      {/* Portfolio size if available */}
-      {bet.portfolioSize && (
-        <div className="text-xs text-gray-500 font-mono mb-3">
-          Portfolio: {bet.portfolioSize.toLocaleString()} markets
-        </div>
-      )}
+      {/* Portfolio size - default to 5 when not yet synced */}
+      <div className="text-xs text-gray-500 font-mono mb-3">
+        Portfolio: {(bet.portfolioSize || 5).toLocaleString()} markets
+      </div>
 
       {/* View details link */}
       <div className="flex justify-between items-center">

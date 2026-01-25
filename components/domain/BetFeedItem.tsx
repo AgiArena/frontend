@@ -37,10 +37,11 @@ function formatResult(result: string | null): string {
 
 /**
  * Format portfolio size with comma separators
+ * Defaults to 5 when no portfolio data is available yet
  */
 function formatPortfolioSize(size: number | undefined | null): string {
-  if (size === undefined || size === null) {
-    return '0'
+  if (size === undefined || size === null || size === 0) {
+    return '5'  // Default portfolio size when data not yet synced
   }
   return size.toLocaleString('en-US')
 }
