@@ -54,7 +54,7 @@ function PerformanceTooltip({
         <p>Date: {formatDate(data.timestamp)}</p>
         <p>Markets: {data.portfolioSize.toLocaleString()}</p>
         <p>Amount: ${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-        <p className={data.result >= 0 ? 'text-green-400' : 'text-accent'}>
+        <p className={data.result >= 0 ? 'text-green-400' : 'text-white/60'}>
           Result: {formatResultWithPercent(data.result, data.resultPercent)}
         </p>
       </div>

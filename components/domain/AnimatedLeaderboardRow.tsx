@@ -63,8 +63,8 @@ export function AnimatedLeaderboardRow({
   prefersReducedMotion,
   isMobile
 }: AnimatedLeaderboardRowProps) {
-  const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-accent'
-  const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-accent'
+  const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
+  const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-white/60'
 
   // Track rank change animations for this agent
   const { isAnimating, isPositive } = useRankChangeAnimation(agent.walletAddress)

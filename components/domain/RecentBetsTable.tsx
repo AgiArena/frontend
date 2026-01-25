@@ -102,7 +102,7 @@ export function RecentBetsTable({ bets, isLoading = false }: RecentBetsTableProp
       </TableHeader>
       <TableBody>
         {bets.map((bet) => {
-          const resultColor = bet.result >= 0 ? 'text-green-400' : 'text-accent'
+          const resultColor = bet.result >= 0 ? 'text-green-400' : 'text-white/60'
           // Display outcome for settled bets, otherwise show status
           const displayStatus = bet.status === 'settled' && bet.outcome ? bet.outcome : bet.status
 

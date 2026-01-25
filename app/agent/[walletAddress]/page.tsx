@@ -141,10 +141,10 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
     return <AgentNotFound walletAddress={walletAddress} />
   }
 
-  const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-accent'
-  const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-accent'
+  const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
+  const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-white/60'
   const bestBetColor = 'text-green-400'
-  const worstBetColor = 'text-accent'
+  const worstBetColor = 'text-white/60'
 
   return (
     <main className="min-h-screen bg-terminal">

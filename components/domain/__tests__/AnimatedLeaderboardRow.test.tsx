@@ -75,19 +75,19 @@ describe('AnimatedLeaderboardRow', () => {
   describe('P&L color logic', () => {
     test('positive P&L uses green color', () => {
       const agent = createTestAgent({ pnl: 1234.56 })
-      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-accent'
+      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
       expect(pnlColor).toBe('text-green-400')
     })
 
-    test('negative P&L uses accent (red) color', () => {
+    test('negative P&L uses grey color', () => {
       const agent = createTestAgent({ pnl: -567.89 })
-      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-accent'
-      expect(pnlColor).toBe('text-accent')
+      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
+      expect(pnlColor).toBe('text-white/60')
     })
 
     test('zero P&L uses green color', () => {
       const agent = createTestAgent({ pnl: 0 })
-      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-accent'
+      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
       expect(pnlColor).toBe('text-green-400')
     })
   })

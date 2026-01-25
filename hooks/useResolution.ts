@@ -195,7 +195,7 @@ export function formatScore(score: number | null): string {
  */
 export function getScoreColorClass(score: number | null): string {
   if (score === null) return 'text-white/60'
-  return score >= 0 ? 'text-white' : 'text-accent'
+  return score >= 0 ? 'text-white' : 'text-white/60'
 }
 
 // ============ Dispute Window Utilities ============
