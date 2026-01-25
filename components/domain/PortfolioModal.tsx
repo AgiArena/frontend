@@ -8,6 +8,37 @@ export interface PortfolioPosition {
   position: 'YES' | 'NO'
   currentPrice: number
   confidence?: number
+  /** Entry price when bet was placed (0-1) */
+  startingPrice?: number
+  /** Resolution price set by keeper (0-1) */
+  endingPrice?: number
+  /** Whether the market has resolved/closed */
+  isClosed?: boolean
+}
+
+/**
+ * Calculate price change between starting and current price
+ */
+function calculatePositionChange(pos: PortfolioPosition): {
+  change: number | null
+  direction: 'up' | 'down' | 'neutral' | null
+} {
+  if (pos.startingPrice == null || pos.currentPrice == null) {
+    return { change: null, direction: null }
+  }
+  const change = pos.currentPrice - pos.startingPrice
+
+  let direction: 'up' | 'down' | 'neutral'
+  if (Math.abs(change) < 0.001) {
+    direction = 'neutral'
+  } else if (pos.position === 'YES') {
+    direction = change > 0 ? 'up' : 'down'
+  } else {
+    // NO position benefits from price going down
+    direction = change < 0 ? 'up' : 'down'
+  }
+
+  return { change, direction }
 }
 
 interface PortfolioModalProps {
@@ -26,6 +57,21 @@ interface PositionRowProps {
  */
 function PositionRow({ position }: PositionRowProps) {
   const polymarketUrl = `https://polymarket.com/event/${position.marketId}`
+  const priceChange = calculatePositionChange(position)
+  const changeColor = priceChange.direction === 'up' ? 'text-green-400'
+    : priceChange.direction === 'down' ? 'text-red-400'
+    : 'text-white/40'
+
+  const formatPrice = (price: number | undefined | null): string => {
+    if (price == null) return '—'
+    return `${(price * 100).toFixed(1)}%`
+  }
+
+  const formatChange = (change: number | null): string => {
+    if (change == null) return '—'
+    const sign = change >= 0 ? '+' : ''
+    return `${sign}${(change * 100).toFixed(1)}%`
+  }
 
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 hover:bg-white/5 h-[60px]">
@@ -39,7 +85,12 @@ function PositionRow({ position }: PositionRowProps) {
         >
           {position.marketTitle}
         </a>
-        <span className="text-xs text-white/60 font-mono">{position.marketId}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/60 font-mono truncate">{position.marketId}</span>
+          {position.isClosed && (
+            <span className="text-xs text-purple-400 font-mono">Resolved</span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -56,14 +107,24 @@ function PositionRow({ position }: PositionRowProps) {
           {position.position}
         </span>
 
+        {/* Entry price */}
+        <span className="text-sm font-mono text-white/60 w-14 text-right">
+          {formatPrice(position.startingPrice)}
+        </span>
+
         {/* Current price */}
-        <span className="text-sm font-mono text-white w-16 text-right">
-          {(position.currentPrice * 100).toFixed(1)}%
+        <span className="text-sm font-mono text-white w-14 text-right">
+          {formatPrice(position.currentPrice)}
+        </span>
+
+        {/* Price change */}
+        <span className={`text-sm font-mono w-14 text-right ${changeColor}`}>
+          {formatChange(priceChange.change)}
         </span>
 
         {/* Confidence score if available */}
         {position.confidence !== undefined && (
-          <span className="text-xs font-mono text-white/60 w-12 text-right">
+          <span className="text-xs font-mono text-white/60 w-10 text-right">
             {(position.confidence * 100).toFixed(0)}%
           </span>
         )}
@@ -130,14 +191,29 @@ function VirtualizedList({ positions }: { positions: PortfolioPosition[] }) {
  * Export positions to CSV file
  */
 function exportToCSV(positions: PortfolioPosition[], filename: string) {
-  const headers = ['Market ID', 'Market Title', 'Position', 'Price', 'Confidence']
-  const rows = positions.map(p => [
-    p.marketId,
-    `"${p.marketTitle.replace(/"/g, '""')}"`,
-    p.position,
-    (p.currentPrice * 100).toFixed(2) + '%',
-    p.confidence ? (p.confidence * 100).toFixed(0) + '%' : ''
-  ])
+  const headers = ['Market ID', 'Market Title', 'Position', 'Entry Price', 'Current Price', 'Change', 'Resolved', 'Confidence']
+
+  const formatPrice = (price: number | undefined | null): string => {
+    if (price == null) return ''
+    return (price * 100).toFixed(2) + '%'
+  }
+
+  const rows = positions.map(p => {
+    const change = p.startingPrice != null && p.currentPrice != null
+      ? (p.currentPrice - p.startingPrice) * 100
+      : null
+
+    return [
+      p.marketId,
+      `"${p.marketTitle.replace(/"/g, '""')}"`,
+      p.position,
+      formatPrice(p.startingPrice),
+      formatPrice(p.currentPrice),
+      change != null ? (change >= 0 ? '+' : '') + change.toFixed(2) + '%' : '',
+      p.isClosed ? 'Yes' : 'No',
+      p.confidence ? (p.confidence * 100).toFixed(0) + '%' : ''
+    ]
+  })
 
   const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -365,8 +441,10 @@ export function PortfolioModal({ isOpen, onClose, positions, portfolioSize }: Po
           <span className="flex-1">Market</span>
           <div className="flex items-center gap-3">
             <span className="w-12">Position</span>
-            <span className="w-16 text-right">Price</span>
-            <span className="w-12 text-right">Conf</span>
+            <span className="w-14 text-right">Entry</span>
+            <span className="w-14 text-right">Current</span>
+            <span className="w-14 text-right">Change</span>
+            <span className="w-10 text-right">Conf</span>
           </div>
         </div>
 

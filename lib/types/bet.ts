@@ -140,3 +140,85 @@ export function calculateOddsDisplay(bet: Bet): OddsDisplay {
 export function formatImpliedProbability(probability: number): string {
   return `${(probability * 100).toFixed(0)}%`
 }
+
+/**
+ * Portfolio position with price information
+ * Returned from GET /api/bets/:betId/portfolio
+ */
+export interface PortfolioPositionWithPrices {
+  /** Market/condition ID */
+  marketId: string
+  /** Position: YES or NO */
+  position: 'YES' | 'NO'
+  /** Entry price when bet was placed (0-1) */
+  startingPrice?: number
+  /** Resolution price set by keeper (0-1) */
+  endingPrice?: number
+  /** Current live price (falls back to endingPrice if resolved) */
+  currentPrice?: number
+  /** Whether the market has resolved/closed */
+  isClosed?: boolean
+}
+
+/**
+ * Response from GET /api/bets/:betId/portfolio
+ */
+export interface PortfolioResponse {
+  betId: string
+  portfolioSize: number
+  positions: PortfolioPositionWithPrices[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    hasMore: boolean
+  }
+}
+
+/**
+ * Calculate price change information for a position
+ */
+export function calculatePriceChange(position: PortfolioPositionWithPrices): {
+  change: number | null
+  changePercent: number | null
+  direction: 'up' | 'down' | 'neutral' | null
+} {
+  if (position.startingPrice == null || position.currentPrice == null) {
+    return { change: null, changePercent: null, direction: null }
+  }
+
+  const change = position.currentPrice - position.startingPrice
+  const changePercent = position.startingPrice > 0
+    ? (change / position.startingPrice) * 100
+    : 0
+
+  // For YES position: price up = good, For NO position: price down = good
+  let direction: 'up' | 'down' | 'neutral'
+  if (Math.abs(change) < 0.001) {
+    direction = 'neutral'
+  } else if (position.position === 'YES') {
+    direction = change > 0 ? 'up' : 'down'
+  } else {
+    // NO position benefits from price going down
+    direction = change < 0 ? 'up' : 'down'
+  }
+
+  return { change, changePercent, direction }
+}
+
+/**
+ * Format price as percentage (0-1 -> 0-100%)
+ */
+export function formatPrice(price: number | null | undefined): string {
+  if (price == null) return '—'
+  return `${(price * 100).toFixed(1)}%`
+}
+
+/**
+ * Format price change with sign
+ */
+export function formatPriceChange(change: number | null): string {
+  if (change == null) return '—'
+  const sign = change >= 0 ? '+' : ''
+  return `${sign}${(change * 100).toFixed(1)}%`
+}

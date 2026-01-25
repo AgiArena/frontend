@@ -6,7 +6,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import {
   FAVORABLE_ODDS_THRESHOLD,
   UNFAVORABLE_ODDS_THRESHOLD,
-  DEFAULT_ODDS_BPS
+  DEFAULT_ODDS_BPS,
+  PortfolioPositionWithPrices,
+  PortfolioResponse,
+  calculatePriceChange,
+  formatPrice,
+  formatPriceChange
 } from '@/lib/types/bet'
 
 interface BetDetailPageProps {
@@ -219,6 +224,8 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [marketNames, setMarketNames] = useState<Record<string, string>>({})
+  const [portfolioPositions, setPortfolioPositions] = useState<PortfolioPositionWithPrices[]>([])
+  const [isLoadingPositions, setIsLoadingPositions] = useState(false)
 
   useEffect(() => {
     async function fetchBet() {
@@ -246,11 +253,51 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
     fetchBet()
   }, [betId])
 
-  // Fetch market names when bet data is loaded
+  // Fetch portfolio positions with prices from new endpoint
+  useEffect(() => {
+    if (!bet) return
+
+    async function fetchPortfolioPositions() {
+      setIsLoadingPositions(true)
+      try {
+        const res = await fetch(`/api/bets/${betId}/portfolio?limit=1000`)
+        if (res.ok) {
+          const data: PortfolioResponse = await res.json()
+          setPortfolioPositions(data.positions)
+
+          // Also fetch market names for these positions
+          const names: Record<string, string> = {}
+          await Promise.all(
+            data.positions.slice(0, 50).map(async (pos) => { // Limit to first 50 for performance
+              try {
+                const marketRes = await fetch(`/api/markets/${pos.marketId}`)
+                if (marketRes.ok) {
+                  const marketData = await marketRes.json()
+                  names[pos.marketId] = marketData.market?.question || pos.marketId
+                }
+              } catch {
+                names[pos.marketId] = pos.marketId
+              }
+            })
+          )
+          setMarketNames(names)
+        }
+      } catch (err) {
+        console.error('Error fetching portfolio positions:', err)
+      } finally {
+        setIsLoadingPositions(false)
+      }
+    }
+
+    fetchPortfolioPositions()
+  }, [bet, betId])
+
+  // Fallback: Fetch market names from portfolioJson if portfolio endpoint returns empty
   useEffect(() => {
     const positions = bet?.portfolioJson?.positions
     const markets = bet?.portfolioJson?.markets
     if (!positions && !markets) return
+    if (portfolioPositions.length > 0) return // Already have positions with prices
 
     async function fetchMarketNames() {
       const names: Record<string, string> = {}
@@ -262,7 +309,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
       // Fetch market names in parallel
       await Promise.all(
-        marketIds.map(async (marketId) => {
+        marketIds.slice(0, 50).map(async (marketId) => { // Limit for performance
           try {
             const res = await fetch(`/api/markets/${marketId}`)
             if (res.ok) {
@@ -280,7 +327,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
     }
 
     fetchMarketNames()
-  }, [bet])
+  }, [bet, portfolioPositions.length])
 
   if (isLoading) {
     return <BetDetailSkeleton />
@@ -421,52 +468,108 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
           </CardContent>
         </Card>
 
-        {/* Portfolio Card */}
-        {bet.portfolioJson && (bet.portfolioJson.positions?.length || bet.portfolioJson.markets?.length) && (
+        {/* Portfolio Card - with entry and current prices */}
+        {(portfolioPositions.length > 0 || bet.portfolioJson?.positions?.length || bet.portfolioJson?.markets?.length) && (
           <Card className="border-white/20">
             <CardHeader>
-              <CardTitle className="font-mono text-lg">Portfolio Positions</CardTitle>
-              {bet.portfolioJson.expiry && (
+              <div className="flex justify-between items-center">
+                <CardTitle className="font-mono text-lg">Portfolio Positions</CardTitle>
+                {isLoadingPositions && (
+                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading prices...</span>
+                )}
+              </div>
+              {bet.portfolioJson?.expiry && (
                 <p className="text-white/40 font-mono text-xs">
                   Expiry: {new Date(bet.portfolioJson.expiry).toLocaleString()}
                 </p>
               )}
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {/* Handle backend 'positions' format */}
-                {bet.portfolioJson.positions?.map((pos, index) => {
-                  const positionStr = typeof pos.position === 'number'
-                    ? (pos.position === 1 ? 'YES' : 'NO')
-                    : String(pos.position).toUpperCase()
-                  const marketName = marketNames[pos.marketId] || pos.marketId
-                  return (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
-                    >
-                      <div className="flex-1 min-w-0 pr-4">
-                        <p className="text-white font-mono text-sm truncate" title={marketName}>
-                          {marketName}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
-                        {pos.weight && (
-                          <span className="text-white/40 font-mono text-xs">
-                            {Math.round(pos.weight * 100)}%
+              {/* Column headers */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/20 text-xs text-white/40 font-mono mb-2">
+                <span className="flex-1">Market</span>
+                <div className="flex items-center gap-3 text-right">
+                  <span className="w-14">Position</span>
+                  <span className="w-16">Entry</span>
+                  <span className="w-16">Current</span>
+                  <span className="w-16">Change</span>
+                </div>
+              </div>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {/* Use portfolio positions with prices if available */}
+                {portfolioPositions.length > 0 ? (
+                  portfolioPositions.map((pos, index) => {
+                    const marketName = marketNames[pos.marketId] || pos.marketId
+                    const priceChange = calculatePriceChange(pos)
+                    const changeColor = priceChange.direction === 'up' ? 'text-green-400'
+                      : priceChange.direction === 'down' ? 'text-red-400'
+                      : 'text-white/40'
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                      >
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="text-white font-mono text-sm truncate" title={marketName}>
+                            {marketName}
+                          </p>
+                          {pos.isClosed && (
+                            <span className="text-xs text-purple-400 font-mono">Resolved</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                          <span className={`font-mono text-sm font-bold w-14 ${
+                            pos.position === 'YES' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {pos.position}
                           </span>
-                        )}
-                        <span className={`font-mono text-sm font-bold ${
-                          positionStr === 'YES' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {positionStr}
-                        </span>
+                          <span className="text-white/60 font-mono text-sm w-16">
+                            {formatPrice(pos.startingPrice)}
+                          </span>
+                          <span className="text-white font-mono text-sm w-16">
+                            {formatPrice(pos.currentPrice)}
+                          </span>
+                          <span className={`font-mono text-sm w-16 ${changeColor}`}>
+                            {formatPriceChange(priceChange.change)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                ) : (
+                  /* Fallback to portfolioJson if positions not loaded */
+                  bet.portfolioJson?.positions?.map((pos, index) => {
+                    const positionStr = typeof pos.position === 'number'
+                      ? (pos.position === 1 ? 'YES' : 'NO')
+                      : String(pos.position).toUpperCase()
+                    const marketName = marketNames[pos.marketId] || pos.marketId
+                    return (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                      >
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="text-white font-mono text-sm truncate" title={marketName}>
+                            {marketName}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                          <span className={`font-mono text-sm font-bold w-14 ${
+                            positionStr === 'YES' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {positionStr}
+                          </span>
+                          <span className="text-white/40 font-mono text-sm w-16">—</span>
+                          <span className="text-white/40 font-mono text-sm w-16">—</span>
+                          <span className="text-white/40 font-mono text-sm w-16">—</span>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
                 {/* Fallback to 'markets' format for backwards compatibility */}
-                {!bet.portfolioJson.positions && bet.portfolioJson.markets?.map((market, index) => {
+                {!portfolioPositions.length && !bet.portfolioJson?.positions && bet.portfolioJson?.markets?.map((market, index) => {
                   const marketName = marketNames[market.conditionId] || market.conditionId
                   return (
                     <div
@@ -478,19 +581,17 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                           {marketName}
                         </p>
                       </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
-                        {market.weight && (
-                          <span className="text-white/40 font-mono text-xs">
-                            {Math.round(market.weight * 100)}%
-                          </span>
-                        )}
-                        <span className={`font-mono text-sm font-bold ${
+                      <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                        <span className={`font-mono text-sm font-bold w-14 ${
                           market.position.toUpperCase() === 'YES'
                             ? 'text-green-400'
                             : 'text-red-400'
                         }`}>
                           {market.position.toUpperCase()}
                         </span>
+                        <span className="text-white/40 font-mono text-sm w-16">—</span>
+                        <span className="text-white/40 font-mono text-sm w-16">—</span>
+                        <span className="text-white/40 font-mono text-sm w-16">—</span>
                       </div>
                     </div>
                   )
