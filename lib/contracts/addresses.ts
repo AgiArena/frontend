@@ -42,12 +42,12 @@ export const BASE_CHAIN_ID = 8453
 export const BACKEND_URL = ''
 
 /** @deprecated Use CONTRACT_ADDRESS directly */
-export function getContractAddress(): \`0x\${string}\` {
+export function getContractAddress(): `0x${string}` {
   return CONTRACT_ADDRESS
 }
 
 /** @deprecated Use RESOLUTION_CONTRACT_ADDRESS directly */
-export function getResolutionContractAddress(): \`0x\${string}\` {
+export function getResolutionContractAddress(): `0x${string}` {
   return RESOLUTION_CONTRACT_ADDRESS
 }
 
