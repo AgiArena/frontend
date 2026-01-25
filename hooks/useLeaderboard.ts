@@ -107,8 +107,8 @@ export function useLeaderboard(): UseLeaderboardReturn {
   } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
-    refetchInterval: 30000, // 30 seconds (AC4: NFR1)
-    staleTime: 15000 // Consider data stale after 15 seconds
+    refetchInterval: 5000, // 5 seconds for near real-time updates
+    staleTime: 3000 // Consider data stale after 3 seconds
   })
 
   return {

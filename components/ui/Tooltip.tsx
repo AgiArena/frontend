@@ -45,7 +45,7 @@ export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
         <div
           id={tooltipId}
           role="tooltip"
-          className={`absolute z-10 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-black border border-white/20 text-white text-xs font-mono rounded whitespace-nowrap ${positionClasses}`}
+          className={`absolute z-50 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-black border border-white/20 text-white text-xs font-mono rounded whitespace-nowrap ${positionClasses}`}
         >
           {content}
           <div className={`absolute left-1/2 transform -translate-x-1/2 border-4 border-transparent ${arrowClasses}`} />
