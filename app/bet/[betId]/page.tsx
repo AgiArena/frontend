@@ -275,12 +275,13 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
         const res = await fetch(`/api/bets/${betId}/portfolio?limit=1000`)
         if (res.ok) {
           const data: PortfolioResponse = await res.json()
-          setPortfolioPositions(data.positions)
+          const positionsArray = data.positions ?? []
+          setPortfolioPositions(positionsArray)
 
           // Also fetch market names for these positions
           const names: Record<string, string> = {}
           await Promise.all(
-            data.positions.slice(0, 50).map(async (pos) => { // Limit to first 50 for performance
+            positionsArray.slice(0, 50).map(async (pos) => { // Limit to first 50 for performance
               try {
                 const marketRes = await fetch(`/api/markets/${pos.marketId}`)
                 if (marketRes.ok) {
@@ -317,11 +318,11 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
       // Get market IDs from either format
       const marketIds = positions
         ? positions.map(p => p.marketId)
-        : (markets || []).map(m => m.conditionId)
+        : (markets ?? []).map(m => m.conditionId)
 
       // Fetch market names in parallel
       await Promise.all(
-        marketIds.slice(0, 50).map(async (marketId) => { // Limit for performance
+        (marketIds ?? []).slice(0, 50).map(async (marketId) => { // Limit for performance
           try {
             const res = await fetch(`/api/markets/${marketId}`)
             if (res.ok) {

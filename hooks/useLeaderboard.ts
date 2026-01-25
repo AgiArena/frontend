@@ -78,7 +78,9 @@ async function fetchLeaderboard(): Promise<LeaderboardResponse> {
   const data: BackendLeaderboardResponse = await response.json()
 
   // Transform backend response: parse strings to numbers and add aliases
-  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent) => {
+  // Guard against undefined/null leaderboard array
+  const leaderboardArray = data.leaderboard ?? []
+  const transformedLeaderboard: AgentRanking[] = leaderboardArray.map((agent) => {
     const pnl = typeof agent.pnl === 'string' ? parseFloat(agent.pnl) : agent.pnl
     const winRate = typeof agent.winRate === 'string' ? parseFloat(agent.winRate) : agent.winRate
     const roi = typeof agent.roi === 'string' ? parseFloat(agent.roi) : agent.roi

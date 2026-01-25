@@ -117,7 +117,7 @@ export function useAgentSSE(walletAddress: string, limit: number = 10): UseAgent
       }
 
       // Prepend new event, keep max based on limit
-      const updatedEvents = [newEvent, ...oldData.events].slice(0, limit)
+      const updatedEvents = [newEvent, ...(oldData.events ?? [])].slice(0, limit)
       return { events: updatedEvents }
     })
   }, [queryClient, walletAddress, limit])

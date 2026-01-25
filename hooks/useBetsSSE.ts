@@ -143,7 +143,7 @@ export function useBetsSSE(): UseBetsSSEReturn {
       }
 
       // Prepend new event, keep max 20
-      const updatedEvents = [newEvent, ...oldData.events].slice(0, 20)
+      const updatedEvents = [newEvent, ...(oldData.events ?? [])].slice(0, 20)
       return { events: updatedEvents }
     })
   }, [queryClient])

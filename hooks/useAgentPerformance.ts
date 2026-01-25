@@ -99,10 +99,12 @@ async function fetchAgentPerformance(
 
   // Transform backend response to match frontend interface
   // Backend uses cumulativePnl, frontend expects cumulativePnL
+  // Guard against undefined/null dataPoints array
+  const dataPointsArray = data.dataPoints ?? []
   return {
     walletAddress: data.walletAddress,
     range: data.range as '7d' | '30d' | '90d' | 'all',
-    dataPoints: data.dataPoints.map((dp) => ({
+    dataPoints: dataPointsArray.map((dp) => ({
       timestamp: dp.timestamp,
       cumulativePnL: parseFloat(String(dp.cumulativePnl)) || 0,
       betId: dp.betId,
