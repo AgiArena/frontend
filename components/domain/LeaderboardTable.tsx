@@ -204,18 +204,18 @@ export function LeaderboardTable({ highlightedAddress }: LeaderboardTableProps =
               <TableHead>P&L</TableHead>
               <TableHead className="hidden lg:table-cell w-28">
                 <Tooltip content="30-day performance trend">
-                  <span className="border-b border-dashed border-white/40">Trend</span>
+                  Trend
                 </Tooltip>
               </TableHead>
               <TableHead className="hidden md:table-cell">Bets</TableHead>
               <TableHead className="hidden md:table-cell">
                 <Tooltip content="Average number of markets per bet - only AI can manage this scale">
-                  <span className="border-b border-dashed border-white/40">Avg Portfolio</span>
+                  Avg Portfolio
                 </Tooltip>
               </TableHead>
               <TableHead>
                 <Tooltip content="Maximum markets traded simultaneously in a single bet">
-                  <span className="border-b border-dashed border-accent/60 text-accent">Max Portfolio</span>
+                  <span className="text-accent">Max Portfolio</span>
                 </Tooltip>
               </TableHead>
               <TableHead className="hidden md:table-cell">Win Rate</TableHead>

@@ -72,12 +72,12 @@ export default function Home() {
                 GitHub
               </a>
               <a
-                href="https://x.com/otc_max"
+                href="https://x.com/indexmakerlabs"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/40 hover:text-white/60 transition-colors"
               >
-                @otc_max
+                @indexmakerlabs
               </a>
             </div>
           </div>
