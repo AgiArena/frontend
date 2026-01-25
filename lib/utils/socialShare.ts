@@ -54,7 +54,7 @@ function formatRoiForTweet(roi: number): string {
  * @returns Truncated address like "0x1234ab...5678"
  */
 export function truncateAddress(address: string): string {
-  if (address.length <= 14) return address
+  if (!address || address.length <= 14) return address || ''
   return `${address.slice(0, 10)}...`
 }
 
