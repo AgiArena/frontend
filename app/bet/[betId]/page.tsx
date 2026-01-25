@@ -218,6 +218,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const [bet, setBet] = useState<BetData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [marketNames, setMarketNames] = useState<Record<string, string>>({})
 
   useEffect(() => {
     async function fetchBet() {
@@ -244,6 +245,42 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
     }
     fetchBet()
   }, [betId])
+
+  // Fetch market names when bet data is loaded
+  useEffect(() => {
+    const positions = bet?.portfolioJson?.positions
+    const markets = bet?.portfolioJson?.markets
+    if (!positions && !markets) return
+
+    async function fetchMarketNames() {
+      const names: Record<string, string> = {}
+
+      // Get market IDs from either format
+      const marketIds = positions
+        ? positions.map(p => p.marketId)
+        : (markets || []).map(m => m.conditionId)
+
+      // Fetch market names in parallel
+      await Promise.all(
+        marketIds.map(async (marketId) => {
+          try {
+            const res = await fetch(`/api/markets/${marketId}`)
+            if (res.ok) {
+              const data = await res.json()
+              names[marketId] = data.market?.question || marketId
+            }
+          } catch {
+            // Fall back to marketId if fetch fails
+            names[marketId] = marketId
+          }
+        })
+      )
+
+      setMarketNames(names)
+    }
+
+    fetchMarketNames()
+  }, [bet])
 
   if (isLoading) {
     return <BetDetailSkeleton />
@@ -402,20 +439,21 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                   const positionStr = typeof pos.position === 'number'
                     ? (pos.position === 1 ? 'YES' : 'NO')
                     : String(pos.position).toUpperCase()
+                  const marketName = marketNames[pos.marketId] || pos.marketId
                   return (
                     <div
                       key={index}
                       className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
                     >
-                      <div className="flex-1">
-                        <p className="text-white/40 font-mono text-xs truncate max-w-[300px]">
-                          {pos.marketId}
+                      <div className="flex-1 min-w-0 pr-4">
+                        <p className="text-white font-mono text-sm truncate" title={marketName}>
+                          {marketName}
                         </p>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-shrink-0">
                         {pos.weight && (
                           <span className="text-white/40 font-mono text-xs">
-                            {pos.weight}%
+                            {Math.round(pos.weight * 100)}%
                           </span>
                         )}
                         <span className={`font-mono text-sm font-bold ${
@@ -428,32 +466,35 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                   )
                 })}
                 {/* Fallback to 'markets' format for backwards compatibility */}
-                {!bet.portfolioJson.positions && bet.portfolioJson.markets?.map((market, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
-                  >
-                    <div className="flex-1">
-                      <p className="text-white/40 font-mono text-xs truncate max-w-[300px]">
-                        {market.conditionId}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {market.weight && (
-                        <span className="text-white/40 font-mono text-xs">
-                          {market.weight}%
+                {!bet.portfolioJson.positions && bet.portfolioJson.markets?.map((market, index) => {
+                  const marketName = marketNames[market.conditionId] || market.conditionId
+                  return (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                    >
+                      <div className="flex-1 min-w-0 pr-4">
+                        <p className="text-white font-mono text-sm truncate" title={marketName}>
+                          {marketName}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        {market.weight && (
+                          <span className="text-white/40 font-mono text-xs">
+                            {Math.round(market.weight * 100)}%
+                          </span>
+                        )}
+                        <span className={`font-mono text-sm font-bold ${
+                          market.position.toUpperCase() === 'YES'
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}>
+                          {market.position.toUpperCase()}
                         </span>
-                      )}
-                      <span className={`font-mono text-sm font-bold ${
-                        market.position.toUpperCase() === 'YES'
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}>
-                        {market.position.toUpperCase()}
-                      </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
