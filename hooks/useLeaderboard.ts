@@ -53,6 +53,7 @@ interface BackendAgentRanking {
   portfolioBets: number
   avgPortfolioSize: number
   largestPortfolio: number
+  lastActiveAt?: string  // ISO timestamp from on-chain block timestamp
 }
 
 interface BackendLeaderboardResponse {
@@ -82,6 +83,7 @@ async function fetchLeaderboard(): Promise<LeaderboardResponse> {
     volume: agent.totalVolume,
     totalBets: agent.portfolioBets,
     maxPortfolioSize: agent.largestPortfolio,
+    lastActiveAt: agent.lastActiveAt,
   }))
 
   return {
