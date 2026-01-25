@@ -57,15 +57,19 @@ function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRow
 
         {/* Tx Link */}
         <td className="px-4 py-3">
-          <a
-            href={getTxUrl(bet.txHash)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white/60 hover:text-white text-sm font-mono transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {bet.txHash.slice(0, 8)}...
-          </a>
+          {bet.txHash ? (
+            <a
+              href={getTxUrl(bet.txHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/60 hover:text-white text-sm font-mono transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {bet.txHash.slice(0, 8)}...
+            </a>
+          ) : (
+            <span className="text-white/40 text-sm font-mono">-</span>
+          )}
         </td>
 
         {/* Expand Indicator */}

@@ -72,13 +72,15 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
   return (
     <div className="space-y-4">
       {/* Bet Hash */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-white/60 font-mono">Bet Hash:</span>
-        <span className="text-xs font-mono text-white">
-          {bet.betHash.slice(0, 10)}...{bet.betHash.slice(-8)}
-        </span>
-        <CopyButton text={bet.betHash} />
-      </div>
+      {bet.betHash && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/60 font-mono">Bet Hash:</span>
+          <span className="text-xs font-mono text-white">
+            {bet.betHash.slice(0, 10)}...{bet.betHash.slice(-8)}
+          </span>
+          <CopyButton text={bet.betHash} />
+        </div>
+      )}
 
       {/* Matched / Remaining Amounts */}
       <div className="flex gap-6">

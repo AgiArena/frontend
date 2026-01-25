@@ -49,8 +49,9 @@ export function PortfolioBetProposal({ proposal, onBetPlaced: _onBetPlaced }: Po
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Get top 10 positions for preview
-  const top10Positions = proposal.positions.slice(0, 10)
-  const portfolioSize = proposal.positions.length
+  const positions = proposal.positions ?? []
+  const top10Positions = positions.slice(0, 10)
+  const portfolioSize = positions.length
 
   return (
     <div className="bg-black border border-white/20 p-6 font-mono">
