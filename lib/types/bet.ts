@@ -15,6 +15,7 @@ export const DEFAULT_ODDS_BPS = 10000
 /**
  * Core Bet interface with odds support
  * oddsBps uses basis points: 10000 = 1.00x, 20000 = 2.00x
+ * Epic 8: Added category-based betting fields
  */
 export interface Bet {
   betId: string
@@ -28,6 +29,9 @@ export interface Bet {
   status: 'pending' | 'partially_matched' | 'fully_matched' | 'cancelled' | 'settled' | 'resolved'
   createdAt: string
   portfolioSize?: number
+  // Epic 8: Category-based betting
+  categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
+  listSize?: number           // List size (e.g., 100 for top 100)
 }
 
 /**

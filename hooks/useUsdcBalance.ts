@@ -2,7 +2,7 @@
 
 import { useReadContract, useAccount } from 'wagmi'
 import { erc20Abi } from '@/lib/contracts/abi'
-import { USDC_ADDRESS } from '@/lib/contracts/addresses'
+import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts/addresses'
 import { formatUsdcAmount } from '@/lib/utils/formatters'
 
 interface UseUsdcBalanceReturn {
@@ -27,7 +27,7 @@ export function useUsdcBalance(): UseUsdcBalanceReturn {
   const { address, isConnected } = useAccount()
 
   const { data: balance, isLoading, isError, refetch } = useReadContract({
-    address: USDC_ADDRESS,
+    address: COLLATERAL_TOKEN_ADDRESS,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,

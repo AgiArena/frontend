@@ -30,6 +30,9 @@ export interface BetRecord {
   txHash: string
   counterParties?: string[]
   portfolioJson?: string
+  // Epic 8: Category-based betting
+  categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
+  listSize?: number          // List size for category betting (e.g., 100 for top 100)
 }
 
 interface UseBetHistoryOptions {

@@ -3,7 +3,7 @@
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useEffect, useRef } from 'react'
 import { erc20Abi } from '@/lib/contracts/abi'
-import { USDC_ADDRESS, getContractAddress } from '@/lib/contracts/addresses'
+import { COLLATERAL_TOKEN_ADDRESS, CONTRACT_ADDRESS } from '@/lib/contracts/addresses'
 
 type ApprovalState = 'idle' | 'checking' | 'approval-required' | 'approving' | 'approved' | 'error'
 
@@ -17,22 +17,14 @@ interface UseUsdcApprovalReturn {
 }
 
 /**
- * Hook for managing USDC ERC20 approval for the AgiArenaCore contract
+ * Hook for managing collateral token ERC20 approval for the AgiArenaCore contract
  * Checks current allowance and requests approval if needed
  */
 export function useUsdcApproval(): UseUsdcApprovalReturn {
   const { address, isConnected } = useAccount()
 
-  // Get contract address (may throw if not configured)
-  let contractAddress: `0x${string}` | undefined
-  try {
-    contractAddress = getContractAddress()
-  } catch (err) {
-    // Contract address not configured - log for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Contract address not configured:', err)
-    }
-  }
+  // Contract address
+  const contractAddress = CONTRACT_ADDRESS
 
   // Read current allowance
   const {
@@ -41,7 +33,7 @@ export function useUsdcApproval(): UseUsdcApprovalReturn {
     error: allowanceError,
     refetch: refetchAllowance
   } = useReadContract({
-    address: USDC_ADDRESS,
+    address: COLLATERAL_TOKEN_ADDRESS,
     abi: erc20Abi,
     functionName: 'allowance',
     args: address && contractAddress ? [address, contractAddress] : undefined,
@@ -101,7 +93,7 @@ export function useUsdcApproval(): UseUsdcApprovalReturn {
 
     resetWrite()
     writeContract({
-      address: USDC_ADDRESS,
+      address: COLLATERAL_TOKEN_ADDRESS,
       abi: erc20Abi,
       functionName: 'approve',
       args: [contractAddress, amount]

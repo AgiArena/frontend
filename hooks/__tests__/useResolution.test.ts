@@ -1,111 +1,173 @@
 import { describe, test, expect } from 'bun:test'
 import {
-  formatScore,
-  getScoreColorClass,
-  getDisputeTimeRemaining,
-  formatTimeRemaining,
-  DISPUTE_WINDOW_MS
+  formatWinRate,
+  getWinRateColorClass,
+  formatResolutionOutcome,
+  type Resolution
 } from '../useResolution'
 
-describe('formatScore', () => {
-  test('formats positive score correctly', () => {
-    // 247 bps = +2.47%
-    expect(formatScore(247)).toBe('+2.47%')
+describe('formatWinRate', () => {
+  test('formats win/total with percentage', () => {
+    expect(formatWinRate(7, 10)).toBe('7/10 (70%)')
   })
 
-  test('formats negative score correctly', () => {
-    // -123 bps = -1.23%
-    expect(formatScore(-123)).toBe('-1.23%')
+  test('formats perfect score', () => {
+    expect(formatWinRate(10, 10)).toBe('10/10 (100%)')
   })
 
-  test('formats zero score correctly', () => {
-    expect(formatScore(0)).toBe('+0.00%')
+  test('formats zero wins', () => {
+    expect(formatWinRate(0, 10)).toBe('0/10 (0%)')
   })
 
-  test('formats large positive score', () => {
-    // 10000 bps = +100%
-    expect(formatScore(10000)).toBe('+100.00%')
+  test('returns N/A for zero total', () => {
+    expect(formatWinRate(0, 0)).toBe('N/A')
   })
 
-  test('formats large negative score', () => {
-    // -10000 bps = -100%
-    expect(formatScore(-10000)).toBe('-100.00%')
-  })
-
-  test('formats null as --', () => {
-    expect(formatScore(null)).toBe('--')
+  test('handles odd fractions', () => {
+    expect(formatWinRate(3, 7)).toBe('3/7 (43%)')
   })
 })
 
-describe('getScoreColorClass', () => {
-  test('returns white for positive scores', () => {
-    expect(getScoreColorClass(100)).toBe('text-white')
+describe('getWinRateColorClass', () => {
+  test('returns green for > 60% win rate', () => {
+    expect(getWinRateColorClass(7, 10)).toBe('text-green-500')
+    expect(getWinRateColorClass(61, 100)).toBe('text-green-500')
   })
 
-  test('returns white for zero', () => {
-    expect(getScoreColorClass(0)).toBe('text-white')
+  test('returns yellow for 40-60% win rate', () => {
+    expect(getWinRateColorClass(5, 10)).toBe('text-yellow-500')
+    expect(getWinRateColorClass(45, 100)).toBe('text-yellow-500')
   })
 
-  test('returns accent for negative scores', () => {
-    expect(getScoreColorClass(-100)).toBe('text-accent')
+  test('returns red for < 40% win rate', () => {
+    expect(getWinRateColorClass(3, 10)).toBe('text-red-500')
+    expect(getWinRateColorClass(39, 100)).toBe('text-red-500')
   })
 
-  test('returns muted color for null', () => {
-    expect(getScoreColorClass(null)).toBe('text-white/60')
-  })
-})
-
-describe('DISPUTE_WINDOW_MS', () => {
-  test('equals 2 hours in milliseconds', () => {
-    // 2 hours = 2 * 60 * 60 * 1000 = 7,200,000 ms
-    expect(DISPUTE_WINDOW_MS).toBe(7200000)
+  test('returns gray for zero total', () => {
+    expect(getWinRateColorClass(0, 0)).toBe('text-gray-500')
   })
 })
 
-describe('getDisputeTimeRemaining', () => {
-  test('returns 0 for null consensusAt', () => {
-    expect(getDisputeTimeRemaining(null)).toBe(0)
+describe('formatResolutionOutcome', () => {
+  test('formats tie state', () => {
+    const resolution: Resolution = {
+      betId: '1',
+      winsCount: 5,
+      validTrades: 10,
+      winRate: 50,
+      creatorWins: null,
+      isTie: true,
+      isCancelled: false,
+      totalPot: '200',
+      platformFee: '0.2',
+      winnerPayout: '199.8',
+      winnerAddress: null,
+      loserAddress: null,
+      settlementTxHash: null,
+      status: 'tie'
+    }
+    expect(formatResolutionOutcome(resolution)).toBe('Tie - Both Refunded')
   })
 
-  test('returns 0 for expired window', () => {
-    // 3 hours ago (past the 2-hour window)
-    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-    expect(getDisputeTimeRemaining(threeHoursAgo)).toBe(0)
+  test('formats cancelled state with reason', () => {
+    const resolution: Resolution = {
+      betId: '1',
+      winsCount: 0,
+      validTrades: 0,
+      winRate: 0,
+      creatorWins: null,
+      isTie: false,
+      isCancelled: true,
+      cancelReason: 'Insufficient valid trades',
+      totalPot: '200',
+      platformFee: '0',
+      winnerPayout: '0',
+      winnerAddress: null,
+      loserAddress: null,
+      settlementTxHash: null,
+      status: 'cancelled'
+    }
+    expect(formatResolutionOutcome(resolution)).toBe('Cancelled - Insufficient valid trades')
   })
 
-  test('returns positive value for open window', () => {
-    // 1 hour ago (still within 2-hour window)
-    const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-    const remaining = getDisputeTimeRemaining(oneHourAgo)
-    // Should be approximately 1 hour remaining (with some tolerance for test execution time)
-    expect(remaining).toBeGreaterThan(3500000) // > 58 minutes
-    expect(remaining).toBeLessThanOrEqual(3600000) // <= 60 minutes
-  })
-})
-
-describe('formatTimeRemaining', () => {
-  test('formats expired time', () => {
-    expect(formatTimeRemaining(0)).toBe('Expired')
-    expect(formatTimeRemaining(-1000)).toBe('Expired')
-  })
-
-  test('formats hours and minutes', () => {
-    // 1 hour 45 minutes = 6,300,000 ms
-    expect(formatTimeRemaining(6300000)).toBe('1h 45m')
-  })
-
-  test('formats minutes only (under 1 hour)', () => {
-    // 45 minutes 30 seconds = 2,730,000 ms
-    expect(formatTimeRemaining(2730000)).toBe('45m 30s')
+  test('formats cancelled state without reason', () => {
+    const resolution: Resolution = {
+      betId: '1',
+      winsCount: 0,
+      validTrades: 0,
+      winRate: 0,
+      creatorWins: null,
+      isTie: false,
+      isCancelled: true,
+      totalPot: '0',
+      platformFee: '0',
+      winnerPayout: '0',
+      winnerAddress: null,
+      loserAddress: null,
+      settlementTxHash: null,
+      status: 'cancelled'
+    }
+    expect(formatResolutionOutcome(resolution)).toBe('Cancelled - Unknown reason')
   })
 
-  test('formats short durations', () => {
-    // 30 seconds = 30,000 ms
-    expect(formatTimeRemaining(30000)).toBe('0m 30s')
+  test('formats creator wins', () => {
+    const resolution: Resolution = {
+      betId: '1',
+      winsCount: 7,
+      validTrades: 10,
+      winRate: 70,
+      creatorWins: true,
+      isTie: false,
+      isCancelled: false,
+      totalPot: '200',
+      platformFee: '0.2',
+      winnerPayout: '199.8',
+      winnerAddress: '0x1111111111111111111111111111111111111111',
+      loserAddress: '0x2222222222222222222222222222222222222222',
+      settlementTxHash: '0xabc',
+      status: 'resolved'
+    }
+    expect(formatResolutionOutcome(resolution)).toBe('Creator Wins')
   })
 
-  test('formats exactly 2 hours', () => {
-    // 2 hours = 7,200,000 ms
-    expect(formatTimeRemaining(7200000)).toBe('2h 0m')
+  test('formats matcher wins', () => {
+    const resolution: Resolution = {
+      betId: '1',
+      winsCount: 3,
+      validTrades: 10,
+      winRate: 30,
+      creatorWins: false,
+      isTie: false,
+      isCancelled: false,
+      totalPot: '200',
+      platformFee: '0.2',
+      winnerPayout: '199.8',
+      winnerAddress: '0x2222222222222222222222222222222222222222',
+      loserAddress: '0x1111111111111111111111111111111111111111',
+      settlementTxHash: '0xabc',
+      status: 'resolved'
+    }
+    expect(formatResolutionOutcome(resolution)).toBe('Matcher Wins')
+  })
+
+  test('formats pending state', () => {
+    const resolution: Resolution = {
+      betId: '1',
+      winsCount: 0,
+      validTrades: 0,
+      winRate: 0,
+      creatorWins: null,
+      isTie: false,
+      isCancelled: false,
+      totalPot: '200',
+      platformFee: '0',
+      winnerPayout: '0',
+      winnerAddress: null,
+      loserAddress: null,
+      settlementTxHash: null,
+      status: 'pending'
+    }
+    expect(formatResolutionOutcome(resolution)).toBe('Pending')
   })
 })

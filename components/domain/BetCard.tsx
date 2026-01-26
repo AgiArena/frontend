@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { OddsBadge } from './OddsBadge'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { type Bet, calculateOddsDisplay, formatImpliedProbability } from '@/lib/types/bet'
+import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 
 interface BetCardProps {
   /** The bet to display */
@@ -56,12 +57,24 @@ function getStatusColor(status: string): string {
 export function BetCard({ bet, className = '' }: BetCardProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const odds = calculateOddsDisplay(bet)
+  const category = useCategoryById(bet.categoryId)
 
   return (
     <div className={`border border-gray-700 rounded-lg p-4 bg-black/50 ${className}`}>
       {/* Header with odds badge and status */}
       <div className="flex justify-between items-center mb-4">
-        <OddsBadge display={odds.display} favorability={odds.favorability} />
+        <div className="flex items-center gap-2">
+          <OddsBadge display={odds.display} favorability={odds.favorability} />
+          {/* Category badge (Epic 8) */}
+          {category && (
+            <span className="px-2 py-1 bg-gray-800 rounded text-xs font-mono text-white/80">
+              {formatCategoryDisplay(category)}
+              {bet.listSize && (
+                <span className="text-white/40 ml-1">({bet.listSize})</span>
+              )}
+            </span>
+          )}
+        </div>
         <span className={`text-xs font-mono ${getStatusColor(bet.status)}`}>
           {formatStatus(bet.status)}
         </span>
@@ -141,9 +154,13 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
         </div>
       )}
 
-      {/* Portfolio size - default to 5 when not yet synced */}
+      {/* List/Portfolio size */}
       <div className="text-xs text-gray-500 font-mono mb-3">
-        Portfolio: {(bet.portfolioSize || 5).toLocaleString()} markets
+        {bet.listSize ? (
+          <span>List Size: {bet.listSize} trades</span>
+        ) : (
+          <span>Portfolio: {(bet.portfolioSize || 5).toLocaleString()} markets</span>
+        )}
       </div>
 
       {/* View details link */}

@@ -4,55 +4,57 @@ import { useQuery } from '@tanstack/react-query'
 import { getBackendUrl } from '@/lib/contracts/addresses'
 
 /**
- * Resolution status types matching backend API response
+ * Resolution status types for majority-wins system
+ * Epic 8: Simplified to pending/resolved/tie/cancelled
+ * Note: Legacy statuses kept for backwards compatibility with StatusBadge
  */
 export type ResolutionStatus =
+  | 'pending'
+  | 'resolved'
+  | 'tie'
+  | 'cancelled'
+  // Legacy statuses (for backwards compatibility)
   | 'pending_votes'
   | 'consensus_reached'
   | 'disputed'
-  | 'settled'
 
 /**
- * Resolution data interface matching backend API response
+ * Resolution data interface for majority-wins system
+ * Epic 8: Trades won > 50% determines winner
  */
 export interface Resolution {
   betId: string
-  consensusReached: boolean
-  consensusAt: string | null        // ISO timestamp
-  keeper1Score: number | null       // Basis points: 247 = +2.47%
-  keeper2Score: number | null
-  avgScore: number | null
-  creatorWins: boolean | null
+  winsCount: number              // Number of trades the creator won
+  validTrades: number            // Total valid trades (excluding cancelled)
+  winRate: number                // Percentage 0-100
+  creatorWins: boolean | null    // null if tie or cancelled
+  isTie: boolean
+  isCancelled: boolean
+  cancelReason?: string
+  resolvedBy?: string            // Keeper address who resolved
+  resolvedAt?: string            // ISO timestamp
+  totalPot: string               // Total pot in USDC
+  platformFee: string            // Platform fee taken
+  winnerPayout: string           // Winner's payout amount
   winnerAddress: string | null
   loserAddress: string | null
-  totalPot: string                  // "200.000000" (USDC 6 decimals as string)
-  platformFee: string               // "0.200000"
-  winnerPayout: string              // "199.800000"
-  isDisputed: boolean
-  disputerAddress: string | null
-  disputeStake: string | null
-  disputeReason: string | null
-  disputeRaisedAt: string | null
-  disputeResolvedAt: string | null
-  outcomeChanged: boolean | null
-  correctedScore: number | null
-  settledAt: string | null
   settlementTxHash: string | null
   status: ResolutionStatus
 }
 
 /**
- * Keeper vote interface matching backend API response
+ * Bet trade with resolution outcome
  */
-export interface KeeperVote {
-  voteId: number
-  betId: string
-  keeperAddress: string
-  aggregateScore: number            // Basis points
-  creatorWins: boolean
-  votedAt: string
-  txHash: string
-  blockNumber: number
+export interface BetTrade {
+  tradeId: string
+  ticker: string
+  source: string                 // 'coingecko' | 'polymarket' | 'gamma'
+  method: string                 // 'price' | 'outcome'
+  position: 'LONG' | 'SHORT' | 'YES' | 'NO'
+  entryPrice: string
+  exitPrice?: string
+  won?: boolean
+  cancelled?: boolean
 }
 
 /**
@@ -67,23 +69,6 @@ async function fetchResolution(betId: string): Promise<Resolution | null> {
       return null // No resolution data yet
     }
     throw new Error(`Failed to fetch resolution: ${response.statusText}`)
-  }
-
-  return response.json()
-}
-
-/**
- * Fetches keeper votes for a specific bet's resolution
- */
-async function fetchResolutionVotes(betId: string): Promise<KeeperVote[]> {
-  const backendUrl = getBackendUrl()
-  const response = await fetch(`${backendUrl}/api/resolutions/${betId}/votes`)
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      return [] // No votes yet
-    }
-    throw new Error(`Failed to fetch resolution votes: ${response.statusText}`)
   }
 
   return response.json()
@@ -132,106 +117,43 @@ export function useResolution({ betId, enabled = true }: UseResolutionOptions): 
   }
 }
 
-interface UseResolutionVotesOptions {
-  betId: string | null
-  enabled?: boolean
-}
-
-interface UseResolutionVotesReturn {
-  votes: KeeperVote[]
-  isLoading: boolean
-  isError: boolean
-  error: Error | null
-  refetch: () => void
-}
+// ============ Win Rate Formatting Utilities ============
 
 /**
- * Hook for fetching keeper votes for a bet's resolution
- * @param options - Configuration including betId
- * @returns Keeper votes array, loading state, and error state
+ * Formats win count and total as a percentage string
+ * @param wins - Number of trades won
+ * @param total - Total valid trades
+ * @returns Formatted string like "7/10 (70%)" or "N/A" if no trades
  */
-export function useResolutionVotes({ betId, enabled = true }: UseResolutionVotesOptions): UseResolutionVotesReturn {
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['resolution', 'votes', betId],
-    queryFn: () => fetchResolutionVotes(betId!),
-    enabled: enabled && !!betId,
-    refetchInterval: 30000,
-    staleTime: 10000
-  })
-
-  return {
-    votes: data ?? [],
-    isLoading,
-    isError,
-    error: error as Error | null,
-    refetch
-  }
-}
-
-// ============ Score Formatting Utilities ============
-
-/**
- * Formats a score from basis points to percentage string
- * @param score - Score in basis points (247 = +2.47%, -123 = -1.23%)
- * @returns Formatted string like "+2.47%" or "-1.23%"
- */
-export function formatScore(score: number | null): string {
-  if (score === null) return '--'
-  const percentage = score / 100
-  const sign = percentage >= 0 ? '+' : ''
-  return `${sign}${percentage.toFixed(2)}%`
+export function formatWinRate(wins: number, total: number): string {
+  if (total === 0) return 'N/A'
+  const percentage = (wins / total) * 100
+  return `${wins}/${total} (${percentage.toFixed(0)}%)`
 }
 
 /**
- * Returns Tailwind CSS class for score color
- * @param score - Score in basis points
- * @returns CSS class: 'text-white' for positive/zero, 'text-accent' for negative
+ * Returns Tailwind CSS class for win rate color
+ * @param wins - Number of trades won
+ * @param total - Total valid trades
+ * @returns CSS class based on win rate
  */
-export function getScoreColorClass(score: number | null): string {
-  if (score === null) return 'text-white/60'
-  return score >= 0 ? 'text-white' : 'text-white/60'
-}
-
-// ============ Dispute Window Utilities ============
-
-/**
- * Dispute window duration in milliseconds (2 hours)
- */
-export const DISPUTE_WINDOW_MS = 2 * 60 * 60 * 1000
-
-/**
- * Calculate time remaining in dispute window
- * @param consensusAt - ISO timestamp when consensus was reached
- * @returns Time remaining in milliseconds (0 if window closed)
- */
-export function getDisputeTimeRemaining(consensusAt: string | null): number {
-  if (!consensusAt) return 0
-  const consensusTime = new Date(consensusAt).getTime()
-  const deadline = consensusTime + DISPUTE_WINDOW_MS
-  return Math.max(0, deadline - Date.now())
+export function getWinRateColorClass(wins: number, total: number): string {
+  if (total === 0) return 'text-gray-500'
+  const rate = wins / total
+  if (rate > 0.6) return 'text-green-500'
+  if (rate > 0.4) return 'text-yellow-500'
+  return 'text-red-500'
 }
 
 /**
- * Format time remaining as human-readable string
- * @param milliseconds - Time in milliseconds
- * @returns Formatted string like "1h 45m" or "23m 15s"
+ * Format resolution outcome for display
+ * @param resolution - Resolution data
+ * @returns User-friendly outcome string
  */
-export function formatTimeRemaining(milliseconds: number): string {
-  if (milliseconds <= 0) return 'Expired'
-
-  const totalSeconds = Math.floor(milliseconds / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-  return `${minutes}m ${seconds}s`
+export function formatResolutionOutcome(resolution: Resolution): string {
+  if (resolution.isTie) return 'Tie - Both Refunded'
+  if (resolution.isCancelled) return `Cancelled - ${resolution.cancelReason || 'Unknown reason'}`
+  if (resolution.creatorWins === true) return 'Creator Wins'
+  if (resolution.creatorWins === false) return 'Matcher Wins'
+  return 'Pending'
 }

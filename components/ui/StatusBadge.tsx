@@ -40,7 +40,12 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       case 'settling':
       case 'settled':
         return 'bg-white/30 text-white'
-      // Resolution statuses
+      // Resolution statuses (Epic 8: majority-wins)
+      case 'resolved':
+        return 'bg-green-600 text-white'
+      case 'tie':
+        return 'bg-yellow-600 text-white'
+      // Legacy resolution statuses (can be removed later)
       case 'pending_votes':
         return 'bg-white/20 text-white'
       case 'consensus_reached':
@@ -75,7 +80,12 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return 'Settling'
       case 'settled':
         return 'Settled'
-      // Resolution statuses
+      // Resolution statuses (Epic 8: majority-wins)
+      case 'resolved':
+        return 'Resolved'
+      case 'tie':
+        return 'Tie'
+      // Legacy resolution statuses (can be removed later)
       case 'pending_votes':
         return 'Pending Votes'
       case 'consensus_reached':

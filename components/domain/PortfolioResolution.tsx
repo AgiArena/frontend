@@ -1,87 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import type { BetRecord } from '@/hooks/useBetHistory'
-import { useResolution, useResolutionVotes, formatScore, getScoreColorClass, formatTimeRemaining } from '@/hooks/useResolution'
-import { useDisputeEligibility } from '@/hooks/useDisputeEligibility'
-import { useKeeperStats } from '@/hooks/useKeeperStats'
+import { useResolution, formatWinRate, getWinRateColorClass, formatResolutionOutcome } from '@/hooks/useResolution'
+import { useBetTrades, formatTradePosition, formatTradePrice } from '@/hooks/useBetTrades'
+import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
-import { formatNumber, formatUsdcString } from '@/lib/utils/formatters'
-import { RaiseDisputeModal } from './RaiseDisputeModal'
-
-/**
- * Dispute resolution window duration in milliseconds (48 hours)
- */
-const DISPUTE_RESOLUTION_WINDOW_MS = 48 * 60 * 60 * 1000
-
-/**
- * Score variance threshold in basis points for showing divergence warning
- */
-const SCORE_VARIANCE_WARNING_THRESHOLD = 100
+import { formatUsdcString } from '@/lib/utils/formatters'
 
 interface PortfolioResolutionProps {
   betId: string
   bet: BetRecord
-}
-
-/**
- * Keeper vote card subcomponent with stats
- */
-interface KeeperVoteCardProps {
-  keeperAddress: string
-  score: number
-  creatorWins: boolean
-  votedAt: string
-  txHash: string
-}
-
-function KeeperVoteCard({ keeperAddress, score, creatorWins, votedAt, txHash }: KeeperVoteCardProps) {
-  const { stats, isLoading: statsLoading } = useKeeperStats({ address: keeperAddress })
-
-  return (
-    <div className="border border-white/20 p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <a
-          href={getAddressUrl(keeperAddress)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-mono text-white hover:text-accent transition-colors"
-        >
-          {truncateAddress(keeperAddress)}
-        </a>
-        <span className={`text-sm font-mono font-bold ${getScoreColorClass(score)}`}>
-          {formatScore(score)}
-        </span>
-      </div>
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-white/60 font-mono">
-          {creatorWins ? 'Creator Wins' : 'Matcher Wins'}
-        </span>
-        <a
-          href={getTxUrl(txHash)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-white/40 hover:text-white transition-colors font-mono"
-        >
-          {new Date(votedAt).toLocaleDateString()}
-        </a>
-      </div>
-      {/* Keeper Stats */}
-      {!statsLoading && stats && (
-        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
-          <span className="text-white/40 font-mono">
-            Accuracy: {(stats.accuracyRate * 100).toFixed(1)}%
-          </span>
-          <span className="text-white/40 font-mono">
-            {stats.totalVotes} votes
-          </span>
-        </div>
-      )}
-    </div>
-  )
 }
 
 /**
@@ -182,182 +113,67 @@ function SettlementDetails({
 }
 
 /**
- * Countdown timer component for dispute window
+ * Trade outcomes breakdown component
  */
-interface CountdownTimerProps {
-  timeRemainingFormatted: string
-  isExpired: boolean
+interface TradesBreakdownProps {
+  betId: string
 }
 
-function CountdownTimer({ timeRemainingFormatted, isExpired }: CountdownTimerProps) {
-  if (isExpired) {
+function TradesBreakdown({ betId }: TradesBreakdownProps) {
+  const { trades, isLoading } = useBetTrades({ betId: parseInt(betId) })
+
+  if (isLoading) {
     return (
-      <span className="text-xs font-mono text-white/40">
-        Dispute window closed
-      </span>
+      <div className="text-center py-4">
+        <span className="text-xs text-white/40 font-mono">Loading trades...</span>
+      </div>
     )
   }
 
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-mono text-white/60">Dispute window:</span>
-      <span className="text-sm font-mono text-white font-bold">{timeRemainingFormatted}</span>
-    </div>
-  )
-}
-
-/**
- * Pending dispute display with 48-hour countdown
- */
-interface PendingDisputeProps {
-  disputeRaisedAt: string
-  disputerAddress: string | null
-  disputeStake: string | null
-  disputeReason: string | null
-}
-
-function PendingDispute({
-  disputeRaisedAt,
-  disputerAddress,
-  disputeStake,
-  disputeReason
-}: PendingDisputeProps) {
-  const [timeRemaining, setTimeRemaining] = useState<number>(0)
-
-  // Calculate and update time remaining for 48-hour resolution window
-  useEffect(() => {
-    const calculateTimeRemaining = () => {
-      const raisedTime = new Date(disputeRaisedAt).getTime()
-      const deadline = raisedTime + DISPUTE_RESOLUTION_WINDOW_MS
-      return Math.max(0, deadline - Date.now())
-    }
-
-    setTimeRemaining(calculateTimeRemaining())
-
-    const interval = setInterval(() => {
-      setTimeRemaining(calculateTimeRemaining())
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [disputeRaisedAt])
+  if (trades.length === 0) {
+    return null
+  }
 
   return (
-    <div className="border border-accent p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-bold text-white font-mono">Dispute Pending</h4>
-        <span className="px-2 py-1 text-xs font-bold font-mono bg-accent text-white">
-          Under Review
-        </span>
-      </div>
-
-      {/* 48-hour countdown */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-white/60 font-mono">Resolution deadline:</span>
-        <span className="text-sm font-mono text-white font-bold">
-          {timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : 'Awaiting decision'}
-        </span>
-      </div>
-
-      {disputerAddress && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-white/60 font-mono">Disputer:</span>
-          <a
-            href={getAddressUrl(disputerAddress)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-white hover:text-accent transition-colors"
+    <div className="border border-white/10 p-3 space-y-2">
+      <h4 className="text-sm font-bold text-white font-mono">Trade Outcomes</h4>
+      <div className="max-h-60 overflow-y-auto space-y-1">
+        {trades.map((trade, idx) => (
+          <div
+            key={`${trade.tradeId}-${idx}`}
+            className="flex items-center justify-between text-xs py-1 border-b border-white/5 last:border-b-0"
           >
-            {truncateAddress(disputerAddress)}
-          </a>
-        </div>
-      )}
-
-      {disputeStake && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-white/60 font-mono">Stake at risk:</span>
-          <span className="font-mono text-accent">{formatUsdcString(disputeStake)}</span>
-        </div>
-      )}
-
-      {disputeReason && (
-        <div className="pt-2 border-t border-white/10">
-          <span className="text-xs text-white/60 font-mono block mb-1">Reason:</span>
-          <p className="text-xs text-white/80">{disputeReason}</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Dispute resolution outcome display
- */
-interface DisputeOutcomeProps {
-  outcomeChanged: boolean
-  correctedScore: number | null
-  disputeReason: string | null
-  disputerAddress: string | null
-  disputeStake: string | null
-}
-
-function DisputeOutcome({
-  outcomeChanged,
-  correctedScore,
-  disputeReason,
-  disputerAddress,
-  disputeStake
-}: DisputeOutcomeProps) {
-  return (
-    <div className="border border-accent/50 p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-bold text-white font-mono">Dispute Resolution</h4>
-        <span className={`px-2 py-1 text-xs font-bold font-mono ${
-          outcomeChanged
-            ? 'bg-white text-black'
-            : 'bg-accent text-white'
-        }`}>
-          {outcomeChanged ? 'Outcome Changed' : 'Stake Slashed'}
-        </span>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="text-white/80 font-mono truncate max-w-[120px]" title={trade.ticker}>
+                {trade.ticker}
+              </span>
+              <span className="text-white/40 font-mono text-[10px] uppercase">
+                {trade.source}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-white/60">
+                {formatTradePosition(trade.position, trade.source)}
+              </span>
+              <span className="font-mono text-white/50">
+                {formatTradePrice(trade.entryPrice, trade.source)}
+                {trade.exitPrice && (
+                  <>
+                    <span className="text-white/30 mx-1">→</span>
+                    {formatTradePrice(trade.exitPrice, trade.source)}
+                  </>
+                )}
+              </span>
+              <span className={`font-mono font-bold ${
+                trade.cancelled ? 'text-gray-500' :
+                trade.won ? 'text-green-500' : 'text-red-500'
+              }`}>
+                {trade.cancelled ? '—' : trade.won ? '✓' : '✗'}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
-
-      {correctedScore !== null && outcomeChanged && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/60 font-mono">Corrected Score:</span>
-          <span className={`text-sm font-mono font-bold ${getScoreColorClass(correctedScore)}`}>
-            {formatScore(correctedScore)}
-          </span>
-        </div>
-      )}
-
-      {disputerAddress && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-white/60 font-mono">Disputer:</span>
-          <a
-            href={getAddressUrl(disputerAddress)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-white hover:text-accent transition-colors"
-          >
-            {truncateAddress(disputerAddress)}
-          </a>
-        </div>
-      )}
-
-      {disputeStake && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-white/60 font-mono">Stake:</span>
-          <span className={`font-mono ${outcomeChanged ? 'text-white' : 'text-accent'}`}>
-            {formatUsdcString(disputeStake)}
-            {outcomeChanged ? ' (Returned + Reward)' : ' (Slashed)'}
-          </span>
-        </div>
-      )}
-
-      {disputeReason && (
-        <div className="pt-2 border-t border-white/10">
-          <p className="text-xs text-white/80">{disputeReason}</p>
-        </div>
-      )}
     </div>
   )
 }
@@ -377,15 +193,13 @@ function LoadingSkeleton() {
 
 /**
  * Main PortfolioResolution component
- * Displays resolution data, keeper votes, settlement details, and dispute functionality
+ * Epic 8: Majority-wins resolution (trades won > 50%)
+ * Displays win count/rate, trade outcomes, and settlement details
  */
 export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
   const { address } = useAccount()
-  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false)
-
   const { resolution, isLoading } = useResolution({ betId })
-  const { votes, isLoading: votesLoading } = useResolutionVotes({ betId })
-  const disputeEligibility = useDisputeEligibility(resolution, bet, address)
+  const category = useCategoryById(bet.categoryId)
 
   if (isLoading) {
     return <LoadingSkeleton />
@@ -397,46 +211,59 @@ export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
       <div className="border border-white/10 p-4 text-center">
         <p className="text-sm text-white/60 font-mono">No resolution data available yet</p>
         <p className="text-xs text-white/40 font-mono mt-1">
-          Keepers have not voted on this bet
+          Bet has not been resolved
         </p>
       </div>
     )
   }
 
-  // Calculate score variance if we have multiple votes
-  const scoreVariance = votes.length >= 2
-    ? Math.abs(votes[0].aggregateScore - votes[1].aggregateScore)
-    : 0
-
   return (
     <div className="space-y-4 border border-white/20 p-4">
-      {/* Main Score Display */}
+      {/* Main Win Count Display */}
       <div className="text-center space-y-2">
         <div>
           <span className="text-xs text-white/60 font-mono block mb-1">
-            Aggregate Portfolio Score
+            Trades Won
           </span>
-          <span className={`text-4xl font-mono font-bold ${getScoreColorClass(resolution.avgScore)}`}>
-            {formatScore(resolution.avgScore)}
+          <span className={`text-4xl font-mono font-bold ${getWinRateColorClass(resolution.winsCount, resolution.validTrades)}`}>
+            {resolution.winsCount}/{resolution.validTrades}
+          </span>
+          <span className="text-2xl text-white/40 font-mono ml-2">
+            ({resolution.winRate.toFixed(0)}%)
           </span>
         </div>
 
-        {/* Winner Badge */}
-        {resolution.creatorWins !== null && resolution.consensusReached && (
-          <div className="pt-2">
-            <span className="px-3 py-1 bg-white text-black text-sm font-mono font-bold">
-              {resolution.creatorWins ? 'Creator Wins' : 'Matcher Wins'}
-            </span>
-          </div>
-        )}
+        {/* Outcome Badge */}
+        <div className="pt-2">
+          <span className={`px-3 py-1 text-sm font-mono font-bold ${
+            resolution.isTie ? 'bg-yellow-500/20 text-yellow-400' :
+            resolution.isCancelled ? 'bg-gray-500/20 text-gray-400' :
+            resolution.creatorWins ? 'bg-green-500/20 text-green-400' :
+            'bg-red-500/20 text-red-400'
+          }`}>
+            {formatResolutionOutcome(resolution)}
+          </span>
+        </div>
       </div>
 
-      {/* Portfolio Summary */}
+      {/* Category Badge */}
+      {category && (
+        <div className="flex justify-center">
+          <span className="px-2 py-1 bg-gray-800 rounded text-sm font-mono">
+            {formatCategoryDisplay(category)}
+            {bet.listSize && (
+              <span className="ml-2 text-white/40">({bet.listSize})</span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Bet Summary */}
       <div className="flex justify-center gap-6 py-3 border-t border-b border-white/10">
         <div className="text-center">
-          <span className="text-xs text-white/60 font-mono block">Portfolio Size</span>
+          <span className="text-xs text-white/60 font-mono block">List Size</span>
           <span className="text-sm font-mono text-white font-bold">
-            {formatNumber(bet.portfolioSize)} markets
+            {bet.portfolioSize || bet.listSize || '--'} trades
           </span>
         </div>
         <div className="text-center">
@@ -445,15 +272,15 @@ export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
             {formatUsdcString(bet.amount)}
           </span>
         </div>
-        {resolution.settledAt && resolution.winnerAddress && (
+        {resolution.status === 'resolved' && resolution.winnerAddress && (
           <div className="text-center">
             <span className="text-xs text-white/60 font-mono block">Outcome</span>
             {address && resolution.winnerAddress.toLowerCase() === address.toLowerCase() ? (
-              <span className="text-sm font-mono text-white font-bold">
+              <span className="text-sm font-mono text-green-400 font-bold">
                 Won {formatUsdcString(resolution.winnerPayout)}
               </span>
             ) : (
-              <span className="text-sm font-mono text-accent font-bold">
+              <span className="text-sm font-mono text-red-400 font-bold">
                 Lost {formatUsdcString(bet.amount)}
               </span>
             )}
@@ -464,51 +291,18 @@ export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
       {/* Resolution Status Badge */}
       <div className="flex items-center justify-between">
         <StatusBadge status={resolution.status} />
-        {resolution.consensusReached && !resolution.settledAt && !resolution.isDisputed && (
-          <CountdownTimer
-            timeRemainingFormatted={disputeEligibility.timeRemainingFormatted}
-            isExpired={disputeEligibility.timeRemaining <= 0}
-          />
+        {resolution.resolvedAt && (
+          <span className="text-xs text-white/40 font-mono">
+            Resolved {new Date(resolution.resolvedAt).toLocaleDateString()}
+          </span>
         )}
       </div>
 
-      {/* Keeper Votes Breakdown */}
-      {votesLoading ? (
-        <div className="text-center py-4">
-          <span className="text-xs text-white/40 font-mono">Loading keeper votes...</span>
-        </div>
-      ) : votes.length > 0 ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-white/60 font-mono">Keeper Votes</span>
-            {scoreVariance > 0 && (
-              <span className="text-xs font-mono text-white/40">
-                Variance: {scoreVariance} bps
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {votes.map((vote) => (
-              <KeeperVoteCard
-                key={`${vote.betId}-${vote.keeperAddress}`}
-                keeperAddress={vote.keeperAddress}
-                score={vote.aggregateScore}
-                creatorWins={vote.creatorWins}
-                votedAt={vote.votedAt}
-                txHash={vote.txHash}
-              />
-            ))}
-          </div>
-          {scoreVariance > SCORE_VARIANCE_WARNING_THRESHOLD && (
-            <p className="text-xs text-accent font-mono">
-              ⚠️ Significant score divergence between keepers
-            </p>
-          )}
-        </div>
-      ) : null}
+      {/* Trade Outcomes Breakdown */}
+      <TradesBreakdown betId={betId} />
 
-      {/* Settlement Details - shown when consensus reached */}
-      {resolution.consensusReached && (
+      {/* Settlement Details - shown when resolved */}
+      {resolution.status === 'resolved' && (
         <SettlementDetails
           totalPot={resolution.totalPot}
           platformFee={resolution.platformFee}
@@ -520,51 +314,39 @@ export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
         />
       )}
 
-      {/* Pending Dispute - shown when dispute is raised but not yet resolved */}
-      {resolution.isDisputed && !resolution.disputeResolvedAt && resolution.disputeRaisedAt && (
-        <PendingDispute
-          disputeRaisedAt={resolution.disputeRaisedAt}
-          disputerAddress={resolution.disputerAddress}
-          disputeStake={resolution.disputeStake}
-          disputeReason={resolution.disputeReason}
-        />
+      {/* Tie/Cancelled Status */}
+      {resolution.isTie && (
+        <div className="border border-yellow-500/30 p-3 text-center">
+          <span className="text-sm font-mono text-yellow-400">
+            Tie - Both parties refunded
+          </span>
+        </div>
       )}
 
-      {/* Dispute Outcome - shown when dispute is resolved */}
-      {resolution.isDisputed && resolution.disputeResolvedAt && (
-        <DisputeOutcome
-          outcomeChanged={resolution.outcomeChanged ?? false}
-          correctedScore={resolution.correctedScore}
-          disputeReason={resolution.disputeReason}
-          disputerAddress={resolution.disputerAddress}
-          disputeStake={resolution.disputeStake}
-        />
+      {resolution.isCancelled && (
+        <div className="border border-gray-500/30 p-3 text-center">
+          <span className="text-sm font-mono text-gray-400">
+            Cancelled: {resolution.cancelReason || 'No reason provided'}
+          </span>
+        </div>
       )}
 
-      {/* Raise Dispute Button */}
-      {disputeEligibility.canDispute && (
-        <button
-          onClick={() => setIsDisputeModalOpen(true)}
-          className="w-full px-4 py-2 border border-accent text-accent text-sm font-mono font-bold hover:bg-accent hover:text-white transition-colors"
-        >
-          Raise Dispute
-        </button>
+      {/* Resolver info */}
+      {resolution.resolvedBy && (
+        <div className="text-center">
+          <span className="text-xs text-white/40 font-mono">
+            Resolved by{' '}
+            <a
+              href={getAddressUrl(resolution.resolvedBy)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/60 hover:text-white transition-colors"
+            >
+              {truncateAddress(resolution.resolvedBy)}
+            </a>
+          </span>
+        </div>
       )}
-
-      {/* Dispute reason if can't dispute */}
-      {!disputeEligibility.canDispute && disputeEligibility.reason && resolution.consensusReached && !resolution.isDisputed && !resolution.settledAt && (
-        <p className="text-xs text-white/40 font-mono text-center">
-          {disputeEligibility.reason}
-        </p>
-      )}
-
-      {/* Dispute Modal */}
-      <RaiseDisputeModal
-        isOpen={isDisputeModalOpen}
-        onClose={() => setIsDisputeModalOpen(false)}
-        betId={betId}
-        timeRemaining={disputeEligibility.timeRemainingFormatted}
-      />
     </div>
   )
 }

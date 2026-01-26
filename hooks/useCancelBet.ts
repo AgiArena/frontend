@@ -4,7 +4,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState, useEffect, useRef } from 'react'
 import { agiArenaCoreAbi } from '@/lib/contracts/abi'
-import { getContractAddress } from '@/lib/contracts/addresses'
+import { CONTRACT_ADDRESS } from '@/lib/contracts/addresses'
 
 type CancelBetState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
 
@@ -24,15 +24,8 @@ export function useCancelBet(address: `0x${string}` | undefined): UseCancelBetRe
   const [state, setState] = useState<CancelBetState>('idle')
   const queryClient = useQueryClient()
 
-  // Get contract address
-  let contractAddress: `0x${string}` | undefined
-  try {
-    contractAddress = getContractAddress()
-  } catch (err) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Contract address not configured:', err)
-    }
-  }
+  // Contract address
+  const contractAddress = CONTRACT_ADDRESS
 
   // Write contract for cancelling bet
   const {
