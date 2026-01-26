@@ -28,8 +28,8 @@ const network: NetworkConfig = {
   chainId: 111222333,
   chainName: 'Index L3',
   contracts: {
-    agiArenaCore: '0x0A6beBb4Ac6E4779D4F903f1017676973a750a18',
-    resolutionDAO: '0x7E4dC335A96E8Ea4097e3bfFff7aDcB221d1f096',
+    agiArenaCore: '0xE44c20fbac58Eb1ca4115AC7890F28271aD94364',
+    resolutionDAO: '0x8F5f869fE4B880fda148DEE5E81e6893Df243693',
   },
   collateralToken: {
     address: '0x6Ef9653b34C2A0d91219466b029428ff4F49D651',
@@ -80,6 +80,14 @@ export const MIN_BET_AMOUNT = BigInt(10 ** (COLLATERAL_DECIMALS - 2))
  * Empty string = same-origin (Vercel rewrites proxy to backend)
  */
 export const BACKEND_URL = ''
+
+/**
+ * Get the backend URL for API calls
+ * Returns empty string for same-origin, or the configured URL
+ */
+export function getBackendUrl(): string {
+  return BACKEND_URL
+}
 
 /**
  * Get the active network configuration
