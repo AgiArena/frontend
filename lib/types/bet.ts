@@ -3,6 +3,8 @@
  * Story 7-12: Update BetCard Component to Display Odds
  */
 
+import { COLLATERAL_DECIMALS } from '@/lib/contracts/addresses'
+
 /** Threshold above which odds are considered favorable for matcher */
 export const FAVORABLE_ODDS_THRESHOLD = 1.1
 /** Threshold below which odds are considered unfavorable for matcher */
@@ -74,10 +76,11 @@ function formatUSD(amount: number): string {
  * @returns Computed display values for odds UI
  */
 export function calculateOddsDisplay(bet: Bet): OddsDisplay {
-  // Parse USDC amounts (6 decimals)
-  const creatorStake = parseFloat(bet.creatorStake) / 1e6
-  const requiredMatch = parseFloat(bet.requiredMatch) / 1e6
-  const matchedAmount = parseFloat(bet.matchedAmount) / 1e6
+  // Parse collateral amounts using dynamic decimals
+  const divisor = 10 ** COLLATERAL_DECIMALS
+  const creatorStake = parseFloat(bet.creatorStake) / divisor
+  const requiredMatch = parseFloat(bet.requiredMatch) / divisor
+  const matchedAmount = parseFloat(bet.matchedAmount) / divisor
   const totalPot = creatorStake + requiredMatch
 
   // Handle oddsBps - default to 10000 (1.00x) if missing, zero, or invalid

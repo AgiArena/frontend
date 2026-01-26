@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "test:live": "bun test app/__tests__/data-integrity.test.ts app/__tests__/page-load-validation.test.ts",
+    "test:live:prod": "BACKEND_URL=https://api.agiarena.com bun test app/__tests__/",
+    "test:live:local": "BACKEND_URL=http://localhost:3001 bun test app/__tests__/"
   },
   "dependencies": {
     "@tanstack/react-query": "^5",

@@ -1,6 +1,13 @@
 'use client'
 
 import { useEffect, useCallback, useState, useMemo, useRef, ChangeEvent } from 'react'
+import {
+  parseMarketId,
+  getMarketUrl,
+  getSourceBadge,
+  formatPosition,
+  type DataSource,
+} from '@/lib/utils/marketId'
 
 export interface PortfolioPosition {
   marketId: string
@@ -56,14 +63,22 @@ interface PositionRowProps {
  * Individual position row
  */
 function PositionRow({ position }: PositionRowProps) {
-  const polymarketUrl = `https://polymarket.com/event/${position.marketId}`
+  // Parse market ID to get data source and correct URL
+  const parsedMarketId = parseMarketId(position.marketId)
+  const marketUrl = getMarketUrl(parsedMarketId)
+  const sourceBadge = getSourceBadge(parsedMarketId.dataSource)
+
   const priceChange = calculatePositionChange(position)
   const changeColor = priceChange.direction === 'up' ? 'text-green-400'
     : priceChange.direction === 'down' ? 'text-red-400'
     : 'text-white/40'
 
-  const formatPrice = (price: number | undefined | null): string => {
+  const formatPrice = (price: number | undefined | null, dataSource: DataSource): string => {
     if (price == null) return '—'
+    // CoinGecko prices are in USD, Polymarket prices are 0-1 probabilities
+    if (dataSource === 'coingecko') {
+      return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
     return `${(price * 100).toFixed(1)}%`
   }
 
@@ -73,20 +88,35 @@ function PositionRow({ position }: PositionRowProps) {
     return `${sign}${(change * 100).toFixed(1)}%`
   }
 
+  // Format position label based on data source
+  const positionLabel = formatPosition(
+    position.position === 'YES' ? 1 : 0,
+    parsedMarketId.dataSource
+  )
+
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 hover:bg-white/5 h-[60px]">
       <div className="flex-1 min-w-0 mr-4">
-        <a
-          href={polymarketUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-white hover:text-accent truncate block"
-          title={position.marketTitle}
-        >
-          {position.marketTitle}
-        </a>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/60 font-mono truncate">{position.marketId}</span>
+          <a
+            href={marketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white hover:text-accent truncate block"
+            title={position.marketTitle}
+          >
+            {position.marketTitle}
+          </a>
+          {/* Source badge */}
+          <span
+            className={`px-1.5 py-0.5 text-xs font-medium rounded ${sourceBadge.bgColor} ${sourceBadge.textColor}`}
+            title={sourceBadge.label}
+          >
+            {sourceBadge.icon}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/60 font-mono truncate">{parsedMarketId.rawId}</span>
           {position.isClosed && (
             <span className="text-xs text-purple-400 font-mono">Resolved</span>
           )}
@@ -104,17 +134,17 @@ function PositionRow({ position }: PositionRowProps) {
             }
           `}
         >
-          {position.position}
+          {positionLabel}
         </span>
 
         {/* Entry price */}
         <span className="text-sm font-mono text-white/60 w-14 text-right">
-          {formatPrice(position.startingPrice)}
+          {formatPrice(position.startingPrice, parsedMarketId.dataSource)}
         </span>
 
         {/* Current price */}
         <span className="text-sm font-mono text-white w-14 text-right">
-          {formatPrice(position.currentPrice)}
+          {formatPrice(position.currentPrice, parsedMarketId.dataSource)}
         </span>
 
         {/* Price change */}

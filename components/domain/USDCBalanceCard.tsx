@@ -14,7 +14,7 @@ import { COLLATERAL_SYMBOL, CHAIN_ID } from '@/lib/contracts/addresses'
  * Displays total balance, available for betting, and escrowed amounts
  * Uses Shadcn/ui Card component with JetBrains Mono font for numbers
  * Auto-refreshes every 5 seconds via hooks
- * Supports both USDC (Base) and IND (L3) collateral tokens
+ * Supports WIND collateral token on Index L3 (Orbit)
  */
 export function USDCBalanceCard() {
   const [mounted, setMounted] = useState(false)
@@ -131,7 +131,7 @@ export function USDCBalanceCard() {
             rel="noopener noreferrer"
             className="text-white/60 text-xs hover:text-white underline transition-colors"
           >
-            {CHAIN_ID === 8453 ? 'Verify on BaseScan' : 'View on Explorer'}
+            View on Explorer
           </a>
         </CardFooter>
       )}

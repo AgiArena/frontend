@@ -8,6 +8,7 @@ import { PortfolioResolution } from '@/components/domain/PortfolioResolution'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
 import { formatUSD, toBaseUnits } from '@/lib/utils/formatters'
+import { parseMarketId, getSourceBadge, formatPosition } from '@/lib/utils/marketId'
 
 interface BetDetailsExpandedProps {
   bet: BetRecord
@@ -119,30 +120,49 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
         <div>
           <span className="text-xs text-white/60 font-mono block mb-2">Top 10 Markets Preview:</span>
           <div className="space-y-1 border border-white/10 rounded p-2">
-            {top10Positions.map((position, idx) => (
-              <div
-                key={`${position.marketId}-${idx}`}
-                className="flex items-center justify-between text-xs"
-              >
-                <span className="text-white/80 truncate max-w-[200px]" title={position.marketTitle}>
-                  {position.marketTitle}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-1 font-bold font-mono ${
-                      position.position === 'YES'
-                        ? 'text-white'
-                        : 'text-accent'
-                    }`}
-                  >
-                    {position.position}
-                  </span>
-                  <span className="font-mono text-white/60">
-                    {(position.currentPrice * 100).toFixed(1)}%
-                  </span>
+            {top10Positions.map((position, idx) => {
+              const parsed = parseMarketId(position.marketId)
+              const sourceBadge = getSourceBadge(parsed.dataSource)
+              const posLabel = formatPosition(
+                position.position === 'YES' ? 1 : 0,
+                parsed.dataSource
+              )
+              return (
+                <div
+                  key={`${position.marketId}-${idx}`}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span
+                      className={`px-1 py-0.5 text-xs rounded ${sourceBadge.bgColor} ${sourceBadge.textColor}`}
+                      title={sourceBadge.label}
+                    >
+                      {sourceBadge.icon}
+                    </span>
+                    <span className="text-white/80 truncate max-w-[180px]" title={position.marketTitle}>
+                      {position.marketTitle}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-1 font-bold font-mono ${
+                        position.position === 'YES'
+                          ? 'text-white'
+                          : 'text-accent'
+                      }`}
+                    >
+                      {posLabel}
+                    </span>
+                    <span className="font-mono text-white/60">
+                      {parsed.dataSource === 'coingecko'
+                        ? `$${position.currentPrice.toLocaleString()}`
+                        : `${(position.currentPrice * 100).toFixed(1)}%`
+                      }
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

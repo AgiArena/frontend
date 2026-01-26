@@ -1,8 +1,8 @@
 import { createConfig, http, fallback } from 'wagmi'
-import { base, type Chain } from 'wagmi/chains'
+import { type Chain } from 'wagmi/chains'
 import { injected, walletConnect } from 'wagmi/connectors'
 
-// Index L3 chain definition
+// Index L3 (Orbit) chain definition - the only supported network
 export const indexL3: Chain = {
   id: 111222333,
   name: 'Index L3',
@@ -12,18 +12,9 @@ export const indexL3: Chain = {
   },
 }
 
-// Active chain configuration from environment (defaults to Index L3)
-const activeChainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '111222333', 10)
-const activeChain = activeChainId === 8453 ? base : indexL3
-
 // RPC configuration with fallback support
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ||
-  (activeChainId === 8453 ? 'https://mainnet.base.org' : 'https://index.rpc.zeeve.net')
+const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://index.rpc.zeeve.net'
 const fallbackRpcUrl = process.env.NEXT_PUBLIC_RPC_FALLBACK_URL
-
-// Legacy env vars for backward compatibility
-const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL || rpcUrl
-const baseFallbackUrl = process.env.NEXT_PUBLIC_BASE_RPC_FALLBACK_URL || fallbackRpcUrl
 
 // WalletConnect project ID - required for WalletConnect to work
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID
@@ -49,9 +40,6 @@ const chainTransport = fallbackRpcUrl
       retryDelay: 1_000
     })
 
-// Legacy alias for backward compatibility
-const baseTransport = chainTransport
-
 // Lazy initialization function for SSR safety
 // Config is created on first call (client-side only)
 let config: ReturnType<typeof createConfig> | null = null
@@ -59,13 +47,13 @@ let config: ReturnType<typeof createConfig> | null = null
 export function getWagmiConfig() {
   if (!config) {
     config = createConfig({
-      chains: [activeChain],
+      chains: [indexL3],
       connectors: [
         injected(), // MetaMask, Coinbase Wallet, etc.
         ...(isWcConfigured ? [walletConnect({ projectId: wcProjectId! })] : [])
       ],
       transports: {
-        [activeChain.id]: chainTransport
+        [indexL3.id]: chainTransport
       },
     })
   }
@@ -74,15 +62,16 @@ export function getWagmiConfig() {
 
 // Also export as wagmiConfig for backwards compatibility
 export const wagmiConfig = createConfig({
-  chains: [activeChain],
+  chains: [indexL3],
   connectors: [
     injected(), // MetaMask, Coinbase Wallet, etc.
     ...(isWcConfigured ? [walletConnect({ projectId: wcProjectId! })] : [])
   ],
   transports: {
-    [activeChain.id]: chainTransport
+    [indexL3.id]: chainTransport
   },
 })
 
 // Export the active chain for use in components
-export { activeChain, activeChainId }
+export const activeChain = indexL3
+export const activeChainId = indexL3.id

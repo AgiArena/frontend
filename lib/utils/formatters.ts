@@ -2,11 +2,7 @@
  * Utility functions for formatting display values
  */
 
-/**
- * The number of decimals for collateral token (USDC = 6, IND = 18)
- * This should match COLLATERAL_DECIMALS from addresses.ts
- */
-const COLLATERAL_DECIMALS = 6
+import { COLLATERAL_DECIMALS } from '@/lib/contracts/addresses'
 
 /**
  * Safely converts a string/number amount to BigInt base units.
@@ -53,9 +49,8 @@ export function formatUSD(amount: bigint): string {
  * @returns Formatted string like "1,234.56"
  */
 export function formatUsdcAmount(amount: bigint): string {
-  // USDC has 6 decimals
-  const usdcDecimals = 6n
-  const divisor = 10n ** usdcDecimals
+  const decimals = BigInt(COLLATERAL_DECIMALS)
+  const divisor = 10n ** decimals
 
   // Get integer and fractional parts
   const integerPart = amount / divisor
@@ -64,8 +59,8 @@ export function formatUsdcAmount(amount: bigint): string {
   // Format with commas for thousands
   const integerStr = integerPart.toLocaleString('en-US')
 
-  // Pad fractional part to 2 decimal places (display only 2 decimals for USD)
-  const fractionalStr = fractionalPart.toString().padStart(6, '0').slice(0, 2)
+  // Pad fractional part to 2 decimal places for display
+  const fractionalStr = fractionalPart.toString().padStart(COLLATERAL_DECIMALS, '0').slice(0, 2)
 
   return `${integerStr}.${fractionalStr}`
 }
@@ -103,9 +98,10 @@ export function parseUSD(usdString: string): bigint {
   // Parse as decimal
   const parts = cleaned.split('.')
   const integerPart = parts[0] || '0'
-  const fractionalPart = (parts[1] || '').padEnd(6, '0').slice(0, 6)
+  const fractionalPart = (parts[1] || '').padEnd(COLLATERAL_DECIMALS, '0').slice(0, COLLATERAL_DECIMALS)
 
-  return BigInt(integerPart) * 1_000_000n + BigInt(fractionalPart)
+  const multiplier = 10n ** BigInt(COLLATERAL_DECIMALS)
+  return BigInt(integerPart) * multiplier + BigInt(fractionalPart)
 }
 
 /**
