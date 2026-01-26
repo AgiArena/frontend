@@ -5,6 +5,7 @@ import type { BetRecord } from '@/hooks/useBetHistory'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { PortfolioModal, PortfolioPosition } from '@/components/domain/PortfolioModal'
 import { PortfolioResolution } from '@/components/domain/PortfolioResolution'
+import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
 import { formatUSD, toBaseUnits } from '@/lib/utils/formatters'
@@ -29,6 +30,7 @@ function shouldShowResolution(status: BetRecord['status']): boolean {
  */
 export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetailsExpandedProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const category = useCategoryById(bet.categoryId)
 
   // Parse portfolio JSON to get positions for preview
   const portfolioPositions = useMemo((): PortfolioPosition[] => {
@@ -72,6 +74,32 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
 
   return (
     <div className="space-y-4">
+      {/* Epic 8: Category and List Size */}
+      {(category || bet.listSize || bet.snapshotId) && (
+        <div className="flex flex-wrap gap-3 pb-2 border-b border-white/10">
+          {category && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/60 font-mono">Category:</span>
+              <span className="px-2 py-1 bg-gray-800 rounded text-xs font-mono text-white/80">
+                {formatCategoryDisplay(category)}
+              </span>
+            </div>
+          )}
+          {bet.listSize && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/60 font-mono">List Size:</span>
+              <span className="text-xs font-mono text-white">{bet.listSize}</span>
+            </div>
+          )}
+          {bet.snapshotId && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/60 font-mono">Snapshot:</span>
+              <span className="text-xs font-mono text-white/70">{bet.snapshotId}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bet Hash */}
       {bet.betHash && (
         <div className="flex items-center gap-2">

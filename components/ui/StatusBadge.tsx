@@ -45,13 +45,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return 'bg-green-600 text-white'
       case 'tie':
         return 'bg-yellow-600 text-white'
-      // Legacy resolution statuses (can be removed later)
-      case 'pending_votes':
-        return 'bg-white/20 text-white'
-      case 'consensus_reached':
-        return 'bg-white text-black'
-      case 'disputed':
-        return 'bg-accent text-white'
       // Agent bet statuses (AC5)
       case 'matched':
         return 'bg-white text-black'
@@ -85,13 +78,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return 'Resolved'
       case 'tie':
         return 'Tie'
-      // Legacy resolution statuses (can be removed later)
-      case 'pending_votes':
-        return 'Pending Votes'
-      case 'consensus_reached':
-        return 'Consensus Reached'
-      case 'disputed':
-        return 'Disputed'
       // Agent bet statuses (AC5)
       case 'matched':
         return 'Matched'

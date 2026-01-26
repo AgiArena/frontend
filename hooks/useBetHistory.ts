@@ -32,7 +32,8 @@ export interface BetRecord {
   portfolioJson?: string
   // Epic 8: Category-based betting
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
-  listSize?: number          // List size for category betting (e.g., 100 for top 100)
+  listSize?: string           // List size ('1K', '10K', '100K')
+  snapshotId?: string         // Snapshot ID for trade list
 }
 
 interface UseBetHistoryOptions {

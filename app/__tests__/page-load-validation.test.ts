@@ -34,11 +34,20 @@ interface BetData {
   fills?: { fillerAddress: string; amount: string }[]
 }
 
+/**
+ * Resolution data interface for Epic 8 majority-wins system
+ */
 interface ResolutionData {
   betId: string
   status: string
-  aggregateScore?: string
-  keeperVotes?: { keeperAddress: string; score: string; votedAt: string }[]
+  // Epic 8: Majority-wins fields
+  winsCount?: number
+  validTrades?: number
+  winRate?: number
+  creatorWins?: boolean | null
+  isTie?: boolean
+  isCancelled?: boolean
+  cancelReason?: string
 }
 
 /**
@@ -256,39 +265,51 @@ describe('Resolution Section Data Loading', () => {
     console.log(`✓ Resolution for bet ${resolvedBetId}: status=${resolutionData.status}`)
   })
 
-  it('CRITICAL: resolved bets show actual portfolio scores', async () => {
+  it('CRITICAL: resolved bets show majority-wins outcome', async () => {
     if (!resolutionData) return
 
-    if (resolutionData.status === 'consensus_reached' || resolutionData.status === 'settled') {
-      // Backend returns avgScore (average of keeper votes)
-      const avgScore = (resolutionData as any).avgScore
-
-      if (avgScore === undefined) {
-        console.warn(`WARN: Resolution for bet ${resolutionData.betId} missing avgScore field`)
+    // Epic 8: Check for majority-wins resolution data
+    if (resolutionData.status === 'resolved' || resolutionData.status === 'tie' || resolutionData.status === 'cancelled') {
+      // Verify Epic 8 fields are present
+      if (resolutionData.winsCount === undefined || resolutionData.validTrades === undefined) {
+        console.warn(`WARN: Resolution for bet ${resolutionData.betId} missing Epic 8 fields`)
         console.log('Available fields:', Object.keys(resolutionData))
         return
       }
 
-      // avgScore is in basis points on backend, but may also be decimal
-      const score = typeof avgScore === 'number' ? avgScore : parseFloat(avgScore || '0')
-      const displayScore = Math.abs(score) > 100 ? score / 100 : score * 100 // Normalize for display
-      console.log(`✓ Aggregate Portfolio Score: ${score >= 0 ? '+' : ''}${displayScore.toFixed(2)}%`)
+      const winRate = resolutionData.validTrades > 0
+        ? (resolutionData.winsCount / resolutionData.validTrades * 100).toFixed(1)
+        : 'N/A'
+
+      console.log(`✓ Trades Won: ${resolutionData.winsCount}/${resolutionData.validTrades} (${winRate}%)`)
+
+      if (resolutionData.isTie) {
+        console.log(`  Outcome: Tie - Both Refunded`)
+      } else if (resolutionData.isCancelled) {
+        console.log(`  Outcome: Cancelled - ${resolutionData.cancelReason || 'Unknown reason'}`)
+      } else {
+        console.log(`  Outcome: ${resolutionData.creatorWins ? 'Creator' : 'Matcher'} Wins`)
+      }
     }
   })
 
-  it('keeper votes are present for resolved bets', async () => {
+  it('resolved bets have valid win counts', async () => {
     if (!resolutionData) return
 
-    if (resolutionData.status === 'consensus_reached') {
-      expect(resolutionData.keeperVotes).toBeDefined()
+    if (resolutionData.status === 'resolved') {
+      // winsCount should be <= validTrades
+      if (resolutionData.winsCount !== undefined && resolutionData.validTrades !== undefined) {
+        expect(resolutionData.winsCount).toBeLessThanOrEqual(resolutionData.validTrades)
+        expect(resolutionData.winsCount).toBeGreaterThanOrEqual(0)
 
-      if (resolutionData.keeperVotes && resolutionData.keeperVotes.length > 0) {
-        console.log(`✓ ${resolutionData.keeperVotes.length} keeper votes recorded`)
-
-        // Each vote should have valid data
-        for (const vote of resolutionData.keeperVotes) {
-          expect(vote.keeperAddress).toMatch(/^0x[a-fA-F0-9]{40}$/)
-          expect(vote.score).toBeDefined()
+        // Winner determination: >50% wins = creator wins
+        if (resolutionData.validTrades > 0 && !resolutionData.isTie) {
+          const winRate = resolutionData.winsCount / resolutionData.validTrades
+          if (winRate > 0.5) {
+            expect(resolutionData.creatorWins).toBe(true)
+          } else if (winRate < 0.5) {
+            expect(resolutionData.creatorWins).toBe(false)
+          }
         }
       }
     }
