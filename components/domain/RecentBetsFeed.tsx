@@ -226,8 +226,8 @@ export function RecentBetsFeed() {
     }
   }
 
-  // Limit visible items to 20 for performance (AC4)
-  const visibleEvents = displayEvents.slice(0, 20)
+  // Show all loaded events (infinite scroll grows this list)
+  const visibleEvents = displayEvents
 
   return (
     <Card className="border-white/20">

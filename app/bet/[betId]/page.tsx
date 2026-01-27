@@ -20,10 +20,29 @@ interface BetDetailPageProps {
 
 interface BetFill {
   fillerAddress: string
-  amount: string
+  fillAmount: string
   txHash: string
   blockNumber: number
   filledAt: string
+}
+
+interface BetTrade {
+  tradeId: string
+  ticker: string
+  source: string
+  method: string
+  position: string
+  entryPrice: string
+  exitPrice?: string
+  won?: boolean
+  cancelled: boolean
+}
+
+interface BetTradesResponse {
+  betId: string
+  tradeCount: number
+  trades: BetTrade[]
+  pagination: { page: number; limit: number; total: number; hasMore: boolean }
 }
 
 interface BetData {
@@ -71,6 +90,7 @@ function formatAddress(address: string | undefined | null): string {
 
 function formatAmount(amount: string): string {
   const num = parseFloat(amount)
+  if (isNaN(num)) return '$0.00'
   return `$${num.toFixed(2)}`
 }
 
@@ -239,6 +259,9 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const [marketNames, setMarketNames] = useState<Record<string, string>>({})
   const [portfolioPositions, setPortfolioPositions] = useState<PortfolioPositionWithPrices[]>([])
   const [isLoadingPositions, setIsLoadingPositions] = useState(false)
+  const [trades, setTrades] = useState<BetTrade[]>([])
+  const [tradeCount, setTradeCount] = useState(0)
+  const [isLoadingTrades, setIsLoadingTrades] = useState(false)
 
   useEffect(() => {
     async function fetchBet() {
@@ -342,6 +365,29 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
     fetchMarketNames()
   }, [bet, portfolioPositions.length])
+
+  // Fetch individual trades (sub-bets) for this bet
+  useEffect(() => {
+    if (!bet) return
+
+    async function fetchTrades() {
+      setIsLoadingTrades(true)
+      try {
+        const res = await fetch(`/api/bets/${betId}/trades?limit=1000`)
+        if (res.ok) {
+          const data: BetTradesResponse = await res.json()
+          setTrades(data.trades ?? [])
+          setTradeCount(data.tradeCount ?? 0)
+        }
+      } catch (err) {
+        console.error('Error fetching trades:', err)
+      } finally {
+        setIsLoadingTrades(false)
+      }
+    }
+
+    fetchTrades()
+  }, [bet, betId])
 
   if (isLoading) {
     return <BetDetailSkeleton />
@@ -500,7 +546,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-white font-mono text-sm">
-                          {formatAmount(fill.amount)}
+                          {formatAmount(fill.fillAmount)}
                         </span>
                         <a
                           href={`https://basescan.org/tx/${fill.txHash}`}
@@ -649,6 +695,78 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                         <span className="text-white/40 font-mono text-sm w-16">—</span>
                         <span className="text-white/40 font-mono text-sm w-16">—</span>
                       </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Individual Trades (Sub-Bets) */}
+        {(trades.length > 0 || isLoadingTrades) && (
+          <Card className="border-white/20">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="font-mono text-lg">
+                  Trades ({tradeCount})
+                </CardTitle>
+                {isLoadingTrades && (
+                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading...</span>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Column headers */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/20 text-xs text-white/40 font-mono mb-2">
+                <span className="w-40">Ticker</span>
+                <span className="w-20">Source</span>
+                <span className="w-14 text-center">Position</span>
+                <span className="w-20 text-right">Entry</span>
+                <span className="w-20 text-right">Exit</span>
+                <span className="w-14 text-center">Result</span>
+              </div>
+              <div className="space-y-1 max-h-96 overflow-y-auto">
+                {trades.map((trade) => {
+                  const entryNum = parseFloat(trade.entryPrice)
+                  const exitNum = trade.exitPrice ? parseFloat(trade.exitPrice) : null
+                  const isCoingecko = trade.source === 'coingecko'
+                  const formatTradePrice = (n: number) =>
+                    isCoingecko ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `${(n * 100).toFixed(1)}%`
+
+                  return (
+                    <div
+                      key={trade.tradeId}
+                      className={`flex items-center justify-between px-3 py-2 rounded text-sm font-mono ${
+                        trade.cancelled ? 'bg-white/5 opacity-50' : 'bg-white/5'
+                      }`}
+                    >
+                      <span className="w-40 text-white truncate" title={trade.ticker}>
+                        {trade.ticker}
+                      </span>
+                      <span className="w-20 text-white/50 text-xs">
+                        {trade.source}
+                      </span>
+                      <span className={`w-14 text-center font-bold ${
+                        trade.position.toUpperCase() === 'YES' || trade.position === '1'
+                          ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {trade.position.toUpperCase() === '1' ? 'YES' : trade.position.toUpperCase() === '0' ? 'NO' : trade.position.toUpperCase()}
+                      </span>
+                      <span className="w-20 text-right text-white/60">
+                        {!isNaN(entryNum) ? formatTradePrice(entryNum) : '—'}
+                      </span>
+                      <span className="w-20 text-right text-white">
+                        {exitNum !== null && !isNaN(exitNum) ? formatTradePrice(exitNum) : '—'}
+                      </span>
+                      <span className={`w-14 text-center font-bold ${
+                        trade.cancelled ? 'text-white/30' :
+                        trade.won === true ? 'text-green-400' :
+                        trade.won === false ? 'text-red-400' :
+                        'text-white/30'
+                      }`}>
+                        {trade.cancelled ? 'X' : trade.won === true ? 'W' : trade.won === false ? 'L' : '—'}
+                      </span>
                     </div>
                   )
                 })}
