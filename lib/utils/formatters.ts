@@ -116,14 +116,12 @@ export function formatWalletAddress(address: string): string {
 
 /**
  * Formats portfolio size with "K markets" suffix
- * Defaults to 5 markets when no data available yet
  * @param num - Number of markets
- * @returns Formatted string like "18.5K markets" or "850 markets"
+ * @returns Formatted string like "18.5K markets" or "850 markets", or em dash if unavailable
  */
 export function formatPortfolioSize(num: number): string {
-  // Default to 5 when no portfolio data synced yet
   if (typeof num !== 'number' || isNaN(num) || num === 0) {
-    return '5 markets'
+    return '\u2014'
   }
   if (num >= 1000) {
     return `${(num / 1000).toFixed(1)}K markets`
