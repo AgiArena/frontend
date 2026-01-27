@@ -763,9 +763,10 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                         trade.cancelled ? 'text-white/30' :
                         trade.won === true ? 'text-green-400' :
                         trade.won === false ? 'text-red-400' :
+                        trade.exitPrice ? 'text-yellow-400' :
                         'text-white/30'
                       }`}>
-                        {trade.cancelled ? 'X' : trade.won === true ? 'W' : trade.won === false ? 'L' : '—'}
+                        {trade.cancelled ? 'X' : trade.won === true ? 'W' : trade.won === false ? 'L' : trade.exitPrice ? 'E' : '—'}
                       </span>
                     </div>
                   )
