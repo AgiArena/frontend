@@ -9,6 +9,7 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
 export interface AgentBet {
   betId: string
   portfolioSize: number    // Number of markets in portfolio
+  tradeCount?: number      // Epic 8: Actual trade count from bet_trades table
   amount: number           // USDC wagered
   result: number           // P&L (positive or negative)
   status: 'pending' | 'matched' | 'settled'
