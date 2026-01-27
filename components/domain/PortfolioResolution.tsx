@@ -166,9 +166,10 @@ function TradesBreakdown({ betId }: TradesBreakdownProps) {
               </span>
               <span className={`font-mono font-bold ${
                 trade.cancelled ? 'text-gray-500' :
-                trade.won ? 'text-green-500' : 'text-red-500'
+                trade.won === true ? 'text-green-500' :
+                trade.won === false ? 'text-red-500' : 'text-white/40'
               }`}>
-                {trade.cancelled ? '—' : trade.won ? '✓' : '✗'}
+                {trade.cancelled ? '—' : trade.won === true ? '✓' : trade.won === false ? '✗' : '—'}
               </span>
             </div>
           </div>
