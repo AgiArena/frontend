@@ -9,7 +9,7 @@
  * - `coingecko:deterministic:bitcoin` - CoinGecko with auto-resolution
  */
 
-export type DataSource = 'polymarket' | 'coingecko';
+export type DataSource = 'polymarket' | 'coingecko' | 'stocks' | 'openmeteo';
 export type ResolutionMethod = 'keeper' | 'deterministic';
 
 export interface ParsedMarketId {
@@ -71,6 +71,8 @@ function parseDataSource(s: string): DataSource {
   const lower = s.toLowerCase();
   if (lower === 'polymarket') return 'polymarket';
   if (lower === 'coingecko') return 'coingecko';
+  if (lower === 'stocks') return 'stocks';
+  if (lower === 'openmeteo') return 'openmeteo';
   return 'polymarket'; // Default
 }
 
@@ -87,11 +89,15 @@ function parseResolutionMethod(s: string): ResolutionMethod {
 export function getMarketUrl(parsed: ParsedMarketId): string {
   switch (parsed.dataSource) {
     case 'polymarket':
-      // Polymarket uses condition IDs in URLs
       return `https://polymarket.com/event/${parsed.rawId}`;
     case 'coingecko':
-      // CoinGecko uses coin IDs in URLs
       return `https://www.coingecko.com/en/coins/${parsed.rawId}`;
+    case 'stocks':
+      return `https://finance.yahoo.com/quote/${parsed.rawId}`;
+    case 'openmeteo':
+      // Parse city from rawId (format: city-id-metric)
+      const cityId = parsed.rawId.replace(/-temperature_2m$|-rain$|-wind_speed_10m$|-pm2_5$|-ozone$/, '');
+      return `https://open-meteo.com/en/docs#latitude=0&longitude=0`; // Open-Meteo doesn't have city pages
     default:
       return '#';
   }
@@ -120,6 +126,20 @@ export function getSourceBadge(dataSource: DataSource): {
         icon: '🦎',
         bgColor: 'bg-green-100 dark:bg-green-900/30',
         textColor: 'text-green-700 dark:text-green-300',
+      };
+    case 'stocks':
+      return {
+        label: 'Stocks',
+        icon: '📈',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+        textColor: 'text-blue-700 dark:text-blue-300',
+      };
+    case 'openmeteo':
+      return {
+        label: 'Weather',
+        icon: '🌤️',
+        bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
+        textColor: 'text-cyan-700 dark:text-cyan-300',
       };
     default:
       return {
@@ -182,6 +202,22 @@ export function isCoinGecko(marketId: string): boolean {
 }
 
 /**
+ * Check if a market ID is from Stocks
+ */
+export function isStocks(marketId: string): boolean {
+  const parsed = parseMarketId(marketId);
+  return parsed.dataSource === 'stocks';
+}
+
+/**
+ * Check if a market ID is from Open-Meteo (weather)
+ */
+export function isOpenMeteo(marketId: string): boolean {
+  const parsed = parseMarketId(marketId);
+  return parsed.dataSource === 'openmeteo';
+}
+
+/**
  * Format position string based on data source
  * - Polymarket: YES/NO (prediction market)
  * - CoinGecko: LONG/SHORT (price direction)
@@ -193,8 +229,97 @@ export function formatPosition(
   const posValue = typeof position === 'string' ? parseInt(position, 10) : position;
   const isPositive = posValue === 1;
 
-  if (dataSource === 'coingecko') {
+  if (dataSource === 'coingecko' || dataSource === 'stocks' || dataSource === 'openmeteo') {
     return isPositive ? 'LONG' : 'SHORT';
   }
   return isPositive ? 'YES' : 'NO';
+}
+
+/**
+ * Parse weather market rawId to extract city and metric
+ * Format: {city_id}-{metric} e.g., "paris-fr-temperature_2m"
+ */
+export function parseWeatherMarketId(rawId: string): {
+  cityId: string;
+  metric: string;
+  displayCity: string;
+  displayMetric: string;
+} | null {
+  const metrics = ['temperature_2m', 'rain', 'wind_speed_10m', 'pm2_5', 'ozone'];
+
+  for (const metric of metrics) {
+    if (rawId.endsWith(`-${metric}`)) {
+      const cityId = rawId.slice(0, -(metric.length + 1));
+      return {
+        cityId,
+        metric,
+        displayCity: formatCityName(cityId),
+        displayMetric: formatMetricName(metric),
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Format city ID to display name
+ * e.g., "paris-fr" -> "Paris, FR"
+ */
+function formatCityName(cityId: string): string {
+  const parts = cityId.split('-');
+  if (parts.length < 2) return cityId;
+
+  const countryCode = parts.pop()!.toUpperCase();
+  const cityName = parts
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+  return `${cityName}, ${countryCode}`;
+}
+
+/**
+ * Format metric name to display
+ */
+function formatMetricName(metric: string): string {
+  const metricLabels: Record<string, string> = {
+    'temperature_2m': 'Temperature',
+    'rain': 'Rain',
+    'wind_speed_10m': 'Wind Speed',
+    'pm2_5': 'PM2.5',
+    'ozone': 'Ozone',
+  };
+  return metricLabels[metric] || metric;
+}
+
+/**
+ * Get weather metric icon
+ */
+export function getWeatherMetricIcon(metric: string): string {
+  const metricIcons: Record<string, string> = {
+    'temperature_2m': '🌡️',
+    'rain': '🌧️',
+    'wind_speed_10m': '💨',
+    'pm2_5': '😷',
+    'ozone': '☀️',
+  };
+  return metricIcons[metric] || '🌤️';
+}
+
+/**
+ * Format weather value with appropriate unit
+ */
+export function formatWeatherValue(value: number, metric: string): string {
+  const units: Record<string, string> = {
+    'temperature_2m': '°C',
+    'rain': 'mm',
+    'wind_speed_10m': 'km/h',
+    'pm2_5': 'μg/m³',
+    'ozone': 'μg/m³',
+  };
+
+  const unit = units[metric] || '';
+  const decimals = metric === 'temperature_2m' ? 1 : metric === 'rain' ? 1 : 0;
+
+  return `${value.toFixed(decimals)}${unit}`;
 }

@@ -9,7 +9,7 @@ import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
 import { formatUSD, toBaseUnits } from '@/lib/utils/formatters'
-import { parseMarketId, getSourceBadge, formatPosition } from '@/lib/utils/marketId'
+import { parseMarketId, getSourceBadge, formatPosition, parseWeatherMarketId, formatWeatherValue } from '@/lib/utils/marketId'
 
 interface BetDetailsExpandedProps {
   bet: BetRecord
@@ -168,7 +168,15 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
                       {sourceBadge.icon}
                     </span>
                     <span className="text-white/80 truncate max-w-[180px]" title={position.marketTitle}>
-                      {position.marketTitle}
+                      {parsed.dataSource === 'openmeteo'
+                        ? (() => {
+                            const weatherInfo = parseWeatherMarketId(parsed.rawId)
+                            return weatherInfo
+                              ? `${weatherInfo.displayCity} - ${weatherInfo.displayMetric}`
+                              : position.marketTitle
+                          })()
+                        : position.marketTitle
+                      }
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -182,8 +190,15 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
                       {posLabel}
                     </span>
                     <span className="font-mono text-white/60">
-                      {parsed.dataSource === 'coingecko'
+                      {parsed.dataSource === 'coingecko' || parsed.dataSource === 'stocks'
                         ? `$${position.currentPrice.toLocaleString()}`
+                        : parsed.dataSource === 'openmeteo'
+                        ? (() => {
+                            const weatherInfo = parseWeatherMarketId(parsed.rawId)
+                            return weatherInfo
+                              ? formatWeatherValue(position.currentPrice, weatherInfo.metric)
+                              : `${position.currentPrice}`
+                          })()
                         : `${(position.currentPrice * 100).toFixed(1)}%`
                       }
                     </span>

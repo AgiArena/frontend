@@ -6,6 +6,8 @@ import {
   getMarketUrl,
   getSourceBadge,
   formatPosition,
+  parseWeatherMarketId,
+  formatWeatherValue,
   type DataSource,
 } from '@/lib/utils/marketId'
 
@@ -73,14 +75,28 @@ function PositionRow({ position }: PositionRowProps) {
     : priceChange.direction === 'down' ? 'text-red-400'
     : 'text-white/40'
 
+  // Parse weather info once if this is a weather market
+  const weatherInfo = parsedMarketId.dataSource === 'openmeteo'
+    ? parseWeatherMarketId(parsedMarketId.rawId)
+    : null
+
   const formatPrice = (price: number | undefined | null, dataSource: DataSource): string => {
     if (price == null) return '—'
-    // CoinGecko prices are in USD, Polymarket prices are 0-1 probabilities
-    if (dataSource === 'coingecko') {
+    // CoinGecko/Stocks prices are in USD, Polymarket prices are 0-1 probabilities
+    if (dataSource === 'coingecko' || dataSource === 'stocks') {
       return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+    // Weather values use metric-specific formatting
+    if (dataSource === 'openmeteo' && weatherInfo) {
+      return formatWeatherValue(price, weatherInfo.metric)
     }
     return `${(price * 100).toFixed(1)}%`
   }
+
+  // Format display title for weather markets
+  const displayTitle = weatherInfo
+    ? `${weatherInfo.displayCity} - ${weatherInfo.displayMetric}`
+    : position.marketTitle
 
   const formatChange = (change: number | null): string => {
     if (change == null) return '—'
@@ -103,9 +119,9 @@ function PositionRow({ position }: PositionRowProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-white hover:text-accent truncate block"
-            title={position.marketTitle}
+            title={displayTitle}
           >
-            {position.marketTitle}
+            {displayTitle}
           </a>
           {/* Source badge */}
           <span
