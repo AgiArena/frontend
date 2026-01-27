@@ -61,7 +61,15 @@ async function fetchRecentBets(limit: number = 20): Promise<RecentBetsResponse> 
     throw new Error(`Failed to fetch recent bets: ${response.status} ${response.statusText}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  // Map backend tradeCount -> portfolioSize for frontend compatibility
+  if (data.events) {
+    data.events = data.events.map((e: RecentBetEvent & { tradeCount?: number }) => ({
+      ...e,
+      portfolioSize: e.tradeCount ?? e.portfolioSize ?? 0,
+    }))
+  }
+  return data
 }
 
 /**

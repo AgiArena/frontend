@@ -22,6 +22,7 @@ export interface BetRecord {
   creatorAddress: string
   betHash: string
   portfolioSize: number
+  tradeCount?: number         // Epic 8: Actual trade count from bet_trades table
   amount: string
   matchedAmount: string
   remainingAmount: string
@@ -61,7 +62,12 @@ async function fetchBetHistory(address: string): Promise<BetRecord[]> {
     throw new Error(`Failed to fetch bet history: ${response.statusText}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  // Map backend tradeCount -> portfolioSize for frontend compatibility
+  return (Array.isArray(data) ? data : data.bets || []).map((b: BetRecord & { tradeCount?: number }) => ({
+    ...b,
+    portfolioSize: b.tradeCount ?? b.portfolioSize ?? 0,
+  }))
 }
 
 /**

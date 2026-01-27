@@ -156,10 +156,12 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
 
       {/* List/Portfolio size */}
       <div className="text-xs text-gray-500 font-mono mb-3">
-        {bet.listSize ? (
+        {bet.tradeCount && bet.tradeCount > 0 ? (
+          <span>Portfolio: {bet.tradeCount.toLocaleString()} markets</span>
+        ) : bet.listSize ? (
           <span>List Size: {bet.listSize} trades</span>
         ) : (
-          <span>Portfolio: {(bet.portfolioSize || 5).toLocaleString()} markets</span>
+          <span>Portfolio: {(bet.portfolioSize || 0).toLocaleString()} markets</span>
         )}
       </div>
 

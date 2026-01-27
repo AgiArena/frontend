@@ -263,7 +263,7 @@ export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
         <div className="text-center">
           <span className="text-xs text-white/60 font-mono block">List Size</span>
           <span className="text-sm font-mono text-white font-bold">
-            {bet.portfolioSize || bet.listSize || '--'} trades
+            {bet.tradeCount || bet.portfolioSize || bet.listSize || '--'} trades
           </span>
         </div>
         <div className="text-center">

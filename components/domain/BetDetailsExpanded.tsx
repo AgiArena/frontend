@@ -231,7 +231,7 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         positions={portfolioPositions}
-        portfolioSize={bet.portfolioSize}
+        portfolioSize={bet.tradeCount || bet.portfolioSize}
       />
 
       {/* Resolution Section - shown for matched/settling/settled bets */}

@@ -29,6 +29,7 @@ export interface Bet {
   status: 'pending' | 'partially_matched' | 'fully_matched' | 'cancelled' | 'settled' | 'resolved'
   createdAt: string
   portfolioSize?: number
+  tradeCount?: number         // Epic 8: Actual trade count from bet_trades table
   // Epic 8: Category-based betting
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
   listSize?: number           // List size (e.g., 100 for top 100)

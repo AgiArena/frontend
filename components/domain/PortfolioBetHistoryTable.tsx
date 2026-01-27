@@ -33,11 +33,14 @@ function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRow
         onClick={onToggle}
         className="cursor-pointer hover:bg-white/5 border-b border-white/10 transition-colors"
       >
-        {/* Portfolio Size - default to 5 when not yet synced */}
+        {/* Portfolio Size - use tradeCount from backend (Epic 8) */}
         <td className="px-4 py-3 font-mono font-bold text-white">
-          {(bet.portfolioSize || 5) >= 1000
-            ? `${((bet.portfolioSize || 5) / 1000).toFixed(1)}K`
-            : (bet.portfolioSize || 5)} markets
+          {(() => {
+            const count = bet.tradeCount || bet.portfolioSize || 0
+            return count >= 1000
+              ? `${(count / 1000).toFixed(1)}K`
+              : count
+          })()} markets
         </td>
 
         {/* Amount */}

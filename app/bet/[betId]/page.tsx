@@ -31,6 +31,7 @@ interface BetData {
   creatorAddress: string
   betHash: string
   portfolioSize: number
+  tradeCount?: number
   amount: string
   matchedAmount: string
   /** Required match amount - defaults to amount if not provided (1:1 odds) */
