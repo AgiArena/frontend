@@ -138,9 +138,11 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
           // Extract ticker from tradeId like "BTC/coingecko/price" → "BTC"
           const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
             const ticker = trade.ticker || trade.tradeId.split('/')[0]
+            // Map LONG to YES, SHORT/anything else to NO
+            const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
             return {
-              marketId: ticker, // Use ticker as display name
-              position: trade.position === 'LONG' ? 'YES' : trade.position === 'SHORT' ? 'NO' : trade.position,
+              marketId: ticker,
+              position,
               startingPrice: parseFloat(trade.entryPrice) || undefined,
               currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
             }
@@ -418,8 +420,22 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 </div>
               </div>
               <div className="space-y-1 max-h-[500px] overflow-y-auto">
+                {/* Loading skeleton */}
+                {isLoadingPositions && portfolioPositions.length === 0 && (
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 bg-white/5 rounded border border-white/10 animate-pulse">
+                      <div className="w-16 h-4 bg-white/10 rounded" />
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-4 bg-white/10 rounded" />
+                        <div className="w-16 h-4 bg-white/10 rounded" />
+                        <div className="w-16 h-4 bg-white/10 rounded" />
+                        <div className="w-12 h-4 bg-white/10 rounded" />
+                      </div>
+                    </div>
+                  ))
+                )}
                 {/* Use portfolio positions with prices if available */}
-                {portfolioPositions.length > 0 ? (
+                {!isLoadingPositions && portfolioPositions.length > 0 ? (
                   portfolioPositions.map((pos, index) => {
                     const ticker = pos.marketId
                     const priceChange = calculatePriceChange(pos)
@@ -485,8 +501,14 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     )
                   })
                 )}
+                {/* Show message if no trades loaded */}
+                {!isLoadingPositions && portfolioPositions.length === 0 && !bet.portfolioJson?.positions && !bet.portfolioJson?.markets && (bet.tradeCount ?? 0) > 0 && (
+                  <div className="text-center py-4 text-white/40 font-mono text-sm">
+                    Failed to load {bet.tradeCount} trades. <button onClick={() => window.location.reload()} className="underline hover:text-white">Retry</button>
+                  </div>
+                )}
                 {/* Fallback to 'markets' format for backwards compatibility */}
-                {!portfolioPositions.length && !bet.portfolioJson?.positions && bet.portfolioJson?.markets?.map((market, index) => {
+                {!isLoadingPositions && !portfolioPositions.length && !bet.portfolioJson?.positions && bet.portfolioJson?.markets?.map((market, index) => {
                   const marketName = marketNames[market.conditionId] || market.conditionId
                   return (
                     <div
