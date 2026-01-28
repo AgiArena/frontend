@@ -96,7 +96,8 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [marketNames, setMarketNames] = useState<Record<string, string>>({})
   const [portfolioPositions, setPortfolioPositions] = useState<PortfolioPositionWithPrices[]>([])
-  const [isLoadingPositions, setIsLoadingPositions] = useState(false)
+  const [isLoadingPositions, setIsLoadingPositions] = useState(true) // Start true, set false when done
+  const [tradesError, setTradesError] = useState(false)
 
   useEffect(() => {
     async function fetchBet() {
@@ -130,44 +131,32 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
     async function fetchPortfolioPositions() {
       setIsLoadingPositions(true)
+      setTradesError(false)
       try {
         const res = await fetch(`/api/bets/${betId}/trades?limit=1000`)
-        if (res.ok) {
-          const data = await res.json()
-          // Map trades to portfolio position format
-          // Extract ticker from tradeId like "BTC/coingecko/price" → "BTC"
-          const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
-            const ticker = trade.ticker || trade.tradeId.split('/')[0]
-            // Map LONG to YES, SHORT/anything else to NO
-            const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
-            return {
-              marketId: ticker,
-              position,
-              startingPrice: parseFloat(trade.entryPrice) || undefined,
-              currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
-            }
-          })
-          setPortfolioPositions(positionsArray)
-
-          // Also fetch market names for these positions
-          const names: Record<string, string> = {}
-          await Promise.all(
-            positionsArray.slice(0, 50).map(async (pos) => { // Limit to first 50 for performance
-              try {
-                const marketRes = await fetch(`/api/markets/${pos.marketId}`)
-                if (marketRes.ok) {
-                  const marketData = await marketRes.json()
-                  names[pos.marketId] = marketData.market?.question || pos.marketId
-                }
-              } catch {
-                names[pos.marketId] = pos.marketId
-              }
-            })
-          )
-          setMarketNames(names)
+        if (!res.ok) {
+          console.error('Failed to fetch trades:', res.status)
+          setTradesError(true)
+          return
         }
+        const data = await res.json()
+        // Map trades to portfolio position format
+        const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
+          const ticker = trade.ticker || trade.tradeId.split('/')[0]
+          // Map LONG to YES, SHORT/anything else to NO
+          const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
+          return {
+            marketId: ticker,
+            position,
+            startingPrice: parseFloat(trade.entryPrice) || undefined,
+            currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
+          }
+        })
+        setPortfolioPositions(positionsArray)
+        // Skip fetching market names - just use ticker
       } catch (err) {
         console.error('Error fetching portfolio positions:', err)
+        setTradesError(true)
       } finally {
         setIsLoadingPositions(false)
       }
@@ -501,10 +490,10 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     )
                   })
                 )}
-                {/* Show message if no trades loaded */}
-                {!isLoadingPositions && portfolioPositions.length === 0 && !bet.portfolioJson?.positions && !bet.portfolioJson?.markets && (bet.tradeCount ?? 0) > 0 && (
-                  <div className="text-center py-4 text-white/40 font-mono text-sm">
-                    Failed to load {bet.tradeCount} trades. <button onClick={() => window.location.reload()} className="underline hover:text-white">Retry</button>
+                {/* Show error message if trades failed to load */}
+                {tradesError && (
+                  <div className="text-center py-4 text-red-400 font-mono text-sm">
+                    Failed to load {bet.tradeCount ?? 0} trades. <button onClick={() => window.location.reload()} className="underline hover:text-white">Retry</button>
                   </div>
                 )}
                 {/* Fallback to 'markets' format for backwards compatibility */}
