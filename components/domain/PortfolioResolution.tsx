@@ -166,11 +166,9 @@ function TradesBreakdown({ betId }: TradesBreakdownProps) {
               </span>
               <span className={`font-mono font-bold ${
                 trade.cancelled ? 'text-gray-500' :
-                trade.won === true ? 'text-green-500' :
-                trade.won === false ? 'text-red-500' :
-                trade.exitPrice ? 'text-yellow-500' : 'text-white/40'
+                trade.won ? 'text-green-500' : 'text-red-500'
               }`}>
-                {trade.cancelled ? '—' : trade.won === true ? '✓' : trade.won === false ? '✗' : trade.exitPrice ? '=' : '—'}
+                {trade.cancelled ? '—' : trade.won ? '✓' : '✗'}
               </span>
             </div>
           </div>
@@ -265,7 +263,7 @@ export function PortfolioResolution({ betId, bet }: PortfolioResolutionProps) {
         <div className="text-center">
           <span className="text-xs text-white/60 font-mono block">List Size</span>
           <span className="text-sm font-mono text-white font-bold">
-            {bet.tradeCount || bet.portfolioSize || bet.listSize || '--'} trades
+            {bet.portfolioSize || bet.listSize || '--'} trades
           </span>
         </div>
         <div className="text-center">

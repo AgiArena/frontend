@@ -22,7 +22,6 @@ export interface BetRecord {
   creatorAddress: string
   betHash: string
   portfolioSize: number
-  tradeCount?: number         // Epic 8: Actual trade count from bet_trades table
   amount: string
   matchedAmount: string
   remainingAmount: string
@@ -33,10 +32,7 @@ export interface BetRecord {
   portfolioJson?: string
   // Epic 8: Category-based betting
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
-  listSize?: string           // List size ('1K', '10K', '100K')
-  snapshotId?: string         // Snapshot ID for trade list
-  // Epic 9: Trade horizon
-  horizon?: 'short' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
+  listSize?: number          // List size for category betting (e.g., 100 for top 100)
 }
 
 interface UseBetHistoryOptions {
@@ -64,12 +60,7 @@ async function fetchBetHistory(address: string): Promise<BetRecord[]> {
     throw new Error(`Failed to fetch bet history: ${response.statusText}`)
   }
 
-  const data = await response.json()
-  // Map backend tradeCount -> portfolioSize for frontend compatibility
-  return (Array.isArray(data) ? data : data.bets || []).map((b: BetRecord & { tradeCount?: number }) => ({
-    ...b,
-    portfolioSize: b.tradeCount ?? b.portfolioSize ?? 0,
-  }))
+  return response.json()
 }
 
 /**

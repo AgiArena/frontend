@@ -1,124 +1,27 @@
 'use client'
 
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useState, useEffect, useRef } from 'react'
-import { agiArenaCoreAbi } from '@/lib/contracts/abi'
-import { CONTRACT_ADDRESS } from '@/lib/contracts/addresses'
+//
+// Bet cancellation stubbed - AI agents only
+//
 
 type CancelBetState = 'idle' | 'pending' | 'confirming' | 'success' | 'error'
 
 interface UseCancelBetReturn {
   cancelBet: (betId: bigint) => void
   state: CancelBetState
-  txHash: `0x${string}` | undefined
+  txHash: string | undefined
   error: Error | null
   reset: () => void
 }
 
-/**
- * Hook for cancelling bets on the AgiArenaCore contract
- * Handles transaction submission and confirmation, then invalidates bet history cache
- */
-export function useCancelBet(address: `0x${string}` | undefined): UseCancelBetReturn {
-  const [state, setState] = useState<CancelBetState>('idle')
-  const queryClient = useQueryClient()
+const DISABLED_ERROR = new Error('Bet cancellation disabled - AI agents only')
 
-  // Contract address
-  const contractAddress = CONTRACT_ADDRESS
-
-  // Write contract for cancelling bet
-  const {
-    writeContract,
-    data: txHash,
-    isPending: isWritePending,
-    error: writeError,
-    reset: resetWrite
-  } = useWriteContract()
-
-  // Wait for transaction confirmation
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: confirmError
-  } = useWaitForTransactionReceipt({
-    hash: txHash
-  })
-
-  // Track previous states
-  const prevIsWritePending = useRef(false)
-  const prevIsConfirming = useRef(false)
-  const prevIsConfirmed = useRef(false)
-
-  // Handle state transitions
-  useEffect(() => {
-    // Handle confirmation success
-    if (isConfirmed && !prevIsConfirmed.current && state === 'confirming') {
-      setState('success')
-      // Invalidate bet history query to refetch after a delay
-      // This gives the backend indexer time to process the BetCancelled event
-      // (indexer polls every 2 seconds, so 3 second delay ensures DB is updated)
-      if (address) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['bets', 'user', address] })
-          queryClient.invalidateQueries({ queryKey: ['recent-bets'] })
-        }, 3000)
-      }
-    }
-
-    // Update state based on transaction progress
-    if (isWritePending && !prevIsWritePending.current && state === 'idle') {
-      setState('pending')
-    }
-    if (isConfirming && !prevIsConfirming.current && state === 'pending') {
-      setState('confirming')
-    }
-
-    // Handle errors
-    if (writeError || confirmError) {
-      setState('error')
-    }
-
-    // Update refs
-    prevIsWritePending.current = isWritePending
-    prevIsConfirming.current = isConfirming
-    prevIsConfirmed.current = isConfirmed
-  }, [isWritePending, isConfirming, isConfirmed, state, writeError, confirmError, queryClient, address])
-
-  // Cancel a bet
-  const cancelBet = useCallback((betId: bigint) => {
-    if (!contractAddress) {
-      setState('error')
-      return
-    }
-
-    // Reset state
-    setState('idle')
-    resetWrite()
-
-    // Call contract
-    writeContract({
-      address: contractAddress,
-      abi: agiArenaCoreAbi,
-      functionName: 'cancelBet',
-      args: [betId]
-    })
-  }, [contractAddress, writeContract, resetWrite])
-
-  // Reset hook state
-  const reset = useCallback(() => {
-    setState('idle')
-    resetWrite()
-  }, [resetWrite])
-
-  // Get first error
-  const error = writeError || confirmError
-
+export function useCancelBet(_address: string | undefined): UseCancelBetReturn {
   return {
-    cancelBet,
-    state,
-    txHash,
-    error: error as Error | null,
-    reset
+    cancelBet: () => { throw DISABLED_ERROR },
+    state: 'idle',
+    txHash: undefined,
+    error: null,
+    reset: () => {}
   }
 }

@@ -21,7 +21,6 @@
     "qrcode.react": "^4.0.0",
     "react": "^19",
     "react-dom": "^19",
-    "react-window": "^2.2.5",
     "recharts": "^2",
     "viem": "^2",
     "wagmi": "^2"
@@ -30,7 +29,6 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/react-window": "^2.0.0",
     "autoprefixer": "^10",
     "eslint": "^9",
     "eslint-config-next": "^15",

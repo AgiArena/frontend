@@ -41,7 +41,7 @@ function transformBetPlacedEvent(data: BetPlacedEvent): RecentBetEvent {
     betId: data.betId,
     walletAddress: data.creator,
     eventType: 'placed',
-    portfolioSize: data.tradeCount ?? data.portfolioSize ?? 0,
+    portfolioSize: data.portfolioSize,
     amount: data.amount,
     result: null,
     timestamp: data.timestamp
@@ -74,7 +74,7 @@ function transformBetSettledEvent(data: BetSettledEvent): RecentBetEvent {
     betId: data.betId,
     walletAddress: data.winner,
     eventType,
-    portfolioSize: data.tradeCount ?? data.portfolioSize ?? 0,
+    portfolioSize: data.portfolioSize,
     amount: '0', // Settlement event doesn't include original amount
     result: data.pnl,
     timestamp: data.timestamp

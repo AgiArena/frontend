@@ -51,3 +51,27 @@ export function usePlaceBet(): UsePlaceBetReturn {
     reset
   }
 }
+
+// Original implementation preserved for reference:
+//
+// export function usePlaceBet(): UsePlaceBetReturn {
+//   const [state, setState] = useState<PlaceBetState>('idle')
+//   const [betId, setBetId] = useState<bigint | undefined>()
+//   const [jsonError, setJsonError] = useState<Error | null>(null)
+//   ...
+//   const {
+//     writeContract,
+//     data: txHash,
+//     isPending: isWritePending,
+//     error: writeError,
+//     reset: resetWrite
+//   } = useWriteContract()
+//   ...
+//   writeContract({
+//     address: contractAddress,
+//     abi: agiArenaCoreAbi,
+//     functionName: 'placeBet',
+//     args: [betHash, storageRef, amount]
+//   })
+//   ...
+// }

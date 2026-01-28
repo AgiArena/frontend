@@ -5,12 +5,10 @@ import type { BetRecord } from '@/hooks/useBetHistory'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { PortfolioModal, PortfolioPosition } from '@/components/domain/PortfolioModal'
 import { PortfolioResolution } from '@/components/domain/PortfolioResolution'
-import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
 import { formatUSD, toBaseUnits } from '@/lib/utils/formatters'
-import { parseMarketId, getSourceBadge, formatPosition, parseWeatherMarketId, formatWeatherValue, isEconomicSource } from '@/lib/utils/marketId'
-import type { TradeHorizon } from '@/lib/types/bet'
+import { parseMarketId, getSourceBadge, formatPosition } from '@/lib/utils/marketId'
 
 interface BetDetailsExpandedProps {
   bet: BetRecord
@@ -31,7 +29,6 @@ function shouldShowResolution(status: BetRecord['status']): boolean {
  */
 export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetailsExpandedProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const category = useCategoryById(bet.categoryId)
 
   // Parse portfolio JSON to get positions for preview
   const portfolioPositions = useMemo((): PortfolioPosition[] => {
@@ -75,45 +72,6 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
 
   return (
     <div className="space-y-4">
-      {/* Epic 8: Category and List Size */}
-      {(category || bet.listSize || bet.snapshotId || bet.horizon) && (
-        <div className="flex flex-wrap gap-3 pb-2 border-b border-white/10">
-          {category && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">Category:</span>
-              <span className="px-2 py-1 bg-gray-800 rounded text-xs font-mono text-white/80">
-                {formatCategoryDisplay(category)}
-              </span>
-            </div>
-          )}
-          {bet.listSize && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">List Size:</span>
-              <span className="text-xs font-mono text-white">{bet.listSize}</span>
-            </div>
-          )}
-          {/* Epic 9: Trade Horizon */}
-          {bet.horizon && bet.horizon !== 'short' && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">Horizon:</span>
-              <span className={`px-2 py-1 rounded text-xs font-mono ${
-                bet.horizon === 'monthly' || bet.horizon === 'quarterly'
-                  ? 'bg-orange-800/30 text-orange-300'
-                  : 'bg-gray-800 text-white/80'
-              }`}>
-                {bet.horizon.charAt(0).toUpperCase() + bet.horizon.slice(1)}
-              </span>
-            </div>
-          )}
-          {bet.snapshotId && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">Snapshot:</span>
-              <span className="text-xs font-mono text-white/70">{bet.snapshotId}</span>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Bet Hash */}
       {bet.betHash && (
         <div className="flex items-center gap-2">
@@ -182,15 +140,7 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
                       {sourceBadge.icon}
                     </span>
                     <span className="text-white/80 truncate max-w-[180px]" title={position.marketTitle}>
-                      {parsed.dataSource === 'openmeteo'
-                        ? (() => {
-                            const weatherInfo = parseWeatherMarketId(parsed.rawId)
-                            return weatherInfo
-                              ? `${weatherInfo.displayCity} - ${weatherInfo.displayMetric}`
-                              : position.marketTitle
-                          })()
-                        : position.marketTitle
-                      }
+                      {position.marketTitle}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -204,15 +154,8 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
                       {posLabel}
                     </span>
                     <span className="font-mono text-white/60">
-                      {parsed.dataSource === 'coingecko' || parsed.dataSource === 'stocks'
+                      {parsed.dataSource === 'coingecko'
                         ? `$${position.currentPrice.toLocaleString()}`
-                        : parsed.dataSource === 'openmeteo'
-                        ? (() => {
-                            const weatherInfo = parseWeatherMarketId(parsed.rawId)
-                            return weatherInfo
-                              ? formatWeatherValue(position.currentPrice, weatherInfo.metric)
-                              : `${position.currentPrice}`
-                          })()
                         : `${(position.currentPrice * 100).toFixed(1)}%`
                       }
                     </span>
@@ -260,7 +203,7 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         positions={portfolioPositions}
-        portfolioSize={bet.tradeCount || bet.portfolioSize}
+        portfolioSize={bet.portfolioSize}
       />
 
       {/* Resolution Section - shown for matched/settling/settled bets */}

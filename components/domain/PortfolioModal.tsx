@@ -1,13 +1,11 @@
 'use client'
 
-import { useEffect, useCallback, useState, useMemo, useRef, ChangeEvent, memo } from 'react'
+import { useEffect, useCallback, useState, useMemo, useRef, ChangeEvent } from 'react'
 import {
   parseMarketId,
   getMarketUrl,
   getSourceBadge,
   formatPosition,
-  parseWeatherMarketId,
-  formatWeatherValue,
   type DataSource,
 } from '@/lib/utils/marketId'
 
@@ -62,9 +60,9 @@ interface PositionRowProps {
 }
 
 /**
- * Individual position row - memoized to prevent unnecessary re-renders in virtualized list
+ * Individual position row
  */
-const PositionRow = memo(function PositionRow({ position }: PositionRowProps) {
+function PositionRow({ position }: PositionRowProps) {
   // Parse market ID to get data source and correct URL
   const parsedMarketId = parseMarketId(position.marketId)
   const marketUrl = getMarketUrl(parsedMarketId)
@@ -75,28 +73,14 @@ const PositionRow = memo(function PositionRow({ position }: PositionRowProps) {
     : priceChange.direction === 'down' ? 'text-red-400'
     : 'text-white/40'
 
-  // Parse weather info once if this is a weather market
-  const weatherInfo = parsedMarketId.dataSource === 'openmeteo'
-    ? parseWeatherMarketId(parsedMarketId.rawId)
-    : null
-
   const formatPrice = (price: number | undefined | null, dataSource: DataSource): string => {
     if (price == null) return '—'
-    // CoinGecko/Stocks prices are in USD, Polymarket prices are 0-1 probabilities
-    if (dataSource === 'coingecko' || dataSource === 'stocks') {
+    // CoinGecko prices are in USD, Polymarket prices are 0-1 probabilities
+    if (dataSource === 'coingecko') {
       return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    }
-    // Weather values use metric-specific formatting
-    if (dataSource === 'openmeteo' && weatherInfo) {
-      return formatWeatherValue(price, weatherInfo.metric)
     }
     return `${(price * 100).toFixed(1)}%`
   }
-
-  // Format display title for weather markets
-  const displayTitle = weatherInfo
-    ? `${weatherInfo.displayCity} - ${weatherInfo.displayMetric}`
-    : position.marketTitle
 
   const formatChange = (change: number | null): string => {
     if (change == null) return '—'
@@ -119,9 +103,9 @@ const PositionRow = memo(function PositionRow({ position }: PositionRowProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-white hover:text-accent truncate block"
-            title={displayTitle}
+            title={position.marketTitle}
           >
-            {displayTitle}
+            {position.marketTitle}
           </a>
           {/* Source badge */}
           <span
@@ -177,7 +161,7 @@ const PositionRow = memo(function PositionRow({ position }: PositionRowProps) {
       </div>
     </div>
   )
-})
+}
 
 /** Height of each position row in pixels - matches PositionRow component's h-[60px] */
 const ROW_HEIGHT = 60

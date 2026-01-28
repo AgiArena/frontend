@@ -4,41 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { OddsBadge } from './OddsBadge'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { type Bet, calculateOddsDisplay, formatImpliedProbability, type TradeHorizon } from '@/lib/types/bet'
+import { type Bet, calculateOddsDisplay, formatImpliedProbability } from '@/lib/types/bet'
 import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
-
-/**
- * Get horizon badge display info
- * Only shows badge for monthly/quarterly horizons (economic data)
- */
-function getHorizonBadge(horizon?: TradeHorizon): { label: string; bgColor: string; textColor: string } | null {
-  if (!horizon || horizon === 'short' || horizon === 'daily') {
-    return null; // Don't show badge for short-term trades
-  }
-
-  switch (horizon) {
-    case 'weekly':
-      return {
-        label: 'Weekly',
-        bgColor: 'bg-amber-800/30',
-        textColor: 'text-amber-300',
-      };
-    case 'monthly':
-      return {
-        label: 'Monthly',
-        bgColor: 'bg-orange-800/30',
-        textColor: 'text-orange-300',
-      };
-    case 'quarterly':
-      return {
-        label: 'Quarterly',
-        bgColor: 'bg-red-800/30',
-        textColor: 'text-red-300',
-      };
-    default:
-      return null;
-  }
-}
 
 interface BetCardProps {
   /** The bet to display */
@@ -107,15 +74,6 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
               )}
             </span>
           )}
-          {/* Horizon badge (Epic 9) - only for monthly/quarterly */}
-          {(() => {
-            const horizonBadge = getHorizonBadge(bet.horizon);
-            return horizonBadge ? (
-              <span className={`px-2 py-1 ${horizonBadge.bgColor} rounded text-xs font-mono ${horizonBadge.textColor}`}>
-                {horizonBadge.label}
-              </span>
-            ) : null;
-          })()}
         </div>
         <span className={`text-xs font-mono ${getStatusColor(bet.status)}`}>
           {formatStatus(bet.status)}
@@ -198,12 +156,10 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
 
       {/* List/Portfolio size */}
       <div className="text-xs text-gray-500 font-mono mb-3">
-        {bet.tradeCount && bet.tradeCount > 0 ? (
-          <span>Portfolio: {bet.tradeCount.toLocaleString()} markets</span>
-        ) : bet.listSize ? (
+        {bet.listSize ? (
           <span>List Size: {bet.listSize} trades</span>
         ) : (
-          <span>Portfolio: {(bet.portfolioSize || 0).toLocaleString()} markets</span>
+          <span>Portfolio: {(bet.portfolioSize || 5).toLocaleString()} markets</span>
         )}
       </div>
 

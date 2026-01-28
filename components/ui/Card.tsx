@@ -1,28 +1,22 @@
 /**
  * Card component following Shadcn/ui patterns
  * Used for content containers with consistent styling
- *
- * Story 11-1, AC5: Micro-interactions
- * - Hover: subtle box-shadow increase
- * - Respects prefers-reduced-motion via CSS
  */
 
 import { forwardRef } from 'react'
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
-  /** Enable interactive hover effects */
-  interactive?: boolean
 }
 
 /**
  * Card container component
  */
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className = '', children, interactive = false, ...props }, ref) => (
+  ({ className = '', children, ...props }, ref) => (
     <div
       ref={ref}
-      className={`rounded-lg border bg-black text-white ${interactive ? 'card-interactive cursor-pointer' : ''} ${className}`}
+      className={`rounded-lg border bg-black text-white ${className}`}
       {...props}
     >
       {children}

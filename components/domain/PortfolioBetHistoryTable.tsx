@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, memo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { useBetHistory, BetRecord } from '@/hooks/useBetHistory'
 import { useCancelBet } from '@/hooks/useCancelBet'
@@ -22,9 +22,9 @@ interface BetRowProps {
 }
 
 /**
- * Single bet row component - memoized to prevent unnecessary re-renders
+ * Single bet row component
  */
-const BetRow = memo(function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRowProps) {
+function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRowProps) {
   const amount = toBaseUnits(bet.amount)
 
   return (
@@ -33,14 +33,11 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle, onCancelBet, is
         onClick={onToggle}
         className="cursor-pointer hover:bg-white/5 border-b border-white/10 transition-colors"
       >
-        {/* Portfolio Size - use tradeCount from backend (Epic 8) */}
+        {/* Portfolio Size - default to 5 when not yet synced */}
         <td className="px-4 py-3 font-mono font-bold text-white">
-          {(() => {
-            const count = bet.tradeCount || bet.portfolioSize || 0
-            return count >= 1000
-              ? `${(count / 1000).toFixed(1)}K`
-              : count
-          })()} markets
+          {(bet.portfolioSize || 5) >= 1000
+            ? `${((bet.portfolioSize || 5) / 1000).toFixed(1)}K`
+            : (bet.portfolioSize || 5)} markets
         </td>
 
         {/* Amount */}
@@ -108,7 +105,7 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle, onCancelBet, is
       )}
     </>
   )
-})
+}
 
 /**
  * Loading skeleton for table rows

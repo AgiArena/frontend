@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useLeaderboardSSE } from '@/hooks/useLeaderboardSSE'
-import { usePrefersReducedMotion, useIsMobile } from '@/hooks/useMediaQueries'
 import {
   Table,
   TableHeader,
@@ -18,6 +17,46 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import { ConnectionStatusIndicator } from '@/components/ui/ConnectionStatusIndicator'
 import { AnimatedLeaderboardRow } from '@/components/domain/AnimatedLeaderboardRow'
 import { formatRelativeTime } from '@/lib/utils/time'
+
+/**
+ * Hook to detect reduced motion preference
+ * AC7: Disable animations on prefers-reduced-motion
+ */
+function usePrefersReducedMotion(): boolean {
+  const [prefersReduced, setPrefersReduced] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReduced(query.matches)
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches)
+    query.addEventListener('change', handler)
+    return () => query.removeEventListener('change', handler)
+  }, [])
+
+  return prefersReduced
+}
+
+/**
+ * Hook to detect mobile viewport
+ * AC7: Disable animations on mobile (< 768px)
+ */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
 
 /**
  * Loading skeleton for leaderboard table
