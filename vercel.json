@@ -39,6 +39,14 @@
       "destination": "https://63.179.141.230/api/keepers/:path*"
     },
     {
+      "source": "/api/market-prices",
+      "destination": "https://63.179.141.230/api/market-prices"
+    },
+    {
+      "source": "/api/market-prices/:path*",
+      "destination": "https://63.179.141.230/api/market-prices/:path*"
+    },
+    {
       "source": "/health",
       "destination": "https://63.179.141.230/health"
     }
