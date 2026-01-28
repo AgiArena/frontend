@@ -394,7 +394,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
         </Card>
 
         {/* Trades Card - positions with prices */}
-        {(portfolioPositions.length > 0 || bet.portfolioJson?.positions?.length || bet.portfolioJson?.markets?.length) && (
+        {((bet.tradeCount ?? 0) > 0 || portfolioPositions.length > 0 || bet.portfolioJson?.positions?.length || bet.portfolioJson?.markets?.length) && (
           <Card className="border-white/20">
             <CardHeader>
               <div className="flex justify-between items-center">

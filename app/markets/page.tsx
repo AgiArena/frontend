@@ -71,6 +71,7 @@ interface MarketPrice {
   changePct: string | null
   fetchedAt: string
   category: string | null
+  marketCap?: string | null
 }
 
 interface MarketStats {
@@ -112,7 +113,7 @@ function MarketTypeCard({
   )
 }
 
-function PriceRow({ price }: { price: MarketPrice }) {
+function PriceRow({ price, show24h }: { price: MarketPrice; show24h: boolean }) {
   const value = parseFloat(price.value)
   const changePct = price.changePct ? parseFloat(price.changePct) : null
   const lastUpdate = new Date(price.fetchedAt)
@@ -125,15 +126,17 @@ function PriceRow({ price }: { price: MarketPrice }) {
       <td className="py-3 px-4 font-mono text-white text-right">
         ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: value < 1 ? 6 : 2 })}
       </td>
-      <td className="py-3 px-4 font-mono text-right">
-        {changePct !== null ? (
-          <span className={changePct >= 0 ? 'text-green-400' : 'text-red-400'}>
-            {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
-          </span>
-        ) : (
-          <span className="text-white/30">-</span>
-        )}
-      </td>
+      {show24h && (
+        <td className="py-3 px-4 font-mono text-right">
+          {changePct !== null ? (
+            <span className={changePct >= 0 ? 'text-green-400' : 'text-red-400'}>
+              {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+            </span>
+          ) : (
+            <span className="text-white/30">-</span>
+          )}
+        </td>
+      )}
       <td className="py-3 px-4 font-mono text-white/40 text-sm text-right hidden sm:table-cell">
         {minutesAgo < 1 ? 'just now' : `${minutesAgo}m ago`}
       </td>
@@ -150,9 +153,16 @@ export default function MarketsPage() {
     queryKey: ['market-prices', selectedType],
     queryFn: async () => {
       const source = selectedConfig.sources[0]
-      const res = await fetch(`${API_URL}/api/market-prices?source=${source}&limit=100`)
+      const res = await fetch(`${API_URL}/api/market-prices?source=${source}&limit=500`)
       if (!res.ok) throw new Error('Failed to fetch prices')
-      return res.json() as Promise<{ prices: MarketPrice[]; pagination: { total: number } }>
+      const data = await res.json() as { prices: MarketPrice[]; pagination: { total: number } }
+      // Sort by market cap descending (largest first)
+      data.prices.sort((a, b) => {
+        const mcA = a.marketCap ? parseFloat(a.marketCap) : 0
+        const mcB = b.marketCap ? parseFloat(b.marketCap) : 0
+        return mcB - mcA
+      })
+      return data
     },
     staleTime: 60 * 1000,
     refetchInterval: 60 * 1000, // Auto-refresh every minute
@@ -173,6 +183,9 @@ export default function MarketsPage() {
   const prices = pricesData?.prices || []
   const total = pricesData?.pagination?.total || 0
   const stats = statsData?.stats
+
+  // Check if any prices have 24h change data
+  const has24hData = prices.some(p => p.changePct !== null)
 
   return (
     <main className="min-h-screen bg-terminal flex flex-col">
@@ -228,43 +241,47 @@ export default function MarketsPage() {
             )}
           </div>
 
-          {/* Prices table */}
+          {/* Prices table with scroll */}
           <div className="border border-white/20 bg-terminal overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/20 bg-black/50">
-                  <th className="py-3 px-4 text-left font-mono text-white/60 text-xs uppercase">Symbol</th>
-                  <th className="py-3 px-4 text-left font-mono text-white/60 text-xs uppercase hidden md:table-cell">Name</th>
-                  <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase">Price</th>
-                  <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase">24h</th>
-                  <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase hidden sm:table-cell">Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  // Skeleton rows
-                  Array.from({ length: 10 }).map((_, i) => (
-                    <tr key={i} className="border-b border-white/10">
-                      <td className="py-3 px-4"><div className="h-4 w-16 skeleton rounded" /></td>
-                      <td className="py-3 px-4 hidden md:table-cell"><div className="h-4 w-32 skeleton rounded" /></td>
-                      <td className="py-3 px-4"><div className="h-4 w-20 skeleton rounded ml-auto" /></td>
-                      <td className="py-3 px-4"><div className="h-4 w-16 skeleton rounded ml-auto" /></td>
-                      <td className="py-3 px-4 hidden sm:table-cell"><div className="h-4 w-16 skeleton rounded ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : prices.length > 0 ? (
-                  prices.map((price) => (
-                    <PriceRow key={`${price.source}-${price.assetId}`} price={price} />
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-white/40 font-mono">
-                      No data available for this market type
-                    </td>
+            <div className="max-h-[600px] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-white/20 bg-black">
+                    <th className="py-3 px-4 text-left font-mono text-white/60 text-xs uppercase">Symbol</th>
+                    <th className="py-3 px-4 text-left font-mono text-white/60 text-xs uppercase hidden md:table-cell">Name</th>
+                    <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase">Price</th>
+                    {has24hData && (
+                      <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase">24h</th>
+                    )}
+                    <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase hidden sm:table-cell">Updated</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    // Skeleton rows
+                    Array.from({ length: 10 }).map((_, i) => (
+                      <tr key={i} className="border-b border-white/10">
+                        <td className="py-3 px-4"><div className="h-4 w-16 skeleton rounded" /></td>
+                        <td className="py-3 px-4 hidden md:table-cell"><div className="h-4 w-32 skeleton rounded" /></td>
+                        <td className="py-3 px-4"><div className="h-4 w-20 skeleton rounded ml-auto" /></td>
+                        {has24hData && <td className="py-3 px-4"><div className="h-4 w-16 skeleton rounded ml-auto" /></td>}
+                        <td className="py-3 px-4 hidden sm:table-cell"><div className="h-4 w-16 skeleton rounded ml-auto" /></td>
+                      </tr>
+                    ))
+                  ) : prices.length > 0 ? (
+                    prices.map((price) => (
+                      <PriceRow key={`${price.source}-${price.assetId}`} price={price} show24h={has24hData} />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={has24hData ? 5 : 4} className="py-8 text-center text-white/40 font-mono">
+                        No data available for this market type
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Footer note */}
