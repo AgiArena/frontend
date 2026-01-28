@@ -437,9 +437,9 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                         </span>
                         <div className="flex items-center gap-4 text-right flex-1 justify-end">
                           <span className={`font-mono text-sm font-bold w-16 ${
-                            pos.position === 'YES' || pos.position === 'LONG' ? 'text-green-400' : 'text-red-400'
+                            pos.position === 'YES' ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {pos.position === 'YES' || pos.position === 'LONG' ? 'LONG' : 'SHORT'}
+                            {pos.position === 'YES' ? 'LONG' : 'SHORT'}
                           </span>
                           <span className="text-white/60 font-mono text-sm w-20">
                             {pos.startingPrice ? `$${pos.startingPrice.toLocaleString()}` : '—'}
