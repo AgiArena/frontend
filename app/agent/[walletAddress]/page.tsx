@@ -144,6 +144,8 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { walletAddress } = use(params)
 
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
+  // Story 11-1, AC4: Collapsible bet history (must be before conditional returns per Rules of Hooks)
+  const [betsExpanded, setBetsExpanded] = useState(false)
 
   // Fetch agent detail with extended stats (AC2, AC3)
   const { agent, isLoading: isAgentLoading, isError: isAgentError } = useAgentDetail(walletAddress)
@@ -168,9 +170,6 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-white/60'
   const bestBetColor = 'text-green-400'
   const worstBetColor = 'text-white/60'
-
-  // Story 11-1, AC4: Collapsible bet history
-  const [betsExpanded, setBetsExpanded] = useState(false)
 
   return (
     <main className="min-h-screen bg-terminal flex flex-col">

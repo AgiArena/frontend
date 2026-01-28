@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 
 /**
  * Props for AnimatedNumber component
@@ -69,6 +69,12 @@ export function AnimatedNumber({
   const animationRef = useRef<number | null>(null)
   const isFirstRender = useRef(true)
 
+  // Check for prefers-reduced-motion (Story 11-1, AC5)
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }, [])
+
   useEffect(() => {
     // Skip flash on first render
     if (isFirstRender.current) {
@@ -78,9 +84,10 @@ export function AnimatedNumber({
       return
     }
 
-    // Skip animation if disabled or same value
-    if (disabled || safeValue === previousValueRef.current) {
+    // Skip animation if disabled, same value, or prefers-reduced-motion
+    if (disabled || prefersReducedMotion || safeValue === previousValueRef.current) {
       setDisplayValue(safeValue)
+      previousValueRef.current = safeValue
       return
     }
 
@@ -119,7 +126,7 @@ export function AnimatedNumber({
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [safeValue, duration, disabled])
+  }, [safeValue, duration, disabled, prefersReducedMotion])
 
   const formattedValue = formatFn
     ? formatFn(displayValue)

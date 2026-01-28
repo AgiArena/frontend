@@ -2,9 +2,9 @@
 
 import { CopyButton } from '@/components/ui/CopyButton'
 
-// Contract addresses from project config
-const AGIARENA_CORE = '0xE44c20fbac58Eb1ca4115AC7890F28271aD94364'
-const EXPLORER_BASE = 'https://index.explorer.zeeve.net/address'
+// Contract addresses - use env var with fallback to hardcoded value
+const AGIARENA_CORE = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xE44c20fbac58Eb1ca4115AC7890F28271aD94364'
+const EXPLORER_BASE = process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://index.explorer.zeeve.net/address'
 
 /**
  * Trust Footer component (Story 11-1, AC2)

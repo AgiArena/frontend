@@ -100,6 +100,12 @@ export function Header() {
 
           {/* Right side: Network status + Wallet */}
           <div className="flex items-center gap-4">
+            {/* WIND token price - static for MVP (Story 11-1, AC1) */}
+            <div className="hidden lg:flex items-center gap-1 text-sm font-mono">
+              <span className="text-white/40">WIND</span>
+              <span className="text-white">$0.001</span>
+            </div>
+
             {/* Network status - hidden on mobile */}
             <div className="hidden sm:flex items-center gap-2 text-sm font-mono">
               <span className="text-white/40">Index L3</span>

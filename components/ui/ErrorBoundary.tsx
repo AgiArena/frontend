@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full border border-red-500/50 bg-red-500/10 p-6 text-center">
+          <div className="max-w-md w-full border border-red-500/50 bg-red-500/10 p-6 text-center error-state">
             <h2 className="text-xl font-bold text-red-400 font-mono mb-2">
               Something went wrong
             </h2>

@@ -33,9 +33,9 @@ export function CopyButton({ text, className = '', onCopy, size = 16 }: CopyButt
         setCopied(false)
         setShowTooltip(false)
       }, 2000)
-    } catch (err) {
-      // Handle permission denied gracefully
-      console.warn('Failed to copy to clipboard:', err)
+    } catch {
+      // Handle permission denied gracefully - silently fail
+      // User will see the icon didn't change to checkmark
     }
   }, [text, onCopy])
 
