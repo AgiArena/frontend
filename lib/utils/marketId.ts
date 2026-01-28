@@ -9,7 +9,20 @@
  * - `coingecko:deterministic:bitcoin` - CoinGecko with auto-resolution
  */
 
-export type DataSource = 'polymarket' | 'coingecko' | 'stocks' | 'openmeteo';
+/**
+ * Data source for market prices
+ * Expanded to include economic data sources (BLS, FRED, ECB) and DeFi
+ */
+export type DataSource =
+  | 'polymarket'
+  | 'coingecko'
+  | 'stocks'
+  | 'openmeteo'
+  | 'bls'    // Bureau of Labor Statistics - employment/inflation
+  | 'fred'   // Federal Reserve Economic Data - rates/treasury
+  | 'ecb'    // European Central Bank - euro macro
+  | 'defi';  // DeFi protocols - TVL/volumes
+
 export type ResolutionMethod = 'keeper' | 'deterministic';
 
 export interface ParsedMarketId {
@@ -70,9 +83,13 @@ export function encodeMarketId(
 function parseDataSource(s: string): DataSource {
   const lower = s.toLowerCase();
   if (lower === 'polymarket') return 'polymarket';
-  if (lower === 'coingecko') return 'coingecko';
+  if (lower === 'coingecko' || lower === 'crypto') return 'coingecko'; // Backend uses "crypto"
   if (lower === 'stocks') return 'stocks';
-  if (lower === 'openmeteo') return 'openmeteo';
+  if (lower === 'openmeteo' || lower === 'weather') return 'openmeteo'; // Backend uses "weather"
+  if (lower === 'bls') return 'bls';
+  if (lower === 'fred' || lower === 'rates') return 'fred'; // Backend uses "rates"
+  if (lower === 'ecb') return 'ecb';
+  if (lower === 'defi') return 'defi';
   return 'polymarket'; // Default
 }
 
@@ -98,6 +115,14 @@ export function getMarketUrl(parsed: ParsedMarketId): string {
       // Parse city from rawId (format: city-id-metric)
       const cityId = parsed.rawId.replace(/-temperature_2m$|-rain$|-wind_speed_10m$|-pm2_5$|-ozone$/, '');
       return `https://open-meteo.com/en/docs#latitude=0&longitude=0`; // Open-Meteo doesn't have city pages
+    case 'bls':
+      return `https://www.bls.gov/data/`;
+    case 'fred':
+      return `https://fred.stlouisfed.org/series/${parsed.rawId}`;
+    case 'ecb':
+      return `https://www.ecb.europa.eu/stats/`;
+    case 'defi':
+      return `https://defillama.com/`;
     default:
       return '#';
   }
@@ -140,6 +165,34 @@ export function getSourceBadge(dataSource: DataSource): {
         icon: '🌤️',
         bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
         textColor: 'text-cyan-700 dark:text-cyan-300',
+      };
+    case 'bls':
+      return {
+        label: 'Employment',
+        icon: '👷',
+        bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+        textColor: 'text-orange-700 dark:text-orange-300',
+      };
+    case 'fred':
+      return {
+        label: 'Rates',
+        icon: '🏛️',
+        bgColor: 'bg-red-100 dark:bg-red-900/30',
+        textColor: 'text-red-700 dark:text-red-300',
+      };
+    case 'ecb':
+      return {
+        label: 'ECB',
+        icon: '🇪🇺',
+        bgColor: 'bg-indigo-100 dark:bg-indigo-900/30',
+        textColor: 'text-indigo-700 dark:text-indigo-300',
+      };
+    case 'defi':
+      return {
+        label: 'DeFi',
+        icon: '🔗',
+        bgColor: 'bg-pink-100 dark:bg-pink-900/30',
+        textColor: 'text-pink-700 dark:text-pink-300',
       };
     default:
       return {
@@ -220,7 +273,7 @@ export function isOpenMeteo(marketId: string): boolean {
 /**
  * Format position string based on data source
  * - Polymarket: YES/NO (prediction market)
- * - CoinGecko: LONG/SHORT (price direction)
+ * - CoinGecko/Stocks/Weather/Economic/DeFi: LONG/SHORT (price direction)
  */
 export function formatPosition(
   position: number | string,
@@ -229,10 +282,42 @@ export function formatPosition(
   const posValue = typeof position === 'string' ? parseInt(position, 10) : position;
   const isPositive = posValue === 1;
 
-  if (dataSource === 'coingecko' || dataSource === 'stocks' || dataSource === 'openmeteo') {
+  // Price-based sources use LONG/SHORT
+  if (dataSource === 'coingecko' || dataSource === 'stocks' || dataSource === 'openmeteo' ||
+      dataSource === 'bls' || dataSource === 'fred' || dataSource === 'ecb' || dataSource === 'defi') {
     return isPositive ? 'LONG' : 'SHORT';
   }
+  // Prediction markets use YES/NO
   return isPositive ? 'YES' : 'NO';
+}
+
+/**
+ * Check if a data source is economic/macro data
+ * Economic sources typically have monthly/quarterly horizons
+ */
+export function isEconomicSource(dataSource: DataSource): boolean {
+  return dataSource === 'bls' || dataSource === 'fred' || dataSource === 'ecb';
+}
+
+/**
+ * Get the default trade horizon for a data source
+ */
+export function getDefaultHorizon(dataSource: DataSource): 'short' | 'daily' | 'weekly' | 'monthly' | 'quarterly' {
+  switch (dataSource) {
+    case 'polymarket':
+    case 'coingecko':
+      return 'short';
+    case 'stocks':
+    case 'openmeteo':
+    case 'defi':
+      return 'daily';
+    case 'bls':
+    case 'fred':
+    case 'ecb':
+      return 'monthly';
+    default:
+      return 'short';
+  }
 }
 
 /**

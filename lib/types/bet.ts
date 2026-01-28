@@ -5,6 +5,16 @@
 
 import { COLLATERAL_DECIMALS } from '@/lib/contracts/addresses'
 
+/**
+ * Trade horizon for position holding period
+ * - short: Intraday or very short term (< 1 day)
+ * - daily: Day trading (1 day)
+ * - weekly: Swing trading (1 week)
+ * - monthly: Position trading (1 month)
+ * - quarterly: Long-term (3 months)
+ */
+export type TradeHorizon = 'short' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
+
 /** Threshold above which odds are considered favorable for matcher */
 export const FAVORABLE_ODDS_THRESHOLD = 1.1
 /** Threshold below which odds are considered unfavorable for matcher */
@@ -33,6 +43,10 @@ export interface Bet {
   // Epic 8: Category-based betting
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
   listSize?: number           // List size (e.g., 100 for top 100)
+  // Epic 9: Trade horizon for position holding period
+  // TODO: Backend needs migration to add horizon column and API to return this field
+  // Currently derived from category on frontend when needed
+  horizon?: TradeHorizon      // Trade horizon (short, daily, weekly, monthly, quarterly)
 }
 
 /**

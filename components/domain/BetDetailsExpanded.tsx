@@ -9,7 +9,8 @@ import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
 import { formatUSD, toBaseUnits } from '@/lib/utils/formatters'
-import { parseMarketId, getSourceBadge, formatPosition, parseWeatherMarketId, formatWeatherValue } from '@/lib/utils/marketId'
+import { parseMarketId, getSourceBadge, formatPosition, parseWeatherMarketId, formatWeatherValue, isEconomicSource } from '@/lib/utils/marketId'
+import type { TradeHorizon } from '@/lib/types/bet'
 
 interface BetDetailsExpandedProps {
   bet: BetRecord
@@ -75,7 +76,7 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
   return (
     <div className="space-y-4">
       {/* Epic 8: Category and List Size */}
-      {(category || bet.listSize || bet.snapshotId) && (
+      {(category || bet.listSize || bet.snapshotId || bet.horizon) && (
         <div className="flex flex-wrap gap-3 pb-2 border-b border-white/10">
           {category && (
             <div className="flex items-center gap-2">
@@ -89,6 +90,19 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
             <div className="flex items-center gap-2">
               <span className="text-xs text-white/60 font-mono">List Size:</span>
               <span className="text-xs font-mono text-white">{bet.listSize}</span>
+            </div>
+          )}
+          {/* Epic 9: Trade Horizon */}
+          {bet.horizon && bet.horizon !== 'short' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/60 font-mono">Horizon:</span>
+              <span className={`px-2 py-1 rounded text-xs font-mono ${
+                bet.horizon === 'monthly' || bet.horizon === 'quarterly'
+                  ? 'bg-orange-800/30 text-orange-300'
+                  : 'bg-gray-800 text-white/80'
+              }`}>
+                {bet.horizon.charAt(0).toUpperCase() + bet.horizon.slice(1)}
+              </span>
             </div>
           )}
           {bet.snapshotId && (

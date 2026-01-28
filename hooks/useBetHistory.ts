@@ -35,6 +35,8 @@ export interface BetRecord {
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
   listSize?: string           // List size ('1K', '10K', '100K')
   snapshotId?: string         // Snapshot ID for trade list
+  // Epic 9: Trade horizon
+  horizon?: 'short' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
 }
 
 interface UseBetHistoryOptions {
