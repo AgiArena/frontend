@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
@@ -19,46 +19,46 @@ const MARKET_TYPES: Record<string, {
   updateFreq: string
 }> = {
   crypto: {
-    name: 'Cryptocurrency',
+    name: 'Crypto',
     emoji: '₿',
-    description: 'BTC, ETH, SOL and 18,000+ tokens tracked via CoinGecko',
+    description: '18,000+ tokens via CoinGecko',
     sources: ['crypto'],
     updateFreq: '10 min',
   },
   stocks: {
-    name: 'US Stocks',
+    name: 'Stocks',
     emoji: '📈',
-    description: 'S&P 500, NASDAQ components via Finnhub',
+    description: 'S&P 500, NASDAQ via Finnhub',
     sources: ['stocks'],
-    updateFreq: '5 min (market hours)',
+    updateFreq: '5 min',
+  },
+  weather: {
+    name: 'Weather',
+    emoji: '🌤️',
+    description: 'Global weather data via Open-Meteo',
+    sources: ['weather'],
+    updateFreq: '30 min',
+  },
+  predictions: {
+    name: 'Predictions',
+    emoji: '🔮',
+    description: 'Prediction markets via Polymarket',
+    sources: ['polymarket'],
+    updateFreq: '1 hour',
   },
   defi: {
-    name: 'DeFi TVL',
+    name: 'DeFi',
     emoji: '🔗',
-    description: 'Protocol TVL rankings via DefiLlama',
+    description: 'Protocol TVL via DefiLlama',
     sources: ['defi'],
     updateFreq: '1 hour',
   },
-  rates: {
-    name: 'Interest Rates',
-    emoji: '🏛️',
-    description: 'Treasury yields and Fed rates',
-    sources: ['rates'],
-    updateFreq: 'Daily',
-  },
   fx: {
-    name: 'Foreign Exchange',
+    name: 'FX',
     emoji: '💱',
-    description: 'EUR/USD and major pairs via ECB',
+    description: 'EUR/USD and major pairs',
     sources: ['ecb'],
     updateFreq: 'Daily',
-  },
-  economic: {
-    name: 'Economic Data',
-    emoji: '📊',
-    description: 'Labor statistics via BLS',
-    sources: ['bls'],
-    updateFreq: 'Monthly',
   },
 }
 
@@ -74,73 +74,73 @@ interface MarketPrice {
   marketCap?: string | null
 }
 
-interface MarketStats {
-  totalAssets: number
-  activeAssets: number
-  lastSyncAt: string | null
+function PriceTile({ price }: { price: MarketPrice }) {
+  const value = parseFloat(price.value)
+  const changePct = price.changePct ? parseFloat(price.changePct) : null
+  const isUp = changePct !== null && changePct >= 0
+  const isDown = changePct !== null && changePct < 0
+
+  // Format price based on value
+  const formatValue = (v: number) => {
+    if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`
+    if (v >= 1) return `$${v.toFixed(2)}`
+    if (v >= 0.01) return `$${v.toFixed(4)}`
+    return `$${v.toFixed(6)}`
+  }
+
+  return (
+    <div
+      className={`p-2 border transition-all hover:scale-105 hover:z-10 ${
+        isUp ? 'border-green-500/30 bg-green-500/5' :
+        isDown ? 'border-red-500/30 bg-red-500/5' :
+        'border-white/10 bg-white/5'
+      }`}
+      title={`${price.name}\n${price.symbol}: ${formatValue(value)}${changePct !== null ? ` (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)` : ''}`}
+    >
+      <div className="font-mono text-xs font-bold text-white truncate">
+        {price.symbol}
+      </div>
+      <div className="font-mono text-[10px] text-white/60 truncate">
+        {formatValue(value)}
+      </div>
+      {changePct !== null && (
+        <div className={`font-mono text-[10px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+          {isUp ? '↑' : '↓'}{Math.abs(changePct).toFixed(1)}%
+        </div>
+      )}
+    </div>
+  )
 }
 
-function MarketTypeCard({
+function MarketTypeTab({
   typeId,
   config,
   isSelected,
-  onClick
+  onClick,
+  count
 }: {
   typeId: string
   config: typeof MARKET_TYPES[string]
   isSelected: boolean
   onClick: () => void
+  count?: number
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`p-4 border text-left transition-all ${
+      className={`px-4 py-2 border-b-2 transition-all font-mono text-sm ${
         isSelected
-          ? 'border-accent bg-accent/10'
-          : 'border-white/20 hover:border-white/40 bg-terminal'
+          ? 'border-accent text-accent'
+          : 'border-transparent text-white/60 hover:text-white'
       }`}
     >
-      <div className="flex items-center gap-3 mb-2">
-        <span className="text-3xl">{config.emoji}</span>
-        <div>
-          <h3 className="text-white font-mono font-bold">{config.name}</h3>
-          <p className="text-white/40 text-xs font-mono">{config.updateFreq}</p>
-        </div>
-      </div>
-      <p className="text-white/60 text-sm font-mono">{config.description}</p>
-    </button>
-  )
-}
-
-function PriceRow({ price, show24h }: { price: MarketPrice; show24h: boolean }) {
-  const value = parseFloat(price.value)
-  const changePct = price.changePct ? parseFloat(price.changePct) : null
-  const lastUpdate = new Date(price.fetchedAt)
-  const minutesAgo = Math.round((Date.now() - lastUpdate.getTime()) / 60000)
-
-  return (
-    <tr className="border-b border-white/10 hover:bg-white/5">
-      <td className="py-3 px-4 font-mono text-white font-bold">{price.symbol}</td>
-      <td className="py-3 px-4 font-mono text-white/60 text-sm hidden md:table-cell">{price.name}</td>
-      <td className="py-3 px-4 font-mono text-white text-right">
-        ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: value < 1 ? 6 : 2 })}
-      </td>
-      {show24h && (
-        <td className="py-3 px-4 font-mono text-right">
-          {changePct !== null ? (
-            <span className={changePct >= 0 ? 'text-green-400' : 'text-red-400'}>
-              {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
-            </span>
-          ) : (
-            <span className="text-white/30">-</span>
-          )}
-        </td>
+      <span className="mr-1">{config.emoji}</span>
+      {config.name}
+      {count !== undefined && count > 0 && (
+        <span className="ml-1 text-xs text-white/40">({count.toLocaleString()})</span>
       )}
-      <td className="py-3 px-4 font-mono text-white/40 text-sm text-right hidden sm:table-cell">
-        {minutesAgo < 1 ? 'just now' : `${minutesAgo}m ago`}
-      </td>
-    </tr>
+    </button>
   )
 }
 
@@ -148,146 +148,94 @@ export default function MarketsPage() {
   const [selectedType, setSelectedType] = useState<string>('crypto')
   const selectedConfig = MARKET_TYPES[selectedType]
 
-  // Fetch prices for selected source
+  // Fetch ALL prices for selected source (large limit for massive effect)
   const { data: pricesData, isLoading } = useQuery({
-    queryKey: ['market-prices', selectedType],
+    queryKey: ['market-prices-all', selectedType],
     queryFn: async () => {
       const source = selectedConfig.sources[0]
-      const res = await fetch(`${API_URL}/api/market-prices?source=${source}&limit=500`)
+      const res = await fetch(`${API_URL}/api/market-prices?source=${source}&limit=5000`)
       if (!res.ok) throw new Error('Failed to fetch prices')
-      const data = await res.json() as { prices: MarketPrice[]; pagination: { total: number } }
-      // Sort by market cap descending (largest first)
-      data.prices.sort((a, b) => {
-        const mcA = a.marketCap ? parseFloat(a.marketCap) : 0
-        const mcB = b.marketCap ? parseFloat(b.marketCap) : 0
-        return mcB - mcA
-      })
-      return data
+      return res.json() as Promise<{ prices: MarketPrice[]; pagination: { total: number } }>
     },
     staleTime: 60 * 1000,
-    refetchInterval: 60 * 1000, // Auto-refresh every minute
+    refetchInterval: 60 * 1000,
   })
 
-  // Fetch stats for selected source
-  const { data: statsData } = useQuery({
-    queryKey: ['market-stats', selectedType],
-    queryFn: async () => {
-      const source = selectedConfig.sources[0]
-      const res = await fetch(`${API_URL}/api/market-stats/${source}`)
-      if (!res.ok) return null
-      return res.json() as Promise<{ stats: MarketStats }>
-    },
-    staleTime: 5 * 60 * 1000,
-  })
+  // Sort by market cap
+  const prices = useMemo(() => {
+    if (!pricesData?.prices) return []
+    return [...pricesData.prices].sort((a, b) => {
+      const mcA = a.marketCap ? parseFloat(a.marketCap) : 0
+      const mcB = b.marketCap ? parseFloat(b.marketCap) : 0
+      return mcB - mcA
+    })
+  }, [pricesData])
 
-  const prices = pricesData?.prices || []
   const total = pricesData?.pagination?.total || 0
-  const stats = statsData?.stats
-
-  // Check if any prices have 24h change data
-  const has24hData = prices.some(p => p.changePct !== null)
 
   return (
     <main className="min-h-screen bg-terminal flex flex-col">
       <Header />
 
       <div className="flex-1">
-        <div className="max-w-6xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Page header */}
-          <div className="mb-8">
-            <Link href="/" className="text-white/60 hover:text-white font-mono text-sm mb-4 inline-block">
-              ← Back to Home
+          <div className="mb-4">
+            <Link href="/" className="text-white/60 hover:text-white font-mono text-sm mb-2 inline-block">
+              ← Back
             </Link>
-            <h1 className="text-3xl font-bold text-white font-mono">Tracked Markets</h1>
-            <p className="text-white/60 font-mono mt-2">
-              Real-time data sources powering AgiArena bets
+            <h1 className="text-2xl font-bold text-white font-mono">Markets</h1>
+            <p className="text-white/40 font-mono text-sm">
+              {total.toLocaleString()} assets tracked in real-time
             </p>
           </div>
 
-          {/* Market type selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
+          {/* Market type tabs */}
+          <div className="flex flex-wrap gap-1 border-b border-white/20 mb-4 overflow-x-auto">
             {Object.entries(MARKET_TYPES).map(([typeId, config]) => (
-              <MarketTypeCard
+              <MarketTypeTab
                 key={typeId}
                 typeId={typeId}
                 config={config}
                 isSelected={selectedType === typeId}
                 onClick={() => setSelectedType(typeId)}
+                count={selectedType === typeId ? total : undefined}
               />
             ))}
           </div>
 
-          {/* Stats bar */}
-          <div className="flex flex-wrap gap-4 mb-6 p-4 border border-white/20 bg-black/50">
-            <div>
-              <span className="text-white/40 text-xs font-mono">SOURCE</span>
-              <p className="text-white font-mono font-bold">{selectedConfig.sources.join(', ')}</p>
-            </div>
-            <div>
-              <span className="text-white/40 text-xs font-mono">ASSETS</span>
-              <p className="text-white font-mono font-bold">{total.toLocaleString()}</p>
-            </div>
-            <div>
-              <span className="text-white/40 text-xs font-mono">UPDATE FREQ</span>
-              <p className="text-accent font-mono font-bold">{selectedConfig.updateFreq}</p>
-            </div>
-            {stats?.lastSyncAt && (
-              <div>
-                <span className="text-white/40 text-xs font-mono">LAST SYNC</span>
-                <p className="text-white font-mono font-bold">
-                  {new Date(stats.lastSyncAt).toLocaleTimeString()}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Prices table with scroll */}
-          <div className="border border-white/20 bg-terminal overflow-hidden">
-            <div className="max-h-[600px] overflow-y-auto">
-              <table className="w-full">
-                <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-white/20 bg-black">
-                    <th className="py-3 px-4 text-left font-mono text-white/60 text-xs uppercase">Symbol</th>
-                    <th className="py-3 px-4 text-left font-mono text-white/60 text-xs uppercase hidden md:table-cell">Name</th>
-                    <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase">Price</th>
-                    {has24hData && (
-                      <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase">24h</th>
-                    )}
-                    <th className="py-3 px-4 text-right font-mono text-white/60 text-xs uppercase hidden sm:table-cell">Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    // Skeleton rows
-                    Array.from({ length: 10 }).map((_, i) => (
-                      <tr key={i} className="border-b border-white/10">
-                        <td className="py-3 px-4"><div className="h-4 w-16 skeleton rounded" /></td>
-                        <td className="py-3 px-4 hidden md:table-cell"><div className="h-4 w-32 skeleton rounded" /></td>
-                        <td className="py-3 px-4"><div className="h-4 w-20 skeleton rounded ml-auto" /></td>
-                        {has24hData && <td className="py-3 px-4"><div className="h-4 w-16 skeleton rounded ml-auto" /></td>}
-                        <td className="py-3 px-4 hidden sm:table-cell"><div className="h-4 w-16 skeleton rounded ml-auto" /></td>
-                      </tr>
-                    ))
-                  ) : prices.length > 0 ? (
-                    prices.map((price) => (
-                      <PriceRow key={`${price.source}-${price.assetId}`} price={price} show24h={has24hData} />
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={has24hData ? 5 : 4} className="py-8 text-center text-white/40 font-mono">
-                        No data available for this market type
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          {/* Grid of price tiles */}
+          <div className="border border-white/20 bg-black/50 overflow-hidden">
+            <div className="h-[calc(100vh-280px)] overflow-y-auto overflow-x-hidden">
+              {isLoading ? (
+                // Loading skeleton grid
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-px bg-white/5">
+                  {Array.from({ length: 200 }).map((_, i) => (
+                    <div key={i} className="p-2 bg-terminal animate-pulse">
+                      <div className="h-3 w-10 bg-white/10 rounded mb-1" />
+                      <div className="h-2 w-8 bg-white/5 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : prices.length > 0 ? (
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-px bg-white/10">
+                  {prices.map((price) => (
+                    <PriceTile key={`${price.source}-${price.assetId}`} price={price} />
+                  ))}
+                </div>
+              ) : (
+                <div className="py-20 text-center text-white/40 font-mono">
+                  No data available for {selectedConfig.name}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Footer note */}
-          <p className="text-white/30 text-xs font-mono text-center mt-6">
-            All bets resolved using on-chain keeper consensus (3-of-5 majority)
-          </p>
+          {/* Stats footer */}
+          <div className="flex justify-between items-center mt-4 text-xs font-mono text-white/40">
+            <span>Showing {prices.length.toLocaleString()} of {total.toLocaleString()} assets</span>
+            <span>Updated every {selectedConfig.updateFreq}</span>
+          </div>
         </div>
       </div>
 

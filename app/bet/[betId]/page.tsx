@@ -96,8 +96,12 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [marketNames, setMarketNames] = useState<Record<string, string>>({})
   const [portfolioPositions, setPortfolioPositions] = useState<PortfolioPositionWithPrices[]>([])
-  const [isLoadingPositions, setIsLoadingPositions] = useState(true) // Start true, set false when done
+  const [isLoadingPositions, setIsLoadingPositions] = useState(true)
   const [tradesError, setTradesError] = useState(false)
+  const [hasMoreTrades, setHasMoreTrades] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [tradesPage, setTradesPage] = useState(1)
+  const TRADES_PER_PAGE = 100
 
   useEffect(() => {
     async function fetchBet() {
@@ -133,7 +137,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
       setIsLoadingPositions(true)
       setTradesError(false)
       try {
-        const res = await fetch(`/api/bets/${betId}/trades?limit=1000`)
+        const res = await fetch(`/api/bets/${betId}/trades?limit=${TRADES_PER_PAGE}`)
         if (!res.ok) {
           console.error('Failed to fetch trades:', res.status)
           setTradesError(true)
@@ -143,7 +147,6 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
         // Map trades to portfolio position format
         const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
           const ticker = trade.ticker || trade.tradeId.split('/')[0]
-          // Map LONG to YES, SHORT/anything else to NO
           const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
           return {
             marketId: ticker,
@@ -153,7 +156,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
           }
         })
         setPortfolioPositions(positionsArray)
-        // Skip fetching market names - just use ticker
+        setHasMoreTrades(data.pagination?.hasMore ?? false)
       } catch (err) {
         console.error('Error fetching portfolio positions:', err)
         setTradesError(true)
@@ -164,6 +167,34 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
     fetchPortfolioPositions()
   }, [bet, betId])
+
+  // Load more trades
+  const loadMoreTrades = async () => {
+    if (loadingMore || !hasMoreTrades) return
+    setLoadingMore(true)
+    try {
+      const nextPage = tradesPage + 1
+      const res = await fetch(`/api/bets/${betId}/trades?limit=${TRADES_PER_PAGE}&page=${nextPage}`)
+      if (res.ok) {
+        const data = await res.json()
+        const newPositions: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
+          const ticker = trade.ticker || trade.tradeId.split('/')[0]
+          const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
+          return {
+            marketId: ticker,
+            position,
+            startingPrice: parseFloat(trade.entryPrice) || undefined,
+            currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
+          }
+        })
+        setPortfolioPositions(prev => [...prev, ...newPositions])
+        setHasMoreTrades(data.pagination?.hasMore ?? false)
+        setTradesPage(nextPage)
+      }
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // Fallback: Fetch market names from portfolioJson if portfolio endpoint returns empty
   useEffect(() => {
@@ -524,6 +555,20 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     </div>
                   )
                 })}
+                {/* Load More button */}
+                {hasMoreTrades && !loadingMore && (
+                  <button
+                    onClick={loadMoreTrades}
+                    className="w-full py-2 mt-2 text-center text-accent font-mono text-sm border border-accent/30 hover:bg-accent/10 rounded"
+                  >
+                    Load More ({portfolioPositions.length} of {bet.tradeCount ?? '?'})
+                  </button>
+                )}
+                {loadingMore && (
+                  <div className="w-full py-2 mt-2 text-center text-white/40 font-mono text-sm animate-pulse">
+                    Loading more...
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
