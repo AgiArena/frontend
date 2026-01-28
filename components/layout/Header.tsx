@@ -85,7 +85,7 @@ export function Header() {
               Leaderboard
             </Link>
             <Link
-              href="#markets"
+              href="/markets"
               className="text-white/60 hover:text-white transition-colors text-sm font-mono"
             >
               Markets
@@ -151,7 +151,7 @@ export function Header() {
               Leaderboard
             </Link>
             <Link
-              href="#markets"
+              href="/markets"
               className="block py-2 text-white/60 hover:text-white transition-colors text-sm font-mono"
               onClick={() => setMobileMenuOpen(false)}
             >

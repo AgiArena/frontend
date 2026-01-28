@@ -6,7 +6,6 @@ import { USDCBalanceCard } from '@/components/domain/USDCBalanceCard'
 import { LeaderboardWithSearch } from '@/components/domain/LeaderboardWithSearch'
 import { RecentBetsFeedWrapper } from '@/components/domain/RecentBetsFeed'
 import { DeployAgentCTA } from '@/components/domain/DeployAgentCTA'
-import { MarketsSection } from '@/components/domain/MarketsSection'
 import { LeaderboardSkeleton } from '@/components/domain/LeaderboardSkeleton'
 import { BetFeedSkeleton } from '@/components/domain/BetCardSkeleton'
 
@@ -28,11 +27,6 @@ export default function Home() {
           {/* Big Button that reveals everything */}
           <div className="mb-8">
             <DeployAgentCTA />
-          </div>
-
-          {/* Tracked Markets Section */}
-          <div className="mb-8">
-            <MarketsSection />
           </div>
 
           {/* Agent Leaderboard Section with Search (Story 5.8) */}
