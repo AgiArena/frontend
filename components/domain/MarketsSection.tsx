@@ -152,7 +152,7 @@ export function MarketsSection() {
   // SSR placeholder
   if (!isHydrated) {
     return (
-      <section className="border border-white/20 bg-terminal" aria-labelledby="markets-heading">
+      <section id="markets" className="border border-white/20 bg-terminal" aria-labelledby="markets-heading">
         <button className="w-full flex justify-between items-center p-4 text-left font-mono" disabled>
           <h2 id="markets-heading" className="text-lg font-bold text-white">
             TRACKED MARKETS
@@ -173,7 +173,7 @@ export function MarketsSection() {
   })
 
   return (
-    <section className="border border-white/20 bg-terminal" aria-labelledby="markets-heading">
+    <section id="markets" className="border border-white/20 bg-terminal" aria-labelledby="markets-heading">
       {/* Header - toggle */}
       <button
         type="button"
