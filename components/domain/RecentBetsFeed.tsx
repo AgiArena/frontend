@@ -8,6 +8,7 @@ import { AnimatedBetFeedItem } from '@/components/domain/AnimatedBetFeedItem'
 import { BotTradingNotice } from '@/components/domain/BotTradingNotice'
 import { useBetsSSE } from '@/hooks/useBetsSSE'
 import { useRecentBets } from '@/hooks/useRecentBets'
+import { usePrefersReducedMotion, useIsMobile } from '@/hooks/useMediaQueries'
 import { getBackendUrl } from '@/lib/contracts/addresses'
 
 /**
@@ -56,48 +57,6 @@ function LoadingSpinner() {
       <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
     </div>
   )
-}
-
-/**
- * Hook to detect reduced motion preference
- * AC7: Animations disabled on prefers-reduced-motion
- */
-function usePrefersReducedMotion(): boolean {
-  const [prefersReduced, setPrefersReduced] = useState(false)
-
-  useEffect(() => {
-    // Check if running in browser
-    if (typeof window === 'undefined') return
-
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setPrefersReduced(query.matches)
-
-    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches)
-    query.addEventListener('change', handler)
-    return () => query.removeEventListener('change', handler)
-  }, [])
-
-  return prefersReduced
-}
-
-/**
- * Hook to detect mobile viewport
- * AC7: Animations disabled on mobile (< 768px)
- */
-function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    // Check if running in browser
-    if (typeof window === 'undefined') return
-
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  return isMobile
 }
 
 /**

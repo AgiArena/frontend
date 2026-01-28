@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, memo } from 'react'
 import { useAccount } from 'wagmi'
 import { useBetHistory, BetRecord } from '@/hooks/useBetHistory'
 import { useCancelBet } from '@/hooks/useCancelBet'
@@ -22,9 +22,9 @@ interface BetRowProps {
 }
 
 /**
- * Single bet row component
+ * Single bet row component - memoized to prevent unnecessary re-renders
  */
-function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRowProps) {
+const BetRow = memo(function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRowProps) {
   const amount = toBaseUnits(bet.amount)
 
   return (
@@ -108,7 +108,7 @@ function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRow
       )}
     </>
   )
-}
+})
 
 /**
  * Loading skeleton for table rows

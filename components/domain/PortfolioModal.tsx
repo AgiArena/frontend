@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useState, useMemo, useRef, ChangeEvent } from 'react'
+import { useEffect, useCallback, useState, useMemo, useRef, ChangeEvent, memo } from 'react'
 import {
   parseMarketId,
   getMarketUrl,
@@ -62,9 +62,9 @@ interface PositionRowProps {
 }
 
 /**
- * Individual position row
+ * Individual position row - memoized to prevent unnecessary re-renders in virtualized list
  */
-function PositionRow({ position }: PositionRowProps) {
+const PositionRow = memo(function PositionRow({ position }: PositionRowProps) {
   // Parse market ID to get data source and correct URL
   const parsedMarketId = parseMarketId(position.marketId)
   const marketUrl = getMarketUrl(parsedMarketId)
@@ -177,7 +177,7 @@ function PositionRow({ position }: PositionRowProps) {
       </div>
     </div>
   )
-}
+})
 
 /** Height of each position row in pixels - matches PositionRow component's h-[60px] */
 const ROW_HEIGHT = 60
