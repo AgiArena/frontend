@@ -65,7 +65,7 @@ function UniverseCanvas({ particles, hoveredId, setHoveredId }: {
   setHoveredId: (id: string | null) => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | null>(null)
   const particlesRef = useRef<Particle[]>(particles)
   const mouseRef = useRef({ x: 0, y: 0 })
 
