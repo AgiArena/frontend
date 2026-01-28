@@ -18,19 +18,82 @@ export type AgentBetOutcome = 'won' | 'lost'
  */
 export type BadgeStatus = BetStatus | ResolutionStatus | AgentBetStatus | AgentBetOutcome
 
+/**
+ * Status configuration for action-oriented labels (Story 11-1, AC6)
+ */
+const STATUS_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
+  // Bet statuses - action-oriented labels
+  pending: { icon: '○', label: 'Awaiting match', color: 'text-white/60' },
+  partially_matched: { icon: '◔', label: 'Partially matched', color: 'text-white/60' },
+  partial: { icon: '◔', label: 'Partially matched', color: 'text-white/60' },
+  fully_matched: { icon: '●', label: 'Position active', color: 'text-white' },
+  matched: { icon: '●', label: 'Position active', color: 'text-white' },
+  cancelled: { icon: '─', label: 'No match', color: 'text-white/40' },
+  settling: { icon: '◐', label: 'Keepers voting', color: 'text-yellow-400' },
+  settled: { icon: '●', label: 'Settled', color: 'text-white/60' },
+  // Resolution statuses (Epic 8: majority-wins)
+  resolved: { icon: '✓', label: 'Resolved', color: 'text-green-400' },
+  resolving: { icon: '◐', label: 'Keepers voting', color: 'text-yellow-400' },
+  tie: { icon: '≈', label: 'Tie', color: 'text-yellow-400' },
+  // Agent bet outcomes (AC6) - include P&L inline when available
+  won: { icon: '✓', label: 'Won', color: 'text-green-400' },
+  lost: { icon: '✗', label: 'Lost', color: 'text-red-400' },
+}
+
 interface StatusBadgeProps {
   status: BadgeStatus
+  /** Optional P&L to display inline for won/lost statuses */
+  pnl?: number
+  /** Size variant */
+  size?: 'sm' | 'md'
 }
 
 /**
- * Status badge component with status-based styling
+ * Status badge component with action-oriented labels
  * Uses black/white/red color scheme
  * Supports both bet statuses and resolution statuses
+ *
+ * Story 11-1, AC6: Status System Upgrade
+ * - Shows action-oriented labels (not just state names)
+ * - Consistent icon + text pattern across all states
+ * - Won/Lost includes P&L inline when provided
  */
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, pnl, size = 'md' }: StatusBadgeProps) {
+  const config = STATUS_CONFIG[status] || { icon: '?', label: status, color: 'text-white/60' }
+
+  // Format P&L for won/lost statuses
+  const formatPnL = (amount: number): string => {
+    const sign = amount >= 0 ? '+' : ''
+    return `${sign}$${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  // Include P&L inline for won/lost
+  let displayLabel = config.label
+  if (pnl !== undefined && (status === 'won' || status === 'lost')) {
+    displayLabel = `${config.label} ${formatPnL(pnl)}`
+  }
+
+  const sizeClasses = size === 'sm'
+    ? 'text-[10px] px-1.5 py-0.5'
+    : 'text-xs px-2 py-1'
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 font-mono font-medium ${config.color} ${sizeClasses}`}
+    >
+      <span aria-hidden="true">{config.icon}</span>
+      <span>{displayLabel}</span>
+    </span>
+  )
+}
+
+/**
+ * StatusBadgeOld - Legacy badge style with background colors
+ * Kept for backward compatibility
+ */
+export function StatusBadgeOld({ status }: { status: BadgeStatus }) {
   const getStatusStyles = (): string => {
     switch (status) {
-      // Bet statuses
       case 'pending':
       case 'partially_matched':
       case 'fully_matched':
@@ -40,15 +103,12 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       case 'settling':
       case 'settled':
         return 'bg-white/30 text-white'
-      // Resolution statuses (Epic 8: majority-wins)
       case 'resolved':
         return 'bg-green-600 text-white'
       case 'tie':
         return 'bg-yellow-600 text-white'
-      // Agent bet statuses (AC5)
       case 'matched':
         return 'bg-white text-black'
-      // Agent bet outcomes (AC5)
       case 'won':
         return 'bg-green-600 text-white'
       case 'lost':
@@ -60,7 +120,6 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 
   const getStatusLabel = (): string => {
     switch (status) {
-      // Bet statuses
       case 'pending':
         return 'Pending'
       case 'partially_matched':
@@ -73,15 +132,12 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return 'Settling'
       case 'settled':
         return 'Settled'
-      // Resolution statuses (Epic 8: majority-wins)
       case 'resolved':
         return 'Resolved'
       case 'tie':
         return 'Tie'
-      // Agent bet statuses (AC5)
       case 'matched':
         return 'Matched'
-      // Agent bet outcomes (AC5)
       case 'won':
         return 'Won'
       case 'lost':

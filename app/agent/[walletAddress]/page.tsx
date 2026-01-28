@@ -11,6 +11,9 @@ import { AICapabilityBadge } from '@/components/domain/AICapabilityBadge'
 import { RecentBetsTable } from '@/components/domain/RecentBetsTable'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 import { CopyButton } from '@/components/ui/CopyButton'
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
+import { AgentBetsEmptyState } from '@/components/ui/EmptyState'
 import {
   formatPnL,
   formatROI,
@@ -44,69 +47,89 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 /**
- * Stat card component for displaying metrics
+ * Stat card component for displaying metrics (Story 11-1, AC4)
+ * 2x4 card grid layout with interactive hover effect
  */
 function StatCard({ label, value, className = '' }: { label: string; value: string; className?: string }) {
   return (
-    <div className="bg-terminal border border-white/20 p-4">
-      <p className="text-white/60 text-sm font-mono mb-1">{label}</p>
+    <div className="bg-terminal border border-white/20 p-4 card-interactive">
+      <p className="text-white/60 text-xs font-mono mb-1 uppercase tracking-wider">{label}</p>
       <p className={`text-xl font-bold font-mono ${className}`}>{value}</p>
     </div>
   )
 }
 
 /**
- * Loading skeleton for agent detail page
+ * Win rate progress bar component (Story 11-1, AC4)
+ */
+function WinRateProgressBar({ winRate }: { winRate: number }) {
+  const percentage = Math.round(winRate * 100)
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-4">
+        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent transition-all duration-500 ease-out"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+        <span className="text-white/60 text-sm font-mono min-w-[80px] text-right">
+          {percentage}% Win Rate
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Loading skeleton for agent detail page (Story 11-1, AC3)
  */
 function AgentDetailSkeleton() {
   return (
-    <main className="min-h-screen bg-terminal">
-      <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <div className="h-6 w-32 bg-white/10 animate-pulse rounded" />
-        <div className="h-8 w-40 bg-white/10 animate-pulse rounded" />
-      </header>
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="h-8 w-64 bg-white/10 animate-pulse rounded mb-8" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-white/5 p-4 rounded animate-pulse">
-              <div className="h-4 w-16 bg-white/10 rounded mb-2" />
-              <div className="h-6 w-24 bg-white/10 rounded" />
-            </div>
-          ))}
+    <main className="min-h-screen bg-terminal flex flex-col">
+      <Header />
+      <div className="flex-1">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="h-8 w-64 skeleton rounded mb-8" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-terminal border border-white/20 p-4">
+                <div className="h-4 w-16 skeleton rounded mb-2" />
+                <div className="h-6 w-24 skeleton rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="h-[400px] skeleton rounded" />
         </div>
-        <div className="h-[400px] bg-white/5 animate-pulse rounded" />
       </div>
+      <Footer />
     </main>
   )
 }
 
 /**
- * Agent not found component
+ * Agent not found component (Story 11-1, AC8)
  */
 function AgentNotFound({ walletAddress }: { walletAddress: string }) {
   return (
-    <main className="min-h-screen bg-terminal">
-      <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <Link href="/" className="text-white/60 hover:text-white font-mono">
-          ← Back to Leaderboard
-        </Link>
-      </header>
-      <div className="max-w-4xl mx-auto p-6 text-center">
-        <h1 className="text-2xl font-bold text-white mb-4">Agent Not Found</h1>
-        <p className="text-white/60 font-mono mb-2">
-          No agent found with address:
-        </p>
-        <p className="text-white/40 font-mono text-sm break-all">
-          {walletAddress}
-        </p>
-        <Link
-          href="/"
-          className="inline-block mt-8 px-4 py-2 border border-white/20 text-white hover:bg-white/10 font-mono"
-        >
-          Return to Leaderboard
-        </Link>
+    <main className="min-h-screen bg-terminal flex flex-col">
+      <Header />
+      <div className="flex-1">
+        <div className="max-w-4xl mx-auto p-6 text-center py-16">
+          <AgentBetsEmptyState />
+          <p className="text-white/40 font-mono text-sm break-all mt-4 mb-8">
+            Address: {walletAddress}
+          </p>
+          <Link
+            href="/"
+            className="inline-block px-4 py-2 border border-white/20 text-white hover:bg-white/10 font-mono btn-interactive"
+          >
+            Return to Leaderboard
+          </Link>
+        </div>
       </div>
+      <Footer />
     </main>
   )
 }
@@ -146,21 +169,25 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
   const bestBetColor = 'text-green-400'
   const worstBetColor = 'text-white/60'
 
-  return (
-    <main className="min-h-screen bg-terminal">
-      {/* Header */}
-      <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <Link href="/" className="text-white/60 hover:text-white font-mono">
-          ← Back to Leaderboard
-        </Link>
-        <div className="text-right">
-          <p className="text-xs text-white/40 font-mono">
-            Last active {formatRelativeTime(agent.lastActiveAt)}
-          </p>
-        </div>
-      </header>
+  // Story 11-1, AC4: Collapsible bet history
+  const [betsExpanded, setBetsExpanded] = useState(false)
 
-      <div className="max-w-4xl mx-auto p-6">
+  return (
+    <main className="min-h-screen bg-terminal flex flex-col">
+      {/* Header (Story 11-1) */}
+      <Header />
+
+      <div className="flex-1">
+        <div className="max-w-4xl mx-auto p-6">
+          {/* Back link and last active */}
+          <div className="flex justify-between items-center mb-6">
+            <Link href="/" className="text-white/60 hover:text-white font-mono text-sm btn-interactive inline-block">
+              ← Back to Leaderboard
+            </Link>
+            <p className="text-xs text-white/40 font-mono">
+              Last active {formatRelativeTime(agent.lastActiveAt)}
+            </p>
+          </div>
         {/* Agent Header (AC1) - Full wallet address with copy button, rank badge, P&L */}
         <div className="flex flex-col md:flex-row md:items-start gap-4 mb-8">
           <div className="flex items-center gap-4 flex-1">
@@ -266,6 +293,11 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
           </div>
         </div>
 
+        {/* Win Rate Progress Bar (Story 11-1, AC4) - hidden on mobile */}
+        <div className="hidden md:block">
+          <WinRateProgressBar winRate={agent.winRate} />
+        </div>
+
         {/* Performance Graph Section (AC4) */}
         <div className="border border-white/20 bg-terminal mb-8">
           <div className="flex justify-between items-center p-4 border-b border-white/20">
@@ -285,18 +317,24 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
           />
         </div>
 
-        {/* Recent Portfolio Bets Table (AC5) + SSE Connection Status (Story 6-2, AC4) */}
+        {/* Recent Portfolio Bets Table (Story 11-1, AC4 - collapsible) */}
         <div className="border border-white/20 bg-terminal mb-8">
-          <div className="flex justify-between items-center p-4 border-b border-white/20">
+          <button
+            type="button"
+            className="w-full flex justify-between items-center p-4 border-b border-white/20 hover:bg-white/5 transition-colors"
+            onClick={() => setBetsExpanded(!betsExpanded)}
+            aria-expanded={betsExpanded}
+          >
             <h2 className="text-lg font-bold text-white font-mono">
-              Recent Portfolio Bets
+              {betsExpanded ? '▾' : '▸'} View {agent.totalBets ?? 0} Bets
             </h2>
             <div className="flex items-center gap-4">
               <ConnectionStatus isConnected={isSSEConnected} isPolling={isSSEPolling} />
-              <span className="text-white/40 text-sm font-mono">Last 10</span>
             </div>
-          </div>
-          <RecentBetsTable bets={bets} isLoading={isBetsLoading} />
+          </button>
+          {betsExpanded && (
+            <RecentBetsTable bets={bets} isLoading={isBetsLoading} />
+          )}
         </div>
 
         {/* Telegram Notifications Section (Story 6-3, AC10) */}
@@ -315,7 +353,11 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
             }}
           />
         </div>
+        </div>
       </div>
+
+      {/* Footer (Story 11-1) */}
+      <Footer />
     </main>
   )
 }
