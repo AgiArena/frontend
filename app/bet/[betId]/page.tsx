@@ -20,7 +20,7 @@ import {
   getOddsInfo,
   getOddsBadgeColor
 } from './types'
-import { VirtualTradeList } from '@/components/domain/VirtualTradeList'
+// VirtualTradeList removed - trades shown in Portfolio section
 
 interface BetDetailPageProps {
   params: Promise<{ betId: string }>
@@ -135,12 +135,16 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
         if (res.ok) {
           const data = await res.json()
           // Map trades to portfolio position format
-          const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => ({
-            marketId: trade.tradeId,
-            position: trade.position,
-            entryPrice: trade.entryPrice,
-            currentPrice: trade.exitPrice || trade.entryPrice,
-          }))
+          // Extract ticker from tradeId like "BTC/coingecko/price" → "BTC"
+          const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
+            const ticker = trade.ticker || trade.tradeId.split('/')[0]
+            return {
+              marketId: ticker, // Use ticker as display name
+              position: trade.position === 'LONG' ? 'YES' : trade.position === 'SHORT' ? 'NO' : trade.position,
+              startingPrice: parseFloat(trade.entryPrice) || undefined,
+              currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
+            }
+          })
           setPortfolioPositions(positionsArray)
 
           // Also fetch market names for these positions
@@ -389,38 +393,35 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
           </CardContent>
         </Card>
 
-        {/* Portfolio Card - with entry and current prices */}
+        {/* Trades Card - positions with prices */}
         {(portfolioPositions.length > 0 || bet.portfolioJson?.positions?.length || bet.portfolioJson?.markets?.length) && (
           <Card className="border-white/20">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="font-mono text-lg">Portfolio Positions</CardTitle>
+                <CardTitle className="font-mono text-lg">
+                  Trades ({portfolioPositions.length || bet.portfolioJson?.positions?.length || bet.portfolioJson?.markets?.length || 0})
+                </CardTitle>
                 {isLoadingPositions && (
-                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading prices...</span>
+                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading...</span>
                 )}
               </div>
-              {bet.portfolioJson?.expiry && (
-                <p className="text-white/40 font-mono text-xs">
-                  Expiry: {new Date(bet.portfolioJson.expiry).toLocaleString()}
-                </p>
-              )}
             </CardHeader>
             <CardContent>
               {/* Column headers */}
               <div className="flex items-center justify-between px-3 py-2 border-b border-white/20 text-xs text-white/40 font-mono mb-2">
-                <span className="flex-1">Market</span>
-                <div className="flex items-center gap-3 text-right">
-                  <span className="w-14">Position</span>
-                  <span className="w-16">Entry</span>
-                  <span className="w-16">Current</span>
+                <span className="w-20">Ticker</span>
+                <div className="flex items-center gap-4 text-right flex-1 justify-end">
+                  <span className="w-16">Position</span>
+                  <span className="w-20">Entry</span>
+                  <span className="w-20">Current</span>
                   <span className="w-16">Change</span>
                 </div>
               </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-1 max-h-[500px] overflow-y-auto">
                 {/* Use portfolio positions with prices if available */}
                 {portfolioPositions.length > 0 ? (
                   portfolioPositions.map((pos, index) => {
-                    const marketName = marketNames[pos.marketId] || pos.marketId
+                    const ticker = pos.marketId
                     const priceChange = calculatePriceChange(pos)
                     const changeColor = priceChange.direction === 'up' ? 'text-green-400'
                       : priceChange.direction === 'down' ? 'text-red-400'
@@ -429,27 +430,22 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     return (
                       <div
                         key={index}
-                        className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                        className="flex items-center justify-between px-3 py-2 bg-white/5 rounded border border-white/10 hover:bg-white/10"
                       >
-                        <div className="flex-1 min-w-0 pr-4">
-                          <p className="text-white font-mono text-sm truncate" title={marketName}>
-                            {marketName}
-                          </p>
-                          {pos.isClosed && (
-                            <span className="text-xs text-purple-400 font-mono">Resolved</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0 text-right">
-                          <span className={`font-mono text-sm font-bold w-14 ${
-                            pos.position === 'YES' ? 'text-green-400' : 'text-red-400'
+                        <span className="w-20 text-white font-mono text-sm font-bold">
+                          {ticker}
+                        </span>
+                        <div className="flex items-center gap-4 text-right flex-1 justify-end">
+                          <span className={`font-mono text-sm font-bold w-16 ${
+                            pos.position === 'YES' || pos.position === 'LONG' ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {pos.position}
+                            {pos.position === 'YES' || pos.position === 'LONG' ? 'LONG' : 'SHORT'}
                           </span>
-                          <span className="text-white/60 font-mono text-sm w-16">
-                            {formatPrice(pos.startingPrice)}
+                          <span className="text-white/60 font-mono text-sm w-20">
+                            {pos.startingPrice ? `$${pos.startingPrice.toLocaleString()}` : '—'}
                           </span>
-                          <span className="text-white font-mono text-sm w-16">
-                            {formatPrice(pos.currentPrice)}
+                          <span className="text-white font-mono text-sm w-20">
+                            {pos.currentPrice ? `$${pos.currentPrice.toLocaleString()}` : '—'}
                           </span>
                           <span className={`font-mono text-sm w-16 ${changeColor}`}>
                             {formatPriceChange(priceChange.change)}
@@ -521,20 +517,6 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
             </CardContent>
           </Card>
         )}
-
-        {/* Individual Trades (Sub-Bets) - Virtual Scroll */}
-        <Card className="border-white/20">
-          <CardHeader>
-            <CardTitle className="font-mono text-lg">Trades</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <VirtualTradeList
-              betId={betId}
-              height={400}
-              isSettled={bet.status === 'settled' || bet.status === 'resolved'}
-            />
-          </CardContent>
-        </Card>
 
         {/* Transaction Info Card */}
         <Card className="border-white/20">
