@@ -21,30 +21,30 @@ const MARKET_TYPES: Record<string, {
   crypto: {
     name: 'Cryptocurrency',
     emoji: '₿',
-    description: 'BTC, ETH, SOL and 100+ tokens tracked via CoinGecko',
-    sources: ['coingecko'],
-    updateFreq: '5 min',
+    description: 'BTC, ETH, SOL and 18,000+ tokens tracked via CoinGecko',
+    sources: ['crypto'],
+    updateFreq: '10 min',
   },
   stocks: {
     name: 'US Stocks',
     emoji: '📈',
     description: 'S&P 500, NASDAQ components via Finnhub',
-    sources: ['finnhub'],
-    updateFreq: '15 min (market hours)',
+    sources: ['stocks'],
+    updateFreq: '5 min (market hours)',
   },
-  weather: {
-    name: 'Weather',
-    emoji: '🌡️',
-    description: 'Temperature, precipitation, wind speed via Open-Meteo',
-    sources: ['openmeteo'],
-    updateFreq: '30 min',
+  defi: {
+    name: 'DeFi TVL',
+    emoji: '🔗',
+    description: 'Protocol TVL rankings via DefiLlama',
+    sources: ['defi'],
+    updateFreq: '1 hour',
   },
-  economic: {
-    name: 'Economic Indicators',
-    emoji: '📊',
-    description: 'Fed rates, CPI, unemployment via FRED & BLS',
-    sources: ['fred', 'bls'],
-    updateFreq: 'Daily/Monthly',
+  rates: {
+    name: 'Interest Rates',
+    emoji: '🏛️',
+    description: 'Treasury yields and Fed rates',
+    sources: ['rates'],
+    updateFreq: 'Daily',
   },
   fx: {
     name: 'Foreign Exchange',
@@ -53,19 +53,12 @@ const MARKET_TYPES: Record<string, {
     sources: ['ecb'],
     updateFreq: 'Daily',
   },
-  treasury: {
-    name: 'Treasury Rates',
-    emoji: '🏛️',
-    description: 'US Treasury yields via Treasury.gov',
-    sources: ['treasury'],
-    updateFreq: 'Daily',
-  },
-  defi: {
-    name: 'DeFi TVL',
-    emoji: '🔗',
-    description: 'Protocol TVL rankings via DefiLlama',
-    sources: ['defillama'],
-    updateFreq: '1 hour',
+  economic: {
+    name: 'Economic Data',
+    emoji: '📊',
+    description: 'Labor statistics via BLS',
+    sources: ['bls'],
+    updateFreq: 'Monthly',
   },
 }
 

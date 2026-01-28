@@ -12,6 +12,7 @@ import {
 } from '@/lib/types/bet'
 import {
   BetData,
+  BetTrade,
   formatAddress,
   formatAmount,
   getStatusColor,
@@ -123,17 +124,23 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
     fetchBet()
   }, [betId])
 
-  // Fetch portfolio positions with prices from new endpoint
+  // Fetch portfolio positions from trades endpoint
   useEffect(() => {
     if (!bet) return
 
     async function fetchPortfolioPositions() {
       setIsLoadingPositions(true)
       try {
-        const res = await fetch(`/api/bets/${betId}/portfolio?limit=1000`)
+        const res = await fetch(`/api/bets/${betId}/trades?limit=1000`)
         if (res.ok) {
-          const data: PortfolioResponse = await res.json()
-          const positionsArray = data.positions ?? []
+          const data = await res.json()
+          // Map trades to portfolio position format
+          const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => ({
+            marketId: trade.tradeId,
+            position: trade.position,
+            entryPrice: trade.entryPrice,
+            currentPrice: trade.exitPrice || trade.entryPrice,
+          }))
           setPortfolioPositions(positionsArray)
 
           // Also fetch market names for these positions
