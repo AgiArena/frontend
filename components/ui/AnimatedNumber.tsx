@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 
 /**
  * Props for AnimatedNumber component
@@ -30,6 +30,10 @@ export interface AnimatedNumberProps {
  * Displays a number that smoothly animates when the value changes.
  * Uses requestAnimationFrame for 60fps animation with ease-out easing.
  *
+ * Story 11-1, AC5: Flash effect when value changes
+ * - Brief color flash (white → accent → white) on value change
+ * - Respects prefers-reduced-motion via CSS
+ *
  * AC3: P&L and rank numbers animate smoothly over specified duration
  *
  * @example
@@ -54,22 +58,42 @@ export function AnimatedNumber({
   decimals = 2,
   duration = 1000,
   formatFn,
-  className,
+  className = '',
   disabled = false
 }: AnimatedNumberProps) {
   // Ensure value is a valid number, default to 0
   const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0
   const [displayValue, setDisplayValue] = useState(safeValue)
-  const previousValueRef = useRef(value)
+  const [justChanged, setJustChanged] = useState(false)
+  const previousValueRef = useRef(safeValue)
   const animationRef = useRef<number | null>(null)
+  const isFirstRender = useRef(true)
+
+  // Check for prefers-reduced-motion (Story 11-1, AC5)
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }, [])
 
   useEffect(() => {
-    // Skip animation if disabled or same value
-    if (disabled || safeValue === previousValueRef.current) {
+    // Skip flash on first render
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      previousValueRef.current = safeValue
+      setDisplayValue(safeValue)
+      return
+    }
+
+    // Skip animation if disabled, same value, or prefers-reduced-motion
+    if (disabled || prefersReducedMotion || safeValue === previousValueRef.current) {
       setDisplayValue(safeValue)
       previousValueRef.current = safeValue
       return
     }
+
+    // Trigger flash effect when value changes
+    setJustChanged(true)
+    const flashTimer = setTimeout(() => setJustChanged(false), 400)
 
     const startValue = previousValueRef.current
     const endValue = safeValue
@@ -94,20 +118,22 @@ export function AnimatedNumber({
     }
 
     animationRef.current = requestAnimationFrame(animate)
+    previousValueRef.current = safeValue
 
     return () => {
+      clearTimeout(flashTimer)
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [safeValue, duration, disabled])
+  }, [safeValue, duration, disabled, prefersReducedMotion])
 
   const formattedValue = formatFn
     ? formatFn(displayValue)
     : displayValue.toFixed(decimals)
 
   return (
-    <span className={className}>
+    <span className={`${className} ${justChanged ? 'number-changed' : ''}`}>
       {prefix}{formattedValue}{suffix}
     </span>
   )

@@ -2,6 +2,24 @@
   "name": "agiarena-frontend",
   "version": "0.1.0",
   "private": true,
+  "resolutions": {
+    "@solana/codecs-core": "2.1.1",
+    "@solana/codecs-numbers": "2.1.1",
+    "@solana/codecs-strings": "2.1.1",
+    "@solana/codecs-data-structures": "2.1.1",
+    "@solana/codecs": "2.1.1",
+    "@solana/addresses": "2.1.1",
+    "@solana/keys": "2.1.1"
+  },
+  "overrides": {
+    "@solana/codecs-core": "2.1.1",
+    "@solana/codecs-numbers": "2.1.1",
+    "@solana/codecs-strings": "2.1.1",
+    "@solana/codecs-data-structures": "2.1.1",
+    "@solana/codecs": "2.1.1",
+    "@solana/addresses": "2.1.1",
+    "@solana/keys": "2.1.1"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,21 +32,25 @@
     "test:live:local": "BACKEND_URL=http://localhost:3001 bun test app/__tests__/"
   },
   "dependencies": {
+    "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5",
     "@vercel/og": "^0.8.6",
+    "bs58": "^6.0.0",
     "framer-motion": "^12.29.0",
     "next": "^15",
     "qrcode.react": "^4.0.0",
     "react": "^19",
     "react-dom": "^19",
+    "react-window": "^2.2.5",
     "recharts": "^2",
-    "viem": "^2",
-    "wagmi": "^2"
+    "viem": "^2.45.0",
+    "wagmi": "^3.4.1"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-window": "^2.0.0",
     "autoprefixer": "^10",
     "eslint": "^9",
     "eslint-config-next": "^15",

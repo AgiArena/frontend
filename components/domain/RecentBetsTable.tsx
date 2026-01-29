@@ -118,7 +118,7 @@ export function RecentBetsTable({ bets, isLoading = false }: RecentBetsTableProp
                 </span>
               </TableCell>
               <TableCell className="font-mono text-white/80">
-                {formatPortfolioSize(bet.portfolioSize)}
+                {formatPortfolioSize(bet.tradeCount || bet.portfolioSize)}
               </TableCell>
               <TableCell className="font-mono text-white/80">
                 {formatVolume(bet.amount)}

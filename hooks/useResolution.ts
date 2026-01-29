@@ -6,17 +6,12 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
 /**
  * Resolution status types for majority-wins system
  * Epic 8: Simplified to pending/resolved/tie/cancelled
- * Note: Legacy statuses kept for backwards compatibility with StatusBadge
  */
 export type ResolutionStatus =
   | 'pending'
   | 'resolved'
   | 'tie'
   | 'cancelled'
-  // Legacy statuses (for backwards compatibility)
-  | 'pending_votes'
-  | 'consensus_reached'
-  | 'disputed'
 
 /**
  * Resolution data interface for majority-wins system

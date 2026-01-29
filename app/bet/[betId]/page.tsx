@@ -4,167 +4,26 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import {
-  FAVORABLE_ODDS_THRESHOLD,
-  UNFAVORABLE_ODDS_THRESHOLD,
-  DEFAULT_ODDS_BPS,
   PortfolioPositionWithPrices,
   PortfolioResponse,
   calculatePriceChange,
   formatPrice,
   formatPriceChange
 } from '@/lib/types/bet'
+import {
+  BetData,
+  BetTrade,
+  formatAddress,
+  formatAmount,
+  getStatusColor,
+  getStatusLabel,
+  getOddsInfo,
+  getOddsBadgeColor
+} from './types'
+// VirtualTradeList removed - trades shown in Portfolio section
 
 interface BetDetailPageProps {
   params: Promise<{ betId: string }>
-}
-
-interface BetFill {
-  fillerAddress: string
-  amount: string
-  txHash: string
-  blockNumber: number
-  filledAt: string
-}
-
-interface BetData {
-  betId: string
-  creatorAddress: string
-  betHash: string
-  portfolioSize: number
-  amount: string
-  matchedAmount: string
-  /** Required match amount - defaults to amount if not provided (1:1 odds) */
-  requiredMatch?: string
-  /** Odds in basis points: 10000 = 1.00x, 20000 = 2.00x */
-  oddsBps?: number
-  status: string
-  txHash: string
-  blockNumber: number
-  createdAt: string
-  updatedAt: string
-  resolutionDeadline?: string
-  /** Fills/counterparties for this bet */
-  fills?: BetFill[]
-  portfolioJson?: {
-    expiry?: string
-    portfolioSize?: number
-    // Backend stores as 'positions', support both for compatibility
-    positions?: Array<{
-      marketId: string
-      position: number | string  // 0=NO, 1=YES or "YES"/"NO"
-      weight?: number
-    }>
-    markets?: Array<{
-      conditionId: string
-      position: string
-      weight?: number
-    }>
-  }
-}
-
-function formatAddress(address: string | undefined | null): string {
-  if (!address) return '-'
-  if (address.length < 10) return address
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
-
-function formatAmount(amount: string): string {
-  const num = parseFloat(amount)
-  return `$${num.toFixed(2)}`
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'pending':
-      return 'text-yellow-400'
-    case 'partially_matched':
-      return 'text-blue-400'
-    case 'fully_matched':
-      return 'text-green-400'
-    case 'resolved':
-      return 'text-purple-400'
-    case 'settled':
-      return 'text-cyan-400'
-    case 'cancelled':
-      return 'text-red-400'
-    default:
-      return 'text-white/60'
-  }
-}
-
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'pending':
-      return 'Pending Match'
-    case 'partially_matched':
-      return 'Partially Matched'
-    case 'fully_matched':
-      return 'Fully Matched - Awaiting Resolution'
-    case 'resolved':
-      return 'Resolved - Awaiting Settlement'
-    case 'settled':
-      return 'Settled'
-    case 'cancelled':
-      return 'Cancelled'
-    default:
-      return status
-  }
-}
-
-/**
- * Get odds display info from bet data
- */
-function getOddsInfo(bet: BetData): {
-  decimal: number
-  display: string
-  requiredMatch: string
-  totalPot: string
-  creatorReturn: string
-  matcherReturn: string
-  favorability: 'favorable' | 'even' | 'unfavorable'
-  impliedProbability: string
-} {
-  const creatorStake = parseFloat(bet.amount)
-  // Use requiredMatch if provided, otherwise fall back to amount (1:1 odds)
-  const requiredMatch = bet.requiredMatch ? parseFloat(bet.requiredMatch) : creatorStake
-  const oddsBps = bet.oddsBps && bet.oddsBps > 0 ? bet.oddsBps : DEFAULT_ODDS_BPS
-  const oddsDecimal = oddsBps / 10000
-  const totalPot = creatorStake + requiredMatch
-
-  // Determine favorability using shared constants
-  let favorability: 'favorable' | 'even' | 'unfavorable'
-  if (oddsDecimal > FAVORABLE_ODDS_THRESHOLD) favorability = 'favorable'
-  else if (oddsDecimal < UNFAVORABLE_ODDS_THRESHOLD) favorability = 'unfavorable'
-  else favorability = 'even'
-
-  const creatorReturn = creatorStake > 0 ? totalPot / creatorStake : 0
-  const matcherReturn = requiredMatch > 0 ? totalPot / requiredMatch : 0
-  const impliedProb = oddsDecimal / (oddsDecimal + 1)
-
-  return {
-    decimal: oddsDecimal,
-    display: `${oddsDecimal.toFixed(2)}x`,
-    requiredMatch: `$${requiredMatch.toFixed(2)}`,
-    totalPot: `$${totalPot.toFixed(2)}`,
-    creatorReturn: `${creatorReturn.toFixed(2)}x`,
-    matcherReturn: `${matcherReturn.toFixed(2)}x`,
-    favorability,
-    impliedProbability: `${(impliedProb * 100).toFixed(0)}%`
-  }
-}
-
-/**
- * Get badge color based on favorability
- */
-function getOddsBadgeColor(favorability: 'favorable' | 'even' | 'unfavorable'): string {
-  switch (favorability) {
-    case 'favorable':
-      return 'bg-green-900/80 text-green-300 border-green-700'
-    case 'even':
-      return 'bg-yellow-900/80 text-yellow-300 border-yellow-700'
-    case 'unfavorable':
-      return 'bg-red-900/80 text-red-300 border-red-700'
-  }
 }
 
 /**
@@ -237,7 +96,12 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [marketNames, setMarketNames] = useState<Record<string, string>>({})
   const [portfolioPositions, setPortfolioPositions] = useState<PortfolioPositionWithPrices[]>([])
-  const [isLoadingPositions, setIsLoadingPositions] = useState(false)
+  const [isLoadingPositions, setIsLoadingPositions] = useState(true)
+  const [tradesError, setTradesError] = useState(false)
+  const [hasMoreTrades, setHasMoreTrades] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [tradesPage, setTradesPage] = useState(1)
+  const TRADES_PER_PAGE = 100
 
   useEffect(() => {
     async function fetchBet() {
@@ -265,38 +129,37 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
     fetchBet()
   }, [betId])
 
-  // Fetch portfolio positions with prices from new endpoint
+  // Fetch portfolio positions from trades endpoint
   useEffect(() => {
     if (!bet) return
 
     async function fetchPortfolioPositions() {
       setIsLoadingPositions(true)
+      setTradesError(false)
       try {
-        const res = await fetch(`/api/bets/${betId}/portfolio?limit=1000`)
-        if (res.ok) {
-          const data: PortfolioResponse = await res.json()
-          const positionsArray = data.positions ?? []
-          setPortfolioPositions(positionsArray)
-
-          // Also fetch market names for these positions
-          const names: Record<string, string> = {}
-          await Promise.all(
-            positionsArray.slice(0, 50).map(async (pos) => { // Limit to first 50 for performance
-              try {
-                const marketRes = await fetch(`/api/markets/${pos.marketId}`)
-                if (marketRes.ok) {
-                  const marketData = await marketRes.json()
-                  names[pos.marketId] = marketData.market?.question || pos.marketId
-                }
-              } catch {
-                names[pos.marketId] = pos.marketId
-              }
-            })
-          )
-          setMarketNames(names)
+        const res = await fetch(`/api/bets/${betId}/trades?limit=${TRADES_PER_PAGE}`)
+        if (!res.ok) {
+          console.error('Failed to fetch trades:', res.status)
+          setTradesError(true)
+          return
         }
+        const data = await res.json()
+        // Map trades to portfolio position format
+        const positionsArray: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
+          const ticker = trade.ticker || trade.tradeId.split('/')[0]
+          const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
+          return {
+            marketId: ticker,
+            position,
+            startingPrice: parseFloat(trade.entryPrice) || undefined,
+            currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
+          }
+        })
+        setPortfolioPositions(positionsArray)
+        setHasMoreTrades(data.pagination?.hasMore ?? false)
       } catch (err) {
         console.error('Error fetching portfolio positions:', err)
+        setTradesError(true)
       } finally {
         setIsLoadingPositions(false)
       }
@@ -304,6 +167,34 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
     fetchPortfolioPositions()
   }, [bet, betId])
+
+  // Load more trades
+  const loadMoreTrades = async () => {
+    if (loadingMore || !hasMoreTrades) return
+    setLoadingMore(true)
+    try {
+      const nextPage = tradesPage + 1
+      const res = await fetch(`/api/bets/${betId}/trades?limit=${TRADES_PER_PAGE}&page=${nextPage}`)
+      if (res.ok) {
+        const data = await res.json()
+        const newPositions: PortfolioPositionWithPrices[] = (data.trades ?? []).map((trade: BetTrade) => {
+          const ticker = trade.ticker || trade.tradeId.split('/')[0]
+          const position: 'YES' | 'NO' = trade.position === 'LONG' ? 'YES' : 'NO'
+          return {
+            marketId: ticker,
+            position,
+            startingPrice: parseFloat(trade.entryPrice) || undefined,
+            currentPrice: trade.exitPrice ? parseFloat(trade.exitPrice) : undefined,
+          }
+        })
+        setPortfolioPositions(prev => [...prev, ...newPositions])
+        setHasMoreTrades(data.pagination?.hasMore ?? false)
+        setTradesPage(nextPage)
+      }
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // Fallback: Fetch market names from portfolioJson if portfolio endpoint returns empty
   useEffect(() => {
@@ -341,6 +232,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
     fetchMarketNames()
   }, [bet, portfolioPositions.length])
+
 
   if (isLoading) {
     return <BetDetailSkeleton />
@@ -468,7 +360,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 <p className="text-white/40 font-mono text-xs uppercase">Resolution Date</p>
                 <p className="text-white/80 font-mono">
                   {bet.resolutionDeadline
-                    ? new Date(Number(bet.resolutionDeadline) * 1000).toLocaleString()
+                    ? new Date(bet.resolutionDeadline).toLocaleString()
                     : 'Not set'}
                 </p>
               </div>
@@ -499,7 +391,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-white font-mono text-sm">
-                          {formatAmount(fill.amount)}
+                          {formatAmount(fill.fillAmount)}
                         </span>
                         <a
                           href={`https://basescan.org/tx/${fill.txHash}`}
@@ -523,75 +415,53 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
           </CardContent>
         </Card>
 
-        {/* Portfolio Card - with entry and current prices */}
-        {(portfolioPositions.length > 0 || bet.portfolioJson?.positions?.length || bet.portfolioJson?.markets?.length) && (
+        {/* Trades Card */}
+        {((bet.tradeCount ?? 0) > 0 || portfolioPositions.length > 0) && (
           <Card className="border-white/20">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="font-mono text-lg">Portfolio Positions</CardTitle>
+                <CardTitle className="font-mono text-lg">
+                  Trades ({bet.tradeCount ?? portfolioPositions.length})
+                </CardTitle>
                 {isLoadingPositions && (
-                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading prices...</span>
+                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading...</span>
                 )}
               </div>
-              {bet.portfolioJson?.expiry && (
-                <p className="text-white/40 font-mono text-xs">
-                  Expiry: {new Date(bet.portfolioJson.expiry).toLocaleString()}
-                </p>
-              )}
             </CardHeader>
             <CardContent>
-              {/* Column headers */}
+              {/* Column headers - simplified */}
               <div className="flex items-center justify-between px-3 py-2 border-b border-white/20 text-xs text-white/40 font-mono mb-2">
-                <span className="flex-1">Market</span>
-                <div className="flex items-center gap-3 text-right">
-                  <span className="w-14">Position</span>
-                  <span className="w-16">Entry</span>
-                  <span className="w-16">Current</span>
-                  <span className="w-16">Change</span>
-                </div>
+                <span className="flex-1">Ticker</span>
+                <span className="w-20 text-right">Position</span>
               </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {/* Use portfolio positions with prices if available */}
-                {portfolioPositions.length > 0 ? (
-                  portfolioPositions.map((pos, index) => {
-                    const marketName = marketNames[pos.marketId] || pos.marketId
-                    const priceChange = calculatePriceChange(pos)
-                    const changeColor = priceChange.direction === 'up' ? 'text-green-400'
-                      : priceChange.direction === 'down' ? 'text-red-400'
-                      : 'text-white/40'
-
-                    return (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
-                      >
-                        <div className="flex-1 min-w-0 pr-4">
-                          <p className="text-white font-mono text-sm truncate" title={marketName}>
-                            {marketName}
-                          </p>
-                          {pos.isClosed && (
-                            <span className="text-xs text-purple-400 font-mono">Resolved</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0 text-right">
-                          <span className={`font-mono text-sm font-bold w-14 ${
-                            pos.position === 'YES' ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {pos.position}
-                          </span>
-                          <span className="text-white/60 font-mono text-sm w-16">
-                            {formatPrice(pos.startingPrice)}
-                          </span>
-                          <span className="text-white font-mono text-sm w-16">
-                            {formatPrice(pos.currentPrice)}
-                          </span>
-                          <span className={`font-mono text-sm w-16 ${changeColor}`}>
-                            {formatPriceChange(priceChange.change)}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })
+              <div className="space-y-1 max-h-[500px] overflow-y-auto">
+                {/* Loading skeleton */}
+                {isLoadingPositions && portfolioPositions.length === 0 && (
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-white/5 rounded animate-pulse">
+                      <div className="w-16 h-4 bg-white/10 rounded" />
+                      <div className="w-12 h-4 bg-white/10 rounded" />
+                      <div className="w-20 h-4 bg-white/10 rounded" />
+                    </div>
+                  ))
+                )}
+                {/* Compact trade rows */}
+                {!isLoadingPositions && portfolioPositions.length > 0 ? (
+                  portfolioPositions.map((pos, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-sm"
+                    >
+                      <span className="flex-1 text-white font-mono font-bold">
+                        {pos.marketId}
+                      </span>
+                      <span className={`w-20 text-right font-mono font-bold ${
+                        pos.position === 'YES' ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {pos.position === 'YES' ? 'LONG' : 'SHORT'}
+                      </span>
+                    </div>
+                  ))
                 ) : (
                   /* Fallback to portfolioJson if positions not loaded */
                   bet.portfolioJson?.positions?.map((pos, index) => {
@@ -623,8 +493,14 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     )
                   })
                 )}
+                {/* Show error message if trades failed to load */}
+                {tradesError && (
+                  <div className="text-center py-4 text-red-400 font-mono text-sm">
+                    Failed to load {bet.tradeCount ?? 0} trades. <button onClick={() => window.location.reload()} className="underline hover:text-white">Retry</button>
+                  </div>
+                )}
                 {/* Fallback to 'markets' format for backwards compatibility */}
-                {!portfolioPositions.length && !bet.portfolioJson?.positions && bet.portfolioJson?.markets?.map((market, index) => {
+                {!isLoadingPositions && !portfolioPositions.length && !bet.portfolioJson?.positions && bet.portfolioJson?.markets?.map((market, index) => {
                   const marketName = marketNames[market.conditionId] || market.conditionId
                   return (
                     <div
@@ -651,6 +527,20 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     </div>
                   )
                 })}
+                {/* Load More button */}
+                {hasMoreTrades && !loadingMore && (
+                  <button
+                    onClick={loadMoreTrades}
+                    className="w-full py-2 mt-2 text-center text-accent font-mono text-sm border border-accent/30 hover:bg-accent/10 rounded"
+                  >
+                    Load More ({portfolioPositions.length} of {bet.tradeCount ?? '?'})
+                  </button>
+                )}
+                {loadingMore && (
+                  <div className="w-full py-2 mt-2 text-center text-white/40 font-mono text-sm animate-pulse">
+                    Loading more...
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -9,6 +9,7 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
 export interface AgentBet {
   betId: string
   portfolioSize: number    // Number of markets in portfolio
+  tradeCount?: number      // Epic 8: Actual trade count from bet_trades table
   amount: number           // USDC wagered
   result: number           // P&L (positive or negative)
   status: 'pending' | 'matched' | 'settled'
@@ -46,7 +47,15 @@ async function fetchAgentBets(walletAddress: string, limit: number = 10): Promis
     throw new Error(`Failed to fetch agent bets: ${response.status} ${response.statusText}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  // Map backend tradeCount -> portfolioSize for frontend compatibility
+  if (data.bets) {
+    data.bets = data.bets.map((b: AgentBet & { tradeCount?: number }) => ({
+      ...b,
+      portfolioSize: b.tradeCount ?? b.portfolioSize ?? 0,
+    }))
+  }
+  return data
 }
 
 /**
