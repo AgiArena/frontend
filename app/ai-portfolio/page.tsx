@@ -345,18 +345,6 @@ export default function AiPortfolioPage() {
         </div>
       </div>
 
-      {/* Human comparison */}
-      <div className="absolute bottom-24 left-6 z-20 bg-black/80 border border-white/10 p-4 max-w-xs">
-        <div className="text-white/40 font-mono text-xs mb-2">MEANWHILE, A HUMAN TRADER...</div>
-        <div className="flex items-center gap-4">
-          <div className="text-4xl">🧑‍💼</div>
-          <div>
-            <div className="text-white font-mono">3-5 positions</div>
-            <div className="text-white/40 font-mono text-xs">needs sleep, gets emotional</div>
-          </div>
-        </div>
-      </div>
-
       {/* CTA */}
       <div className="absolute bottom-6 right-6 z-20">
         <Link
