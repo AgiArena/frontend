@@ -17,8 +17,9 @@ interface UseEscrowedAmountReturn {
 
 /**
  * Statuses considered as having escrowed funds
+ * Story 14-1: Only pending bets have escrowed (unmatched) funds
  */
-const ESCROWED_STATUSES: BetStatus[] = ['pending', 'partially_matched']
+const ESCROWED_STATUSES: BetStatus[] = ['pending']
 
 /**
  * Hook to calculate total escrowed amount from active bets
@@ -84,12 +85,8 @@ function calculateEscrowed(bets: BetRecord[] | undefined): bigint {
 
   return bets.reduce((sum: bigint, bet: BetRecord) => {
     if (ESCROWED_STATUSES.includes(bet.status)) {
-      // Use remainingAmount directly if available, otherwise calculate
-      // Use toBaseUnits to handle both integer and decimal string formats
-      const remaining = bet.remainingAmount
-        ? toBaseUnits(bet.remainingAmount)
-        : toBaseUnits(bet.amount) - toBaseUnits(bet.matchedAmount || '0')
-      return sum + remaining
+      // Story 14-1: Single-filler model — pending bets have full amount escrowed
+      return sum + toBaseUnits(bet.amount)
     }
     return sum
   }, BigInt(0))

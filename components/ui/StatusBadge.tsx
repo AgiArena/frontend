@@ -22,15 +22,13 @@ export type BadgeStatus = BetStatus | ResolutionStatus | AgentBetStatus | AgentB
  * Status configuration for action-oriented labels (Story 11-1, AC6)
  */
 const STATUS_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
-  // Bet statuses - action-oriented labels
+  // Bet statuses - action-oriented labels (Story 14-1: single-filler model)
   pending: { icon: '○', label: 'Awaiting match', color: 'text-white/60' },
-  partially_matched: { icon: '◔', label: 'Partially matched', color: 'text-white/60' },
-  partial: { icon: '◔', label: 'Partially matched', color: 'text-white/60' },
-  fully_matched: { icon: '●', label: 'Position active', color: 'text-white' },
   matched: { icon: '●', label: 'Position active', color: 'text-white' },
-  cancelled: { icon: '─', label: 'No match', color: 'text-white/40' },
   settling: { icon: '◐', label: 'Keepers voting', color: 'text-yellow-400' },
   settled: { icon: '●', label: 'Settled', color: 'text-white/60' },
+  // Story 14-1: Early exit status
+  early_exit: { icon: '⊗', label: 'Early exit', color: 'text-cyan-400' },
   // Resolution statuses (Epic 8: majority-wins)
   resolved: { icon: '✓', label: 'Resolved', color: 'text-green-400' },
   resolving: { icon: '◐', label: 'Keepers voting', color: 'text-yellow-400' },
@@ -95,11 +93,9 @@ export function StatusBadgeOld({ status }: { status: BadgeStatus }) {
   const getStatusStyles = (): string => {
     switch (status) {
       case 'pending':
-      case 'partially_matched':
-      case 'fully_matched':
+        return 'bg-white/30 text-white'
+      case 'matched':
         return 'bg-white text-black'
-      case 'cancelled':
-        return 'bg-accent text-white'
       case 'settling':
       case 'settled':
         return 'bg-white/30 text-white'
@@ -107,8 +103,6 @@ export function StatusBadgeOld({ status }: { status: BadgeStatus }) {
         return 'bg-green-600 text-white'
       case 'tie':
         return 'bg-yellow-600 text-white'
-      case 'matched':
-        return 'bg-white text-black'
       case 'won':
         return 'bg-green-600 text-white'
       case 'lost':
@@ -122,12 +116,8 @@ export function StatusBadgeOld({ status }: { status: BadgeStatus }) {
     switch (status) {
       case 'pending':
         return 'Pending'
-      case 'partially_matched':
-        return 'Partial'
-      case 'fully_matched':
+      case 'matched':
         return 'Matched'
-      case 'cancelled':
-        return 'Cancelled'
       case 'settling':
         return 'Settling'
       case 'settled':
@@ -136,8 +126,6 @@ export function StatusBadgeOld({ status }: { status: BadgeStatus }) {
         return 'Resolved'
       case 'tie':
         return 'Tie'
-      case 'matched':
-        return 'Matched'
       case 'won':
         return 'Won'
       case 'lost':

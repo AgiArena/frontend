@@ -6,11 +6,9 @@ describe('calculateOddsDisplay', () => {
     betId: '1',
     creator: '0x1234567890123456789012345678901234567890',
     betHash: '0xabcdef',
-    creatorStake: '100000000', // 100 USDC (6 decimals)
-    requiredMatch: '50000000',  // 50 USDC
-    matchedAmount: '25000000',  // 25 USDC
+    creatorStake: '100000000000000000000', // 100 WIND (18 decimals)
     oddsBps: 20000, // 2.00x
-    status: 'partially_matched',
+    status: 'pending',
     createdAt: '2026-01-24T00:00:00Z'
   }
 
@@ -21,7 +19,7 @@ describe('calculateOddsDisplay', () => {
   })
 
   it('handles 1:1 odds (10000 bps)', () => {
-    const bet = { ...baseBet, oddsBps: 10000, requiredMatch: '100000000' }
+    const bet = { ...baseBet, oddsBps: 10000 }
     const result = calculateOddsDisplay(bet)
     expect(result.decimal).toBe(1)
     expect(result.display).toBe('1.00x')
@@ -43,43 +41,33 @@ describe('calculateOddsDisplay', () => {
   it('calculates creator and matcher risk correctly', () => {
     const result = calculateOddsDisplay(baseBet)
     expect(result.creatorRisk).toBe('$100.00')
-    expect(result.matcherRisk).toBe('$50.00')
+    // requiredMatch = (100 * 20000) / 10000 = 200
+    expect(result.matcherRisk).toBe('$200.00')
   })
 
   it('calculates total pot correctly', () => {
     const result = calculateOddsDisplay(baseBet)
-    expect(result.totalPot).toBe('$150.00')
+    // 100 + 200 = 300
+    expect(result.totalPot).toBe('$300.00')
   })
 
   it('calculates return multipliers correctly', () => {
     const result = calculateOddsDisplay(baseBet)
-    // Creator: 150/100 = 1.5x
-    expect(result.creatorReturn).toBe('1.50x')
-    // Matcher: 150/50 = 3x
-    expect(result.matcherReturn).toBe('3.00x')
+    // Creator: 300/100 = 3.0x
+    expect(result.creatorReturn).toBe('3.00x')
+    // Matcher: 300/200 = 1.5x
+    expect(result.matcherReturn).toBe('1.50x')
   })
 
-  it('calculates fill percentage correctly', () => {
+  it('shows isMatched false when no filler', () => {
     const result = calculateOddsDisplay(baseBet)
-    // 25/50 = 50%
-    expect(result.fillPercent).toBe(50)
+    expect(result.isMatched).toBe(false)
   })
 
-  it('handles 0% fill', () => {
-    const bet = { ...baseBet, matchedAmount: '0' }
+  it('shows isMatched true when filler exists', () => {
+    const bet = { ...baseBet, fillerAddress: '0xfiller', status: 'matched' as const }
     const result = calculateOddsDisplay(bet)
-    expect(result.fillPercent).toBe(0)
-  })
-
-  it('handles 100% fill', () => {
-    const bet = { ...baseBet, matchedAmount: '50000000' }
-    const result = calculateOddsDisplay(bet)
-    expect(result.fillPercent).toBe(100)
-  })
-
-  it('calculates remaining amount correctly', () => {
-    const result = calculateOddsDisplay(baseBet)
-    expect(result.remaining).toBe('$25.00')
+    expect(result.isMatched).toBe(true)
   })
 
   it('determines favorable odds correctly', () => {
@@ -106,18 +94,20 @@ describe('calculateOddsDisplay', () => {
     expect(result.impliedProbability).toBeCloseTo(0.667, 2)
   })
 
-  it('handles zero requiredMatch gracefully', () => {
-    const bet = { ...baseBet, requiredMatch: '0' }
-    const result = calculateOddsDisplay(bet)
-    expect(result.fillPercent).toBe(0)
-    expect(result.matcherReturn).toBe('0.00x')
-  })
-
   it('handles zero creatorStake gracefully (no Infinity)', () => {
     const bet = { ...baseBet, creatorStake: '0' }
     const result = calculateOddsDisplay(bet)
     expect(result.creatorReturn).toBe('0.00x')
     expect(result.creatorReturn).not.toBe('Infinity')
+  })
+
+  it('handles 1:1 odds returns correctly', () => {
+    const bet = { ...baseBet, oddsBps: 10000 }
+    const result = calculateOddsDisplay(bet)
+    // requiredMatch = (100 * 10000) / 10000 = 100
+    // totalPot = 200, creator = 200/100 = 2x, matcher = 200/100 = 2x
+    expect(result.creatorReturn).toBe('2.00x')
+    expect(result.matcherReturn).toBe('2.00x')
   })
 })
 

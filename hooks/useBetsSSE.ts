@@ -41,6 +41,16 @@ export interface BetSettledEvent {
   timestamp: string
 }
 
+export interface BetEarlyExitEvent {
+  type: 'BetEarlyExit'
+  betId: string
+  creator: string // wallet address
+  filler: string // wallet address
+  creatorAmount: string // decimal as string
+  fillerAmount: string // decimal as string
+  timestamp: string
+}
+
 /**
  * Return type for useBetsSSE hook
  */
@@ -107,6 +117,21 @@ function transformBetSettledEvent(data: BetSettledEvent): RecentBetEvent {
     portfolioSize: data.tradeCount ?? data.portfolioSize ?? 0,
     amount: '0', // Settlement event doesn't include original amount
     result: data.pnl,
+    timestamp: data.timestamp
+  }
+}
+
+/**
+ * Transform BetEarlyExit SSE event to RecentBetEvent format (Story 14-1)
+ */
+function transformBetEarlyExitEvent(data: BetEarlyExitEvent): RecentBetEvent {
+  return {
+    betId: data.betId,
+    walletAddress: data.creator, // Show creator as primary participant
+    eventType: 'settled', // Early exits show as settled
+    portfolioSize: 0,
+    amount: '0',
+    result: null, // Early exit doesn't have a clear winner/loser
     timestamp: data.timestamp
   }
 }
@@ -293,6 +318,22 @@ export function useBetsSSE(): UseBetsSSEReturn {
 
             // Emit event for animation system
             emitNewBetEvent(data.betId, data.portfolioSize)
+          } catch {
+            // Silently ignore malformed events
+          }
+        })
+
+        // Handle bet-early-exit events (Story 14-1)
+        eventSource.addEventListener('bet-early-exit', (event: MessageEvent) => {
+          try {
+            const data: BetEarlyExitEvent = JSON.parse(event.data)
+            const transformedEvent = transformBetEarlyExitEvent(data)
+
+            // Update cache
+            updateQueryCache(transformedEvent)
+
+            // Emit event for animation system
+            emitNewBetEvent(data.betId, 0)
           } catch {
             // Silently ignore malformed events
           }

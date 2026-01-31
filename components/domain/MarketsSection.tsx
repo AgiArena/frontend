@@ -141,7 +141,7 @@ export function MarketsSection() {
       if (!typeConfig) return null
 
       const source = typeConfig.sources[0]
-      const res = await fetch(`${API_URL}/api/market-prices?source=${source}&limit=5`)
+      const res = await fetch(`${API_URL}/api/market-prices?source=${source}&limit=100`)
       if (!res.ok) throw new Error('Failed to fetch prices')
       return res.json() as Promise<{ prices: MarketPrice[] }>
     },

@@ -61,16 +61,12 @@ function getStatusColor(status: string): string {
   switch (status) {
     case 'pending':
       return 'text-yellow-400'
-    case 'partially_matched':
-      return 'text-blue-400'
-    case 'fully_matched':
+    case 'matched':
       return 'text-green-400'
-    case 'resolved':
-      return 'text-purple-400'
+    case 'settling':
+      return 'text-blue-400'
     case 'settled':
       return 'text-cyan-400'
-    case 'cancelled':
-      return 'text-red-400'
     default:
       return 'text-white/60'
   }
@@ -116,6 +112,12 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
               </span>
             ) : null;
           })()}
+          {/* Story 14-1: Early exit badge */}
+          {bet.earlyExit && (
+            <span className="px-2 py-1 bg-cyan-800/30 rounded text-xs font-mono text-cyan-300">
+              ⊗ Early Exit
+            </span>
+          )}
         </div>
         <span className={`text-xs font-mono ${getStatusColor(bet.status)}`}>
           {formatStatus(bet.status)}
@@ -129,23 +131,18 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
           <div className="font-mono text-white">{odds.creatorRisk}</div>
         </div>
         <div>
-          <div className="text-gray-400 text-xs uppercase font-mono mb-1">Required Match</div>
+          <div className="text-gray-400 text-xs uppercase font-mono mb-1">Filler Stake</div>
           <div className="font-mono text-white">{odds.matcherRisk}</div>
         </div>
       </div>
 
-      {/* Fill progress bar (AC3) */}
-      <div className="mb-4">
-        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-green-500 transition-all duration-500 ease-out"
-            style={{ width: `${Math.min(100, odds.fillPercent)}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-gray-400 mt-1 font-mono">
-          <span>{odds.fillPercent.toFixed(1)}% matched</span>
-          <span>{odds.remaining} remaining</span>
-        </div>
+      {/* Match status indicator */}
+      <div className="mb-4 text-xs font-mono text-gray-400">
+        {odds.isMatched ? (
+          <span className="text-green-400">Matched</span>
+        ) : (
+          <span className="text-yellow-400">Awaiting match</span>
+        )}
       </div>
 
       {/* Payout info (AC4) */}

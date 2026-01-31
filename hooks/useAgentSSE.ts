@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getBackendUrl } from '@/lib/contracts/addresses'
 import type { RecentBetEvent, RecentBetsResponse } from '@/hooks/useRecentBets'
-import type { BetPlacedEvent, BetMatchedEvent, BetSettledEvent } from '@/hooks/useBetsSSE'
+import type { BetPlacedEvent, BetMatchedEvent, BetSettledEvent, BetEarlyExitEvent } from '@/hooks/useBetsSSE'
 
 /**
  * SSE connection states for agent-specific feed
@@ -77,6 +77,21 @@ function transformBetSettledEvent(data: BetSettledEvent): RecentBetEvent {
     portfolioSize: data.tradeCount ?? data.portfolioSize ?? 0,
     amount: '0', // Settlement event doesn't include original amount
     result: data.pnl,
+    timestamp: data.timestamp
+  }
+}
+
+/**
+ * Transform BetEarlyExit SSE event to RecentBetEvent format (Story 14-1)
+ */
+function transformBetEarlyExitEvent(data: BetEarlyExitEvent): RecentBetEvent {
+  return {
+    betId: data.betId,
+    walletAddress: data.creator,
+    eventType: 'settled',
+    portfolioSize: 0,
+    amount: '0',
+    result: null,
     timestamp: data.timestamp
   }
 }
@@ -260,6 +275,18 @@ export function useAgentSSE(walletAddress: string, limit: number = 10): UseAgent
             const transformedEvent = transformBetSettledEvent(data)
             updateQueryCache(transformedEvent)
             emitNewBetEvent(data.betId, data.portfolioSize)
+          } catch {
+            // Silently ignore malformed events
+          }
+        })
+
+        // Handle bet-early-exit events (Story 14-1)
+        eventSource.addEventListener('bet-early-exit', (event: MessageEvent) => {
+          try {
+            const data: BetEarlyExitEvent = JSON.parse(event.data)
+            const transformedEvent = transformBetEarlyExitEvent(data)
+            updateQueryCache(transformedEvent)
+            emitNewBetEvent(data.betId, 0)
           } catch {
             // Silently ignore malformed events
           }

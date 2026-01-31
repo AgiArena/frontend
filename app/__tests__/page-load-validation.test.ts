@@ -25,13 +25,12 @@ if (BACKEND_URL.includes('63.179.141.230') || BACKEND_URL.includes('localhost'))
 interface BetData {
   betId: string
   amount: string
-  matchedAmount: string
-  requiredMatch?: string
   oddsBps?: number
   status: string
   portfolioSize: number
   creatorAddress: string
-  fills?: { fillerAddress: string; amount: string }[]
+  fillerAddress?: string
+  fillerStake?: string
 }
 
 /**
@@ -55,26 +54,20 @@ interface ResolutionData {
  */
 function calculateDisplayValues(bet: BetData) {
   const creatorStake = parseFloat(bet.amount)
-  const requiredMatch = bet.requiredMatch ? parseFloat(bet.requiredMatch) : creatorStake
-  const matchedAmount = parseFloat(bet.matchedAmount)
   const oddsBps = bet.oddsBps && bet.oddsBps > 0 ? bet.oddsBps : 10000
   const oddsDecimal = oddsBps / 10000
-
+  // Story 14-1: Compute required match from odds
+  const requiredMatch = (creatorStake * oddsBps) / 10000
   const totalPot = creatorStake + requiredMatch
-  const matchPercentage = requiredMatch !== 0 ? (matchedAmount / requiredMatch) * 100 : 0
-  const remainingToMatch = Math.max(0, requiredMatch - matchedAmount)
+  const isMatched = !!bet.fillerAddress
 
   return {
     creatorStake,
     requiredMatch,
-    matchedAmount,
     totalPot,
-    matchPercentage,
-    remainingToMatch,
+    isMatched,
     oddsDecimal,
     // What user sees on the page
-    displayMatched: `$${matchedAmount.toFixed(2)}`,
-    displayRemaining: `$${remainingToMatch.toFixed(2)}`,
     displayTotalPot: `$${totalPot.toFixed(2)}`,
     displayOdds: `${oddsDecimal.toFixed(2)}x`
   }
@@ -164,7 +157,6 @@ describe('Bet Detail Page Data Loading', () => {
     // These fields are displayed on the bet detail page
     expect(testBet.betId).toBeDefined()
     expect(testBet.amount).toBeDefined()
-    expect(testBet.matchedAmount).toBeDefined()
     expect(testBet.status).toBeDefined()
     expect(testBet.creatorAddress).toBeDefined()
   })
@@ -181,21 +173,18 @@ describe('Bet Detail Page Data Loading', () => {
 
     console.log(`✓ Bet ${testBet.betId} displays:`)
     console.log(`  Creator Staked: $${display.creatorStake.toFixed(2)}`)
-    console.log(`  Required Match: $${display.requiredMatch.toFixed(2)}`)
-    console.log(`  Matched: ${display.displayMatched}`)
-    console.log(`  Remaining: ${display.displayRemaining}`)
+    console.log(`  Filler Stake: $${display.requiredMatch.toFixed(2)}`)
+    console.log(`  Matched: ${display.isMatched ? 'Yes' : 'No'}`)
   })
 
-  it('matched bets have non-zero matched amounts', async () => {
+  it('matched bets have filler address', async () => {
     if (!testBet) return
 
-    const display = calculateDisplayValues(testBet)
-
-    // If status indicates matching, matched amount should be > 0
-    if (testBet.status === 'fully_matched' || testBet.status === 'resolved' || testBet.status === 'settled') {
-      if (display.matchedAmount === 0) {
+    // Story 14-1: Single-filler model — matched bets should have a filler
+    if (testBet.status === 'matched' || testBet.status === 'settling' || testBet.status === 'settled') {
+      if (!testBet.fillerAddress) {
         throw new Error(
-          `CRITICAL: Bet ${testBet.betId} status is '${testBet.status}' but shows Matched: $0.00`
+          `CRITICAL: Bet ${testBet.betId} status is '${testBet.status}' but has no filler address`
         )
       }
     }

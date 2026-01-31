@@ -8,9 +8,7 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
  */
 export type BetStatus =
   | 'pending'
-  | 'partially_matched'
-  | 'fully_matched'
-  | 'cancelled'
+  | 'matched'
   | 'settling'
   | 'settled'
 
@@ -24,12 +22,13 @@ export interface BetRecord {
   portfolioSize: number
   tradeCount?: number         // Epic 8: Actual trade count from bet_trades table
   amount: string
-  matchedAmount: string
-  remainingAmount: string
+  oddsBps?: number            // Odds in basis points
   status: BetStatus
   createdAt: string
   txHash: string
-  counterParties?: string[]
+  // Story 14-1: Single-filler model
+  fillerAddress?: string      // Address of the filler (if matched)
+  fillerStake?: string        // Filler's stake amount
   portfolioJson?: string
   // Epic 8: Category-based betting
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')

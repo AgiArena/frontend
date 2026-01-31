@@ -21,10 +21,8 @@ export interface RecentBetEvent {
   eventType: BetEventType
   /** Number of markets in portfolio */
   portfolioSize: number
-  /** Bet amount in USDC (creator stake) */
+  /** Bet amount in WIND (creator stake) */
   amount: string // Decimal as string from API
-  /** Required match amount for asymmetric odds */
-  requiredMatch?: string // Decimal as string from API
   /** Odds in basis points: 10000 = 1.00x, 20000 = 2.00x */
   oddsBps?: number
   /** P&L result for won/lost events (null for placed/matched) */

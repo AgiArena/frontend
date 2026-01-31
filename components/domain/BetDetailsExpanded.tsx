@@ -20,10 +20,10 @@ interface BetDetailsExpandedProps {
 
 /**
  * Check if a bet should show resolution data
- * Resolution is shown for bets that are fully matched, settling, or settled
+ * Resolution is shown for bets that are matched, settling, or settled
  */
 function shouldShowResolution(status: BetRecord['status']): boolean {
-  return status === 'fully_matched' || status === 'settling' || status === 'settled'
+  return status === 'matched' || status === 'settling' || status === 'settled'
 }
 
 /**
@@ -66,12 +66,8 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
   // Get top 10 positions for preview
   const top10Positions = portfolioPositions.slice(0, 10)
 
-  // Check if bet can be cancelled (pending or partially matched)
-  const canCancel = bet.status === 'pending' || bet.status === 'partially_matched'
-
-  // Parse amounts - use toBaseUnits to handle both integer and decimal formats
-  const matchedAmount = toBaseUnits(bet.matchedAmount)
-  const remainingAmount = toBaseUnits(bet.remainingAmount)
+  // Story 14-1: Cancellation removed — propositions auto-expire
+  const canCancel = false
 
   return (
     <div className="space-y-4">
@@ -125,35 +121,50 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
         </div>
       )}
 
-      {/* Matched / Remaining Amounts */}
-      <div className="flex gap-6">
-        <div>
-          <span className="text-xs text-white/60 font-mono block">Matched:</span>
-          <span className="text-sm font-mono text-white">{formatUSD(matchedAmount)}</span>
-        </div>
-        <div>
-          <span className="text-xs text-white/60 font-mono block">Remaining:</span>
-          <span className="text-sm font-mono text-white">{formatUSD(remainingAmount)}</span>
-        </div>
-      </div>
-
-      {/* Counter-parties */}
-      {bet.counterParties && bet.counterParties.length > 0 && (
-        <div>
-          <span className="text-xs text-white/60 font-mono block mb-1">Counter-parties:</span>
-          <div className="flex flex-wrap gap-2">
-            {bet.counterParties.map((address) => (
-              <a
-                key={address}
-                href={getAddressUrl(address)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-mono text-white hover:text-accent transition-colors"
-              >
-                {truncateAddress(address)}
-              </a>
-            ))}
+      {/* Filler info (Story 14-1: single-filler model) */}
+      {bet.fillerAddress && (
+        <div className="flex gap-6">
+          <div>
+            <span className="text-xs text-white/60 font-mono block">Filler:</span>
+            <a
+              href={getAddressUrl(bet.fillerAddress)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-mono text-white hover:text-accent transition-colors"
+            >
+              {truncateAddress(bet.fillerAddress)}
+            </a>
           </div>
+          {bet.fillerStake && (
+            <div>
+              <span className="text-xs text-white/60 font-mono block">Filler Stake:</span>
+              <span className="text-sm font-mono text-white">{formatUSD(toBaseUnits(bet.fillerStake))}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Story 14-1: Early Exit Display */}
+      {bet.earlyExit && (
+        <div className="border border-cyan-500/30 bg-cyan-950/20 rounded p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-cyan-400 text-sm font-mono font-bold">⊗ Early Exit Executed</span>
+          </div>
+          <div className="text-xs text-white/80 font-mono">
+            Both parties agreed to settle early via mutual EIP-712 signed agreement.
+          </div>
+          {bet.creatorStake && bet.fillerStake && (
+            <div className="mt-2 pt-2 border-t border-cyan-500/20 flex gap-4">
+              <div>
+                <span className="text-xs text-white/60 block">Creator received:</span>
+                <span className="text-sm font-mono text-cyan-300">{formatUSD(toBaseUnits(bet.creatorStake))}</span>
+              </div>
+              <div>
+                <span className="text-xs text-white/60 block">Filler received:</span>
+                <span className="text-sm font-mono text-cyan-300">{formatUSD(toBaseUnits(bet.fillerStake))}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

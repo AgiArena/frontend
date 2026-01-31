@@ -3,21 +3,19 @@ import { calculateOddsDisplay, type Bet } from '@/lib/types/bet'
 
 /**
  * Tests for BetCard component
- * Story 7-12: Update BetCard Component to Display Odds
+ * Story 14-1: Updated for single-filler EIP-712 model
  *
  * Tests component logic, formatting, and display rules.
  */
 
-// Mock bet data for testing
+// Mock bet data for testing (Story 14-1: single-filler model)
 const mockBet: Bet = {
   betId: '123',
   creator: '0x1234567890123456789012345678901234567890',
   betHash: '0xabcdef1234567890',
-  creatorStake: '100000000', // 100 USDC
-  requiredMatch: '50000000',  // 50 USDC
-  matchedAmount: '25000000',  // 25 USDC (50% matched)
+  creatorStake: '100000000000000000000', // 100 WIND (18 decimals)
   oddsBps: 20000, // 2.00x odds
-  status: 'partially_matched',
+  status: 'pending',
   createdAt: '2026-01-24T00:00:00Z',
   portfolioSize: 15000
 }
@@ -39,7 +37,7 @@ describe('AC1: Odds Badge Display', () => {
   })
 
   it('determines even for odds near 1x (0.91-1.1)', () => {
-    const evenBet = { ...mockBet, oddsBps: 10000, requiredMatch: '100000000' }
+    const evenBet = { ...mockBet, oddsBps: 10000 }
     const odds = calculateOddsDisplay(evenBet)
     expect(odds.favorability).toBe('even')
   })
@@ -61,57 +59,34 @@ describe('AC2: Show Stake Information', () => {
     expect(odds.creatorRisk).toBe('$100.00')
   })
 
-  it('formats required match amount correctly', () => {
+  it('formats filler stake amount correctly', () => {
     const odds = calculateOddsDisplay(mockBet)
-    expect(odds.matcherRisk).toBe('$50.00')
+    // requiredMatch = (100 * 20000) / 10000 = 200
+    expect(odds.matcherRisk).toBe('$200.00')
   })
 
-  it('calculates remaining amount for partial fills', () => {
-    const odds = calculateOddsDisplay(mockBet)
-    expect(odds.remaining).toBe('$25.00')
-  })
-
-  it('shows $0.00 remaining when fully matched', () => {
-    const fullyMatched = { ...mockBet, matchedAmount: '50000000' }
-    const odds = calculateOddsDisplay(fullyMatched)
-    expect(odds.remaining).toBe('$0.00')
+  it('computes filler stake from odds for 1:1', () => {
+    const evenBet = { ...mockBet, oddsBps: 10000 }
+    const odds = calculateOddsDisplay(evenBet)
+    // requiredMatch = (100 * 10000) / 10000 = 100
+    expect(odds.matcherRisk).toBe('$100.00')
   })
 })
 
 // ============================================================================
-// AC3: Fill Progress Bar Tests
+// Match Status Tests (Story 14-1: replaces fill progress bar)
 // ============================================================================
 
-describe('AC3: Fill Progress Bar', () => {
-  it('calculates fill percentage correctly', () => {
+describe('Match status (single-filler model)', () => {
+  it('shows unmatched when no filler', () => {
     const odds = calculateOddsDisplay(mockBet)
-    // 25/50 = 50%
-    expect(odds.fillPercent).toBe(50)
+    expect(odds.isMatched).toBe(false)
   })
 
-  it('handles 0% matched', () => {
-    const unmatched = { ...mockBet, matchedAmount: '0' }
-    const odds = calculateOddsDisplay(unmatched)
-    expect(odds.fillPercent).toBe(0)
-  })
-
-  it('handles 100% matched', () => {
-    const fullyMatched = { ...mockBet, matchedAmount: '50000000' }
-    const odds = calculateOddsDisplay(fullyMatched)
-    expect(odds.fillPercent).toBe(100)
-  })
-
-  it('handles partial fills', () => {
-    const partial = { ...mockBet, matchedAmount: '10000000' } // 10 USDC
-    const odds = calculateOddsDisplay(partial)
-    // 10/50 = 20%
-    expect(odds.fillPercent).toBe(20)
-  })
-
-  it('formats percentage text correctly', () => {
-    const odds = calculateOddsDisplay(mockBet)
-    const percentText = `${odds.fillPercent.toFixed(1)}% matched`
-    expect(percentText).toBe('50.0% matched')
+  it('shows matched when filler exists', () => {
+    const matchedBet = { ...mockBet, fillerAddress: '0xfiller', status: 'matched' as const }
+    const odds = calculateOddsDisplay(matchedBet)
+    expect(odds.isMatched).toBe(true)
   })
 })
 
@@ -122,23 +97,24 @@ describe('AC3: Fill Progress Bar', () => {
 describe('AC4: Payout Information', () => {
   it('calculates total pot correctly', () => {
     const odds = calculateOddsDisplay(mockBet)
-    expect(odds.totalPot).toBe('$150.00')
+    // 100 + 200 = 300
+    expect(odds.totalPot).toBe('$300.00')
   })
 
   it('calculates creator return multiplier', () => {
     const odds = calculateOddsDisplay(mockBet)
-    // Creator return: 150/100 = 1.5x
-    expect(odds.creatorReturn).toBe('1.50x')
+    // Creator: 300/100 = 3.0x
+    expect(odds.creatorReturn).toBe('3.00x')
   })
 
   it('calculates matcher return multiplier', () => {
     const odds = calculateOddsDisplay(mockBet)
-    // Matcher return: 150/50 = 3x
-    expect(odds.matcherReturn).toBe('3.00x')
+    // Matcher: 300/200 = 1.5x
+    expect(odds.matcherReturn).toBe('1.50x')
   })
 
   it('handles 1:1 odds returns', () => {
-    const evenBet = { ...mockBet, oddsBps: 10000, requiredMatch: '100000000' }
+    const evenBet = { ...mockBet, oddsBps: 10000 }
     const odds = calculateOddsDisplay(evenBet)
     // Both return 2x (100 + 100 = 200, each gets 200/100 = 2x)
     expect(odds.creatorReturn).toBe('2.00x')
@@ -194,7 +170,7 @@ describe('AC6: Read-Only Notice', () => {
 })
 
 // ============================================================================
-// Status Display Tests
+// Status Display Tests (Story 14-1: updated statuses)
 // ============================================================================
 
 describe('Status display', () => {
@@ -202,35 +178,28 @@ describe('Status display', () => {
     return status.replace(/_/g, ' ')
   }
 
-  it('formats status with underscores replaced by spaces', () => {
-    expect(formatStatus('partially_matched')).toBe('partially matched')
-    expect(formatStatus('fully_matched')).toBe('fully matched')
-  })
-
   it('preserves single-word statuses', () => {
     expect(formatStatus('pending')).toBe('pending')
+    expect(formatStatus('matched')).toBe('matched')
+    expect(formatStatus('settling')).toBe('settling')
     expect(formatStatus('settled')).toBe('settled')
   })
 
   function getStatusColor(status: string): string {
     switch (status) {
       case 'pending': return 'text-yellow-400'
-      case 'partially_matched': return 'text-blue-400'
-      case 'fully_matched': return 'text-green-400'
-      case 'resolved': return 'text-purple-400'
+      case 'matched': return 'text-green-400'
+      case 'settling': return 'text-blue-400'
       case 'settled': return 'text-cyan-400'
-      case 'cancelled': return 'text-red-400'
       default: return 'text-white/60'
     }
   }
 
   it('returns correct colors for each status', () => {
     expect(getStatusColor('pending')).toBe('text-yellow-400')
-    expect(getStatusColor('partially_matched')).toBe('text-blue-400')
-    expect(getStatusColor('fully_matched')).toBe('text-green-400')
-    expect(getStatusColor('resolved')).toBe('text-purple-400')
+    expect(getStatusColor('matched')).toBe('text-green-400')
+    expect(getStatusColor('settling')).toBe('text-blue-400')
     expect(getStatusColor('settled')).toBe('text-cyan-400')
-    expect(getStatusColor('cancelled')).toBe('text-red-400')
   })
 })
 
@@ -280,31 +249,19 @@ describe('Edge cases', () => {
     expect(odds.display).toBe('1.00x')
   })
 
-  it('handles zero requiredMatch gracefully', () => {
-    const bet = { ...mockBet, requiredMatch: '0' }
-    const odds = calculateOddsDisplay(bet)
-    expect(odds.fillPercent).toBe(0)
-    expect(odds.matcherReturn).toBe('0.00x')
-  })
-
   it('handles very large amounts', () => {
     const largeBet = {
       ...mockBet,
-      creatorStake: '1000000000000', // 1M USDC
-      requiredMatch: '500000000000',
-      matchedAmount: '250000000000'
+      creatorStake: '1000000000000000000000000', // 1M WIND (18 decimals)
     }
     const odds = calculateOddsDisplay(largeBet)
     expect(odds.creatorRisk).toContain('$')
-    expect(odds.fillPercent).toBe(50)
   })
 
   it('handles very small amounts', () => {
     const smallBet = {
       ...mockBet,
-      creatorStake: '1000', // 0.001 USDC
-      requiredMatch: '500',
-      matchedAmount: '250'
+      creatorStake: '1000000000000000', // 0.001 WIND (18 decimals)
     }
     const odds = calculateOddsDisplay(smallBet)
     expect(odds.creatorRisk).toBe('$0.00')

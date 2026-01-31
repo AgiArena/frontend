@@ -201,17 +201,17 @@ describe('Individual Bet Detail Data Integrity', () => {
     expect(bet.status).toBeDefined()
   })
 
-  it('ALERT: detects zero matched amount when status is fully_matched', async () => {
+  it('ALERT: detects missing filler when status is matched', async () => {
     if (!testBetId) return
 
     const response = await fetchWithTimeout(`${BACKEND_URL}/api/bets/${testBetId}`)
     const bet = await response.json()
 
-    if (bet.status === 'fully_matched' || bet.status === 'resolved' || bet.status === 'settled') {
-      const matchedAmount = parseFloat(bet.matchedAmount || '0')
-      if (matchedAmount === 0) {
+    // Story 14-1: Single-filler model — matched bets must have filler
+    if (bet.status === 'matched' || bet.status === 'settling' || bet.status === 'settled') {
+      if (!bet.fillerAddress) {
         throw new Error(
-          `CRITICAL: Bet ${testBetId} has status '${bet.status}' but matchedAmount is $0.00!`
+          `CRITICAL: Bet ${testBetId} has status '${bet.status}' but no fillerAddress!`
         )
       }
     }
@@ -301,8 +301,10 @@ describe('Settlement Amount Validation', () => {
 
       if (bet.status === 'settled') {
         const amount = parseFloat(bet.amount || '0')
-        const matchedAmount = parseFloat(bet.matchedAmount || '0')
-        const totalPot = amount + matchedAmount
+        // Story 14-1: Compute total pot from odds instead of matchedAmount
+        const oddsBps = bet.oddsBps && bet.oddsBps > 0 ? bet.oddsBps : 10000
+        const fillerStake = (amount * oddsBps) / 10000
+        const totalPot = amount + fillerStake
 
         if (totalPot === 0) {
           throw new Error(
@@ -319,7 +321,8 @@ describe('Data Consistency Checks', () => {
     const response = await fetchWithTimeout(`${BACKEND_URL}/api/bets/recent?limit=20`)
     const data = await response.json()
 
-    const validStatuses = ['pending', 'partially_matched', 'fully_matched', 'resolved', 'settled', 'cancelled']
+    // Story 14-1: Updated statuses for single-filler model
+    const validStatuses = ['pending', 'matched', 'settling', 'settled']
 
     for (const event of data.events) {
       if (event.status) {

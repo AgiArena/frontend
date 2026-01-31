@@ -242,13 +242,8 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
     return <BetNotFound betId={betId} />
   }
 
-  // Calculate match percentage based on required match (not creator stake)
-  const requiredMatchNum = bet.requiredMatch ? parseFloat(bet.requiredMatch) : parseFloat(bet.amount)
-  const matchPercentage = requiredMatchNum !== 0
-    ? (parseFloat(bet.matchedAmount) / requiredMatchNum * 100).toFixed(0)
-    : '0'
-
   const odds = getOddsInfo(bet)
+  const isMatched = !!bet.fillerAddress
 
   return (
     <main className="min-h-screen bg-terminal">
@@ -280,35 +275,23 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Stake Info (AC2) */}
+            {/* Stake Info (AC2) — Story 14-1: single-filler model */}
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-white/40 font-mono text-xs uppercase">Creator Staked</p>
                 <p className="text-white font-mono text-lg">{formatAmount(bet.amount)}</p>
               </div>
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Required Match</p>
+                <p className="text-white/40 font-mono text-xs uppercase">Filler Stake</p>
                 <p className="text-white font-mono text-lg">{odds.requiredMatch}</p>
               </div>
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Matched</p>
-                <p className="text-white font-mono text-lg">
-                  {formatAmount(bet.matchedAmount)}
-                  <span className="text-white/40 text-sm ml-2">({matchPercentage}%)</span>
+                <p className="text-white/40 font-mono text-xs uppercase">Status</p>
+                <p className={`font-mono text-lg ${isMatched ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {isMatched ? 'Matched' : 'Awaiting Match'}
                 </p>
               </div>
             </div>
-
-            {/* Fill Progress Bar (AC3) */}
-            <div className="w-full bg-white/10 rounded-full h-2">
-              <div
-                className="bg-green-500 h-2 rounded-full transition-all"
-                style={{ width: `${matchPercentage}%` }}
-              />
-            </div>
-            <p className="text-white/40 font-mono text-xs text-right">
-              {matchPercentage}% matched
-            </p>
 
             {/* Creator */}
             <div>
@@ -366,44 +349,24 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
               </div>
             </div>
 
-            {/* Counterparties / Fills */}
-            {bet.fills && bet.fills.length > 0 && (
+            {/* Filler (Story 14-1: single-filler model) */}
+            {bet.fillerAddress && (
               <div className="bg-white/5 p-4 rounded border border-white/10">
                 <p className="text-white/40 font-mono text-xs uppercase mb-3">
-                  Counterparties ({bet.fills.length})
+                  Filler
                 </p>
-                <div className="space-y-2">
-                  {bet.fills.map((fill, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-2 bg-white/5 rounded"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Link
-                          href={`/agent/${fill.fillerAddress}`}
-                          className="text-cyan-400 hover:text-cyan-300 font-mono text-sm"
-                        >
-                          {formatAddress(fill.fillerAddress)}
-                        </Link>
-                        <span className="text-white/40 font-mono text-xs">
-                          {new Date(fill.filledAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-white font-mono text-sm">
-                          {formatAmount(fill.fillAmount)}
-                        </span>
-                        <a
-                          href={`https://basescan.org/tx/${fill.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white/40 hover:text-white/60 font-mono text-xs"
-                        >
-                          tx↗
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex justify-between items-center p-2 bg-white/5 rounded">
+                  <Link
+                    href={`/agent/${bet.fillerAddress}`}
+                    className="text-cyan-400 hover:text-cyan-300 font-mono text-sm"
+                  >
+                    {formatAddress(bet.fillerAddress)}
+                  </Link>
+                  {bet.fillerStake && (
+                    <span className="text-white font-mono text-sm">
+                      {formatAmount(bet.fillerStake)}
+                    </span>
+                  )}
                 </div>
               </div>
             )}

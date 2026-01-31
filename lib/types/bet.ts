@@ -32,21 +32,22 @@ export interface Bet {
   creator: string
   betHash: string
   jsonStorageRef?: string
-  creatorStake: string        // USDC amount (6 decimals as string)
-  requiredMatch: string       // Required matcher stake
-  matchedAmount: string
+  creatorStake: string        // WIND amount (18 decimals as string)
   oddsBps: number             // Basis points: 10000 = 1.00x
-  status: 'pending' | 'partially_matched' | 'fully_matched' | 'cancelled' | 'settled' | 'resolved'
+  status: 'pending' | 'matched' | 'settling' | 'settled'
   createdAt: string
   portfolioSize?: number
   tradeCount?: number         // Epic 8: Actual trade count from bet_trades table
+  // Story 14-1: Single-filler model
+  fillerAddress?: string      // Address of the filler (if matched)
+  fillerStake?: string        // Filler's stake amount
   // Epic 8: Category-based betting
   categoryId?: string         // Category ID (e.g., 'crypto', 'predictions')
   listSize?: number           // List size (e.g., 100 for top 100)
   // Epic 9: Trade horizon for position holding period
-  // TODO: Backend needs migration to add horizon column and API to return this field
-  // Currently derived from category on frontend when needed
   horizon?: TradeHorizon      // Trade horizon (short, daily, weekly, monthly, quarterly)
+  // Story 14-1: Early exit support
+  earlyExit?: boolean         // True if bet settled via early exit
 }
 
 /**
@@ -71,10 +72,8 @@ export interface OddsDisplay {
   impliedProbability: number
   /** Favorability for matcher */
   favorability: 'favorable' | 'even' | 'unfavorable'
-  /** Fill percentage (0-100) */
-  fillPercent: number
-  /** Remaining amount to match formatted */
-  remaining: string
+  /** Whether the bet is matched (single-filler model) */
+  isMatched: boolean
 }
 
 /**
@@ -98,9 +97,6 @@ export function calculateOddsDisplay(bet: Bet): OddsDisplay {
   // Parse collateral amounts using dynamic decimals
   const divisor = 10 ** COLLATERAL_DECIMALS
   const creatorStake = parseFloat(bet.creatorStake) / divisor
-  const requiredMatch = parseFloat(bet.requiredMatch) / divisor
-  const matchedAmount = parseFloat(bet.matchedAmount) / divisor
-  const totalPot = creatorStake + requiredMatch
 
   // Handle oddsBps - default to 10000 (1.00x) if missing, zero, or invalid
   const oddsBps = bet.oddsBps > 0 ? bet.oddsBps : DEFAULT_ODDS_BPS
@@ -109,16 +105,14 @@ export function calculateOddsDisplay(bet: Bet): OddsDisplay {
   }
   const oddsDecimal = oddsBps / 10000
 
-  // Calculate fill percentage - avoid NaN
-  const fillPercent = requiredMatch > 0
-    ? (matchedAmount / requiredMatch) * 100
-    : 0
+  // Story 14-1: Single-filler model — compute required match from odds
+  const requiredMatch = (creatorStake * oddsBps) / 10000
+  const totalPot = creatorStake + requiredMatch
 
-  // Calculate remaining amount
-  const remaining = Math.max(0, requiredMatch - matchedAmount)
+  // Single-filler: bet is either unmatched or fully matched
+  const isMatched = !!bet.fillerAddress
 
   // Determine favorability for matcher
-  // Higher odds = more favorable for matcher (they get better return)
   let favorability: 'favorable' | 'even' | 'unfavorable'
   if (oddsDecimal > FAVORABLE_ODDS_THRESHOLD) {
     favorability = 'favorable'
@@ -129,16 +123,12 @@ export function calculateOddsDisplay(bet: Bet): OddsDisplay {
   }
 
   // Calculate return multipliers (protected against divide by zero and infinity)
-  // Creator return = totalPot / creatorStake
-  // Matcher return = totalPot / matcherStake
   const creatorReturnRaw = creatorStake > 0 ? totalPot / creatorStake : 0
   const matcherReturnRaw = requiredMatch > 0 ? totalPot / requiredMatch : 0
-  // Cap at reasonable max to avoid "Infinity" display
   const creatorReturnVal = Number.isFinite(creatorReturnRaw) ? Math.min(creatorReturnRaw, 9999.99) : 0
   const matcherReturnVal = Number.isFinite(matcherReturnRaw) ? Math.min(matcherReturnRaw, 9999.99) : 0
 
-  // Implied probability = 1 / (odds + 1) for matcher's perspective
-  // For creator: P(win) = odds / (odds + 1)
+  // Implied probability: P(creator wins) = odds / (odds + 1)
   const impliedProbability = oddsDecimal / (oddsDecimal + 1)
 
   return {
@@ -151,8 +141,7 @@ export function calculateOddsDisplay(bet: Bet): OddsDisplay {
     matcherReturn: `${matcherReturnVal.toFixed(2)}x`,
     impliedProbability,
     favorability,
-    fillPercent,
-    remaining: formatUSD(remaining)
+    isMatched,
   }
 }
 

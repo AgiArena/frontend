@@ -8,6 +8,7 @@ import {
   DEFAULT_ODDS_BPS,
 } from '@/lib/types/bet'
 
+/** @deprecated Story 14-1: Multi-fill removed. Single filler on BetData now. */
 export interface BetFill {
   fillerAddress: string
   fillAmount: string
@@ -42,9 +43,6 @@ export interface BetData {
   portfolioSize: number
   tradeCount?: number
   amount: string
-  matchedAmount: string
-  /** Required match amount - defaults to amount if not provided (1:1 odds) */
-  requiredMatch?: string
   /** Odds in basis points: 10000 = 1.00x, 20000 = 2.00x */
   oddsBps?: number
   status: string
@@ -53,7 +51,10 @@ export interface BetData {
   createdAt: string
   updatedAt: string
   resolutionDeadline?: string
-  /** Fills/counterparties for this bet */
+  // Story 14-1: Single-filler model
+  fillerAddress?: string
+  fillerStake?: string
+  /** @deprecated Story 14-1: Use fillerAddress/fillerStake instead */
   fills?: BetFill[]
   portfolioJson?: {
     expiry?: string
@@ -98,16 +99,12 @@ export function getStatusColor(status: string): string {
   switch (status) {
     case 'pending':
       return 'text-yellow-400'
-    case 'partially_matched':
-      return 'text-blue-400'
-    case 'fully_matched':
+    case 'matched':
       return 'text-green-400'
-    case 'resolved':
-      return 'text-purple-400'
+    case 'settling':
+      return 'text-blue-400'
     case 'settled':
       return 'text-cyan-400'
-    case 'cancelled':
-      return 'text-red-400'
     default:
       return 'text-white/60'
   }
@@ -116,17 +113,13 @@ export function getStatusColor(status: string): string {
 export function getStatusLabel(status: string): string {
   switch (status) {
     case 'pending':
-      return 'Pending Match'
-    case 'partially_matched':
-      return 'Partially Matched'
-    case 'fully_matched':
-      return 'Fully Matched - Awaiting Resolution'
-    case 'resolved':
-      return 'Resolved - Awaiting Settlement'
+      return 'Awaiting Match'
+    case 'matched':
+      return 'Matched - Awaiting Resolution'
+    case 'settling':
+      return 'Keepers Voting'
     case 'settled':
       return 'Settled'
-    case 'cancelled':
-      return 'Cancelled'
     default:
       return status
   }
@@ -137,8 +130,9 @@ export function getStatusLabel(status: string): string {
  */
 export function getOddsInfo(bet: BetData): OddsInfo {
   const creatorStake = parseFloat(bet.amount)
-  const requiredMatch = bet.requiredMatch ? parseFloat(bet.requiredMatch) : creatorStake
   const oddsBps = bet.oddsBps && bet.oddsBps > 0 ? bet.oddsBps : DEFAULT_ODDS_BPS
+  // Story 14-1: Compute required match from odds
+  const requiredMatch = (creatorStake * oddsBps) / 10000
   const oddsDecimal = oddsBps / 10000
   const totalPot = creatorStake + requiredMatch
 
