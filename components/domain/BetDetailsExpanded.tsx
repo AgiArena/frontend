@@ -61,9 +61,6 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
     }
   }, [bet.portfolioJson])
 
-  // Get top 10 positions for preview
-  const top10Positions = portfolioPositions.slice(0, 10)
-
   return (
     <div className="space-y-4">
       {/* Epic 8: Category and List Size */}
@@ -163,70 +160,18 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
         </div>
       )}
 
-      {/* Top 10 Markets Preview */}
-      {top10Positions.length > 0 && (
-        <div>
-          <span className="text-xs text-white/60 font-mono block mb-2">Top 10 Markets Preview:</span>
-          <div className="space-y-1 border border-white/10 rounded p-2">
-            {top10Positions.map((position, idx) => {
-              const parsed = parseMarketId(position.marketId)
-              const sourceBadge = getSourceBadge(parsed.dataSource)
-              const posLabel = formatPosition(
-                position.position === 'YES' ? 1 : 0,
-                parsed.dataSource
-              )
-              return (
-                <div
-                  key={`${position.marketId}-${idx}`}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span
-                      className={`px-1 py-0.5 text-xs rounded ${sourceBadge.bgColor} ${sourceBadge.textColor}`}
-                      title={sourceBadge.label}
-                    >
-                      {sourceBadge.icon}
-                    </span>
-                    <span className="text-white/80 truncate max-w-[180px]" title={position.marketTitle}>
-                      {parsed.dataSource === 'openmeteo'
-                        ? (() => {
-                            const weatherInfo = parseWeatherMarketId(parsed.rawId)
-                            return weatherInfo
-                              ? `${weatherInfo.displayCity} - ${weatherInfo.displayMetric}`
-                              : position.marketTitle
-                          })()
-                        : position.marketTitle
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-1 font-bold font-mono ${
-                        position.position === 'YES'
-                          ? 'text-white'
-                          : 'text-accent'
-                      }`}
-                    >
-                      {posLabel}
-                    </span>
-                    <span className="font-mono text-white/60">
-                      {parsed.dataSource === 'coingecko' || parsed.dataSource === 'stocks'
-                        ? `$${position.currentPrice.toLocaleString()}`
-                        : parsed.dataSource === 'openmeteo'
-                        ? (() => {
-                            const weatherInfo = parseWeatherMarketId(parsed.rawId)
-                            return weatherInfo
-                              ? formatWeatherValue(position.currentPrice, weatherInfo.metric)
-                              : `${position.currentPrice}`
-                          })()
-                        : `${(position.currentPrice * 100).toFixed(1)}%`
-                      }
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+      {/* Portfolio Summary - click to view full list */}
+      {portfolioPositions.length > 0 && (
+        <div className="border border-white/10 rounded p-3 bg-white/5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-white/60 font-mono">Portfolio:</span>
+            <span className="text-sm font-mono text-white font-bold">
+              {portfolioPositions.length.toLocaleString()} positions
+            </span>
           </div>
+          <p className="text-xs text-white/40 font-mono">
+            Click "View Full Portfolio" below to see all trades with virtual scroll.
+          </p>
         </div>
       )}
 

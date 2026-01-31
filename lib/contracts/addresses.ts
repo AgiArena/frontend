@@ -31,8 +31,8 @@ const networks: Record<string, NetworkConfig> = {
     chainId: 111222333,
     chainName: 'Index L3',
     contracts: {
-      agiArenaCore: '0x9F45c54963b174d4f338cDE2Dc03A3d19B043fcB',
-      resolutionDAO: '0xa6aB9e9E494a380Ed5339eDdb7A0cE315d8215fc',
+      agiArenaCore: '0x873256196B70c5a7fC08A820089293302F492d08',
+      resolutionDAO: '0x1B1157f2C4E8821B4172dDA17730E9807aceEe88',
     },
     collateralToken: {
       address: '0x6Ef9653b34C2A0d91219466b029428ff4F49D651',
