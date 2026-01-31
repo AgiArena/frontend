@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback, useEffect, memo } from 'react'
 import { useAccount } from 'wagmi'
 import { useBetHistory, BetRecord } from '@/hooks/useBetHistory'
-import { useCancelBet } from '@/hooks/useCancelBet'
 import { BetDetailsExpanded } from '@/components/domain/BetDetailsExpanded'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useToast } from '@/lib/contexts/ToastContext'
@@ -17,14 +16,12 @@ interface BetRowProps {
   bet: BetRecord
   isExpanded: boolean
   onToggle: () => void
-  onCancelBet: () => void
-  isCancelling: boolean
 }
 
 /**
  * Single bet row component - memoized to prevent unnecessary re-renders
  */
-const BetRow = memo(function BetRow({ bet, isExpanded, onToggle, onCancelBet, isCancelling }: BetRowProps) {
+const BetRow = memo(function BetRow({ bet, isExpanded, onToggle }: BetRowProps) {
   const amount = toBaseUnits(bet.amount)
 
   return (
@@ -98,11 +95,7 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle, onCancelBet, is
       {isExpanded && (
         <tr>
           <td colSpan={6} className="bg-white/5 px-4 py-4 border-b border-white/10">
-            <BetDetailsExpanded
-              bet={bet}
-              onCancelBet={onCancelBet}
-              isCancelling={isCancelling}
-            />
+            <BetDetailsExpanded bet={bet} />
           </td>
         </tr>
       )}
@@ -201,17 +194,12 @@ function Pagination({ currentPage, totalPages, onPrev, onNext }: PaginationProps
 export function PortfolioBetHistoryTable() {
   const { address, isConnected } = useAccount()
   const { bets, isLoading, isError, error } = useBetHistory({ address })
-  const { cancelBet, state: cancelState, txHash: cancelTxHash, reset: resetCancel } = useCancelBet(address)
-  const { showSuccess, showError } = useToast()
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
 
   // Expanded row state
   const [expandedBetId, setExpandedBetId] = useState<string | null>(null)
-
-  // Track which bet is being cancelled
-  const [cancellingBetId, setCancellingBetId] = useState<string | null>(null)
 
   // Paginated bets
   const { paginatedBets, totalPages } = useMemo(() => {
@@ -235,28 +223,6 @@ export function PortfolioBetHistoryTable() {
   const toggleExpanded = useCallback((betId: string) => {
     setExpandedBetId((prev) => (prev === betId ? null : betId))
   }, [])
-
-  // Handle cancel bet
-  const handleCancelBet = useCallback((bet: BetRecord) => {
-    setCancellingBetId(bet.betId)
-    cancelBet(BigInt(bet.betId))
-  }, [cancelBet])
-
-  // Handle cancel state changes
-  useEffect(() => {
-    if (cancelState === 'success' && cancelTxHash) {
-      showSuccess('Bet cancelled successfully!', {
-        url: getTxUrl(cancelTxHash),
-        text: 'View on BaseScan'
-      })
-      setCancellingBetId(null)
-      resetCancel()
-    } else if (cancelState === 'error') {
-      showError('Failed to cancel bet. Please try again.')
-      setCancellingBetId(null)
-      resetCancel()
-    }
-  }, [cancelState, cancelTxHash, showSuccess, showError, resetCancel])
 
   // Not connected state
   if (!isConnected) {
@@ -312,8 +278,6 @@ export function PortfolioBetHistoryTable() {
                   bet={bet}
                   isExpanded={expandedBetId === bet.betId}
                   onToggle={() => toggleExpanded(bet.betId)}
-                  onCancelBet={() => handleCancelBet(bet)}
-                  isCancelling={cancellingBetId === bet.betId && (cancelState === 'pending' || cancelState === 'confirming')}
                 />
               ))
             )}

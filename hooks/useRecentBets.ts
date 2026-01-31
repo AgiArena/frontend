@@ -5,8 +5,9 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
 
 /**
  * Event types for recent bet feed
+ * Story 14-1: Added 'settled' for early exit events
  */
-export type BetEventType = 'placed' | 'matched' | 'won' | 'lost'
+export type BetEventType = 'placed' | 'matched' | 'won' | 'lost' | 'settled'
 
 /**
  * Recent bet event interface matching backend API response

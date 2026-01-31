@@ -22,6 +22,7 @@ export interface BetRecord {
   portfolioSize: number
   tradeCount?: number         // Epic 8: Actual trade count from bet_trades table
   amount: string
+  creatorStake?: string       // Creator's stake amount
   oddsBps?: number            // Odds in basis points
   status: BetStatus
   createdAt: string
@@ -36,6 +37,8 @@ export interface BetRecord {
   snapshotId?: string         // Snapshot ID for trade list
   // Epic 9: Trade horizon
   horizon?: 'short' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
+  // Story 14-1: Early exit support
+  earlyExit?: boolean         // True if bet settled via early exit
 }
 
 interface UseBetHistoryOptions {

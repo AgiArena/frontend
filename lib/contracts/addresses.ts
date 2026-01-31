@@ -27,20 +27,6 @@ interface NetworkConfig {
 }
 
 const networks: Record<string, NetworkConfig> = {
-  'base-mainnet': {
-    chainId: null,
-    chainName: 'Base',
-    contracts: {
-      agiArenaCore: 'null',
-      resolutionDAO: 'null',
-    },
-    collateralToken: {
-      address: 'null',
-      symbol: 'null',
-      decimals: null,
-    },
-    rpcUrl: 'https://mainnet.base.org',
-  },
   'index-l3': {
     chainId: 111222333,
     chainName: 'Index L3',

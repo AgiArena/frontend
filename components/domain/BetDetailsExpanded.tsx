@@ -14,8 +14,6 @@ import type { TradeHorizon } from '@/lib/types/bet'
 
 interface BetDetailsExpandedProps {
   bet: BetRecord
-  onCancelBet: () => void
-  isCancelling: boolean
 }
 
 /**
@@ -29,7 +27,7 @@ function shouldShowResolution(status: BetRecord['status']): boolean {
 /**
  * Expanded row content showing bet details
  */
-export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetailsExpandedProps) {
+export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const category = useCategoryById(bet.categoryId)
 
@@ -65,9 +63,6 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
 
   // Get top 10 positions for preview
   const top10Positions = portfolioPositions.slice(0, 10)
-
-  // Story 14-1: Cancellation removed — propositions auto-expire
-  const canCancel = false
 
   return (
     <div className="space-y-4">
@@ -246,15 +241,6 @@ export function BetDetailsExpanded({ bet, onCancelBet, isCancelling }: BetDetail
           </button>
         )}
 
-        {canCancel && (
-          <button
-            onClick={onCancelBet}
-            disabled={isCancelling}
-            className="px-3 py-1.5 border border-accent text-accent text-sm font-mono hover:bg-accent hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isCancelling ? 'Cancelling...' : 'Cancel Bet'}
-          </button>
-        )}
 
         <a
           href={getTxUrl(bet.txHash)}
