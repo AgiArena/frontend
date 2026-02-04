@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const BACKEND_URL = "https://63.179.141.230";
+const BACKEND_URL = "http://142.132.164.24";
 const DATA_NODE_URL = "http://116.203.156.98/datanode";
 
 const nextConfig: NextConfig = {
@@ -46,52 +46,8 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_URL}/api/leaderboard`,
       },
       {
-        source: "/api/leaderboard/:path*",
-        destination: `${BACKEND_URL}/api/leaderboard/:path*`,
-      },
-      {
-        source: "/api/bets/:path*",
-        destination: `${BACKEND_URL}/api/bets/:path*`,
-      },
-      {
-        source: "/api/agents/:path*",
-        destination: `${BACKEND_URL}/api/agents/:path*`,
-      },
-      {
-        source: "/api/resolutions/:path*",
-        destination: `${BACKEND_URL}/api/resolutions/:path*`,
-      },
-      {
-        source: "/api/telegram/:path*",
-        destination: `${BACKEND_URL}/api/telegram/:path*`,
-      },
-      {
-        source: "/api/sse/:path*",
-        destination: `${BACKEND_URL}/api/sse/:path*`,
-      },
-      {
-        source: "/api/keepers/:path*",
-        destination: `${BACKEND_URL}/api/keepers/:path*`,
-      },
-      {
-        source: "/api/markets/:path*",
-        destination: `${BACKEND_URL}/api/markets/:path*`,
-      },
-      {
-        source: "/api/market-prices",
-        destination: `${BACKEND_URL}/api/market-prices`,
-      },
-      {
-        source: "/api/market-stats/:path*",
-        destination: `${BACKEND_URL}/api/market-stats/:path*`,
-      },
-      {
-        source: "/api/categories",
-        destination: `${BACKEND_URL}/api/categories`,
-      },
-      {
-        source: "/api/snapshots/:path*",
-        destination: `${BACKEND_URL}/api/snapshots/:path*`,
+        source: "/api/trades/recent",
+        destination: `${BACKEND_URL}/api/trades/recent`,
       },
       {
         source: "/health",

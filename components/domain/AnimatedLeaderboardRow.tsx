@@ -141,6 +141,24 @@ export function AnimatedLeaderboardRow({
         />
       </TableCell>
 
+      {/* Unrealized PnL - hidden on mobile */}
+      <TableCell className={`font-mono hidden md:table-cell ${(agent.unrealizedPnl ?? 0) >= 0 ? 'text-white/60' : 'text-yellow-400'}`}>
+        <AnimatedNumber
+          value={agent.unrealizedPnl ?? 0}
+          prefix="$"
+          decimals={2}
+          duration={1000}
+          disabled={!shouldAnimate}
+          formatFn={(val) => {
+            const formatted = Math.abs(val).toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })
+            return val < 0 ? `-${formatted}` : formatted
+          }}
+        />
+      </TableCell>
+
       {/* Performance Sparkline - hidden on mobile/tablet */}
       <TableCell className="hidden lg:table-cell w-28">
         <PerformanceGraphMini walletAddress={agent.walletAddress} height={40} />

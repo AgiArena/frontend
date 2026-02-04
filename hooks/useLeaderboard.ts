@@ -9,13 +9,19 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
 export interface AgentRanking {
   rank: number
   walletAddress: string       // 0x... format
-  pnl: number                 // Decimal, can be negative
+  pnl: number                 // Decimal, can be negative (realized PnL)
+  realizedPnl: number         // Explicit realized PnL
+  unrealizedPnl: number       // Unrealized PnL (active bets at risk)
+  totalPnl: number            // Realized + unrealized
   winRate: number             // 0-100 percentage
   roi: number                 // Percentage, can be negative
   totalVolume: number         // USDC amount (renamed from volume to match backend)
   portfolioBets: number       // Count (renamed from totalBets to match backend)
   avgPortfolioSize: number    // Markets count
   largestPortfolio: number    // Markets count (renamed from maxPortfolioSize to match backend)
+  wins: number
+  losses: number
+  activeBets: number
   lastActiveAt?: string       // ISO timestamp (optional - not always present from backend)
   // Aliases for backward compatibility with frontend components
   volume: number              // Alias for totalVolume
@@ -47,14 +53,20 @@ interface UseLeaderboardReturn {
 interface BackendAgentRanking {
   rank: number
   walletAddress: string
-  pnl: string | number           // Backend returns string
-  winRate: string | number       // Backend returns string
-  roi: string | number           // Backend returns string
-  totalVolume: string | number   // Backend returns string
+  pnl: string | number
+  realizedPnl: string | number
+  unrealizedPnl: string | number
+  totalPnl: string | number
+  winRate: string | number
+  roi: string | number
+  totalVolume: string | number
   portfolioBets: number
-  avgPortfolioSize: string | number  // Backend returns string
+  avgPortfolioSize: string | number
   largestPortfolio: number
-  lastActiveAt?: string  // ISO timestamp from on-chain block timestamp
+  wins: number
+  losses: number
+  activeBets: number
+  lastActiveAt?: string
 }
 
 interface BackendLeaderboardResponse {
@@ -81,25 +93,39 @@ async function fetchLeaderboard(): Promise<LeaderboardResponse> {
   // Guard against undefined/null leaderboard array
   const leaderboardArray = data.leaderboard ?? []
   const transformedLeaderboard: AgentRanking[] = leaderboardArray.map((agent) => {
-    const pnl = typeof agent.pnl === 'string' ? parseFloat(agent.pnl) : agent.pnl
-    const winRate = typeof agent.winRate === 'string' ? parseFloat(agent.winRate) : agent.winRate
-    const roi = typeof agent.roi === 'string' ? parseFloat(agent.roi) : agent.roi
-    const totalVolume = typeof agent.totalVolume === 'string' ? parseFloat(agent.totalVolume) : agent.totalVolume
-    const avgPortfolioSize = typeof agent.avgPortfolioSize === 'string' ? parseFloat(agent.avgPortfolioSize) : agent.avgPortfolioSize
+    const parse = (v: string | number | undefined) => {
+      const n = typeof v === 'string' ? parseFloat(v) : (v ?? 0)
+      return isNaN(n) ? 0 : n
+    }
+
+    const pnl = parse(agent.pnl)
+    const realizedPnl = parse(agent.realizedPnl)
+    const unrealizedPnl = parse(agent.unrealizedPnl)
+    const totalPnl = parse(agent.totalPnl)
+    const winRate = parse(agent.winRate)
+    const roi = parse(agent.roi)
+    const totalVolume = parse(agent.totalVolume)
+    const avgPortfolioSize = parse(agent.avgPortfolioSize)
 
     return {
       rank: agent.rank,
       walletAddress: agent.walletAddress,
-      pnl: isNaN(pnl) ? 0 : pnl,
-      winRate: isNaN(winRate) ? 0 : winRate,
-      roi: isNaN(roi) ? 0 : roi,
-      totalVolume: isNaN(totalVolume) ? 0 : totalVolume,
+      pnl,
+      realizedPnl,
+      unrealizedPnl,
+      totalPnl,
+      winRate,
+      roi,
+      totalVolume,
       portfolioBets: agent.portfolioBets,
-      avgPortfolioSize: isNaN(avgPortfolioSize) ? 0 : avgPortfolioSize,
+      avgPortfolioSize,
       largestPortfolio: agent.largestPortfolio,
+      wins: agent.wins ?? 0,
+      losses: agent.losses ?? 0,
+      activeBets: agent.activeBets ?? 0,
       lastActiveAt: agent.lastActiveAt,
-      // Add alias fields for backward compatibility
-      volume: isNaN(totalVolume) ? 0 : totalVolume,
+      // Backward compatibility aliases
+      volume: totalVolume,
       totalBets: agent.portfolioBets,
       maxPortfolioSize: agent.largestPortfolio,
     }

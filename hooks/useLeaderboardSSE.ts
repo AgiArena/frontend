@@ -10,47 +10,43 @@ import { getBackendUrl } from '@/lib/contracts/addresses'
  * Backend returns decimal values as strings for precision
  */
 function transformLeaderboardData(rawData: unknown): LeaderboardResponse {
-  const data = rawData as {
-    leaderboard?: Array<{
-      rank: number
-      walletAddress: string
-      pnl: string | number
-      winRate: string | number
-      roi: string | number
-      totalVolume: string | number
-      portfolioBets: number
-      avgPortfolioSize: string | number
-      largestPortfolio: number
-      lastActiveAt?: string
-    }>
-    updatedAt?: string
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = rawData as any
 
   if (!data.leaderboard) {
     return { leaderboard: [], updatedAt: data.updatedAt || new Date().toISOString() }
   }
 
-  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent) => {
-    const pnl = typeof agent.pnl === 'string' ? parseFloat(agent.pnl) : agent.pnl
-    const winRate = typeof agent.winRate === 'string' ? parseFloat(agent.winRate) : agent.winRate
-    const roi = typeof agent.roi === 'string' ? parseFloat(agent.roi) : agent.roi
-    const totalVolume = typeof agent.totalVolume === 'string' ? parseFloat(agent.totalVolume) : agent.totalVolume
-    const avgPortfolioSize = typeof agent.avgPortfolioSize === 'string' ? parseFloat(agent.avgPortfolioSize) : agent.avgPortfolioSize
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transformedLeaderboard: AgentRanking[] = data.leaderboard.map((agent: any) => {
+    const parse = (v: string | number | undefined) => {
+      const n = typeof v === 'string' ? parseFloat(v) : (v ?? 0)
+      return isNaN(n) ? 0 : n
+    }
+
+    const pnl = parse(agent.pnl)
+    const totalVolume = parse(agent.totalVolume)
 
     return {
       rank: agent.rank,
       walletAddress: agent.walletAddress,
-      pnl: isNaN(pnl) ? 0 : pnl,
-      winRate: isNaN(winRate) ? 0 : winRate,
-      roi: isNaN(roi) ? 0 : roi,
-      totalVolume: isNaN(totalVolume) ? 0 : totalVolume,
-      portfolioBets: agent.portfolioBets,
-      avgPortfolioSize: isNaN(avgPortfolioSize) ? 0 : avgPortfolioSize,
-      largestPortfolio: agent.largestPortfolio,
+      pnl,
+      realizedPnl: parse(agent.realizedPnl),
+      unrealizedPnl: parse(agent.unrealizedPnl),
+      totalPnl: parse(agent.totalPnl),
+      winRate: parse(agent.winRate),
+      roi: parse(agent.roi),
+      totalVolume,
+      portfolioBets: agent.portfolioBets ?? 0,
+      avgPortfolioSize: parse(agent.avgPortfolioSize),
+      largestPortfolio: agent.largestPortfolio ?? 0,
+      wins: agent.wins ?? 0,
+      losses: agent.losses ?? 0,
+      activeBets: agent.activeBets ?? 0,
       lastActiveAt: agent.lastActiveAt,
-      volume: isNaN(totalVolume) ? 0 : totalVolume,
-      totalBets: agent.portfolioBets,
-      maxPortfolioSize: agent.largestPortfolio,
+      volume: totalVolume,
+      totalBets: agent.portfolioBets ?? 0,
+      maxPortfolioSize: agent.largestPortfolio ?? 0,
     }
   })
 

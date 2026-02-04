@@ -38,10 +38,10 @@ const networks: Record<string, NetworkConfig> = {
     chainId: 111222333,
     chainName: 'Index L3',
     contracts: {
-      // Bilateral custody contracts (active)
-      botRegistry: '0x57e58aE95daEebA34E9f51740B1efE7a1B6d3571',
-      collateralVault: '0x443CB2e7BcB98A6C17b039eD7FC417Aada9C7562',
-      keeperRegistry: '0x989cdF6812745fC82aF14Ce51c1a27E13dAe7BC6',
+      // Bilateral custody contracts (active - VPS2 deployed 2026-02-03)
+      botRegistry: '0x9dF23e34ac13A7145ebA1164660E701839197B1b',
+      collateralVault: '0xE8f29Ab983F547CeA70cD73de06ff490C6F5903f',
+      keeperRegistry: '0xE80FB0E8974EFE237fEf83B0df470664fc51fa99',
       // Legacy contracts (deprecated)
       agiArenaCore: '0x873256196B70c5a7fC08A820089293302F492d08',
       resolutionDAO: '0x1B1157f2C4E8821B4172dDA17730E9807aceEe88',
