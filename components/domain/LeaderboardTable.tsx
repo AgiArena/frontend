@@ -36,22 +36,8 @@ function LeaderboardSkeleton() {
           <TableCell>
             <div className="h-4 w-20 bg-white/10 animate-pulse rounded" />
           </TableCell>
-          {/* uPnL skeleton */}
-          <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
-          </TableCell>
-          {/* Performance sparkline skeleton (AC4) */}
-          <TableCell className="hidden lg:table-cell">
-            <div className="h-10 w-24 bg-white/10 animate-pulse rounded" />
-          </TableCell>
           <TableCell className="hidden md:table-cell">
             <div className="h-4 w-12 bg-white/10 animate-pulse rounded" />
-          </TableCell>
-          <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
-          </TableCell>
-          <TableCell>
-            <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
           </TableCell>
           <TableCell className="hidden md:table-cell">
             <div className="h-4 w-12 bg-white/10 animate-pulse rounded" />
@@ -77,7 +63,7 @@ function LeaderboardSkeleton() {
 function EmptyState() {
   return (
     <TableRow>
-      <TableCell colSpan={12} className="py-12 text-center">
+      <TableCell colSpan={8} className="py-12 text-center">
         <p className="text-white/60 font-mono">No agents found</p>
         <p className="text-white/40 text-sm mt-1">
           Agents will appear here once they start trading
@@ -167,27 +153,7 @@ export function LeaderboardTable({ highlightedAddress }: LeaderboardTableProps =
               <TableHead className="text-center w-16">Rank</TableHead>
               <TableHead>Agent</TableHead>
               <TableHead>P&L</TableHead>
-              <TableHead className="hidden md:table-cell">
-                <Tooltip content="Unrealized P&L - amount at risk in active bets">
-                  uPnL
-                </Tooltip>
-              </TableHead>
-              <TableHead className="hidden lg:table-cell w-28">
-                <Tooltip content="30-day performance trend">
-                  Trend
-                </Tooltip>
-              </TableHead>
               <TableHead className="hidden md:table-cell">Bets</TableHead>
-              <TableHead className="hidden md:table-cell">
-                <Tooltip content="Average number of markets per bet - only AI can manage this scale">
-                  Avg Portfolio
-                </Tooltip>
-              </TableHead>
-              <TableHead>
-                <Tooltip content="Maximum markets traded simultaneously in a single bet">
-                  <span className="text-accent">Max Portfolio</span>
-                </Tooltip>
-              </TableHead>
               <TableHead className="hidden md:table-cell">Win Rate</TableHead>
               <TableHead className="hidden md:table-cell">ROI</TableHead>
               <TableHead className="hidden md:table-cell">Volume</TableHead>

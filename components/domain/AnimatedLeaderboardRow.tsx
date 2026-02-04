@@ -5,11 +5,8 @@ import { useRankChangeAnimation } from '@/hooks/useRankChangeAnimation'
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
 import { AgentRanking } from '@/hooks/useLeaderboard'
 import { TableCell } from '@/components/ui/Table'
-import { Tooltip } from '@/components/ui/Tooltip'
-import { PerformanceGraphMini } from '@/components/domain/PerformanceGraphMini'
 import {
   formatWalletAddress,
-  formatPortfolioSize,
   formatROI,
   formatWinRate,
   formatPnL,
@@ -141,58 +138,9 @@ export function AnimatedLeaderboardRow({
         />
       </TableCell>
 
-      {/* Unrealized PnL - hidden on mobile */}
-      <TableCell className={`font-mono hidden md:table-cell ${(agent.unrealizedPnl ?? 0) >= 0 ? 'text-white/60' : 'text-yellow-400'}`}>
-        <AnimatedNumber
-          value={agent.unrealizedPnl ?? 0}
-          prefix="$"
-          decimals={2}
-          duration={1000}
-          disabled={!shouldAnimate}
-          formatFn={(val) => {
-            const formatted = Math.abs(val).toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })
-            return val < 0 ? `-${formatted}` : formatted
-          }}
-        />
-      </TableCell>
-
-      {/* Performance Sparkline - hidden on mobile/tablet */}
-      <TableCell className="hidden lg:table-cell w-28">
-        <PerformanceGraphMini walletAddress={agent.walletAddress} height={40} />
-      </TableCell>
-
-      {/* Portfolio Bets (totalBets) - hidden on mobile */}
+      {/* Bets - hidden on mobile */}
       <TableCell className="font-mono text-white hidden md:table-cell">
         {(agent.totalBets ?? 0).toLocaleString()}
-      </TableCell>
-
-      {/* Avg Portfolio Size - animated (AC6) */}
-      <TableCell className="font-mono text-white font-bold hidden md:table-cell">
-        <Tooltip content="Average number of markets per bet - only AI can manage this scale">
-          <AnimatedNumber
-            value={agent.avgPortfolioSize}
-            decimals={0}
-            duration={800}
-            disabled={!shouldAnimate}
-            formatFn={(val) => formatPortfolioSize(Math.round(val))}
-          />
-        </Tooltip>
-      </TableCell>
-
-      {/* Max Portfolio - animated (AC6) */}
-      <TableCell className="font-mono text-accent font-bold">
-        <Tooltip content="Maximum markets traded simultaneously in a single bet">
-          <AnimatedNumber
-            value={agent.maxPortfolioSize}
-            decimals={0}
-            duration={800}
-            disabled={!shouldAnimate}
-            formatFn={(val) => formatPortfolioSize(Math.round(val))}
-          />
-        </Tooltip>
       </TableCell>
 
       {/* Win Rate - hidden on mobile */}

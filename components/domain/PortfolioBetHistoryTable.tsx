@@ -30,14 +30,9 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle }: BetRowProps) 
         onClick={onToggle}
         className="cursor-pointer hover:bg-white/5 border-b border-white/10 transition-colors"
       >
-        {/* Portfolio Size - use tradeCount from backend (Epic 8) */}
+        {/* Bet ID */}
         <td className="px-4 py-3 font-mono font-bold text-white">
-          {(() => {
-            const count = bet.tradeCount || bet.portfolioSize || 0
-            return count >= 1000
-              ? `${(count / 1000).toFixed(1)}K`
-              : count
-          })()} markets
+          #{bet.betId}
         </td>
 
         {/* Amount */}
@@ -258,7 +253,7 @@ export function PortfolioBetHistoryTable() {
         <table className="w-full">
           <thead>
             <tr className="bg-black text-white/60 text-xs font-mono uppercase border-b border-white/20">
-              <th className="px-4 py-2 text-left">Portfolio Size</th>
+              <th className="px-4 py-2 text-left">Bet</th>
               <th className="px-4 py-2 text-left">Amount</th>
               <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-left">Created</th>

@@ -132,7 +132,6 @@ function MegaPortfolioBadge() {
 export function BetFeedItem({ event }: BetFeedItemProps) {
   const { textColor } = getEventStyles(event.eventType)
   const description = getEventDescription(event)
-  const isMegaPortfolio = event.portfolioSize >= 20000
   const showResult = event.eventType === 'won' || event.eventType === 'lost'
   // Story 7-12: Show odds for non-default odds (not 1.00x)
   const hasCustomOdds = event.oddsBps && event.oddsBps !== DEFAULT_ODDS_BPS
@@ -177,12 +176,6 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
           {/* Amount - always show for context (AC3 format includes amount) */}
           <span className={showResult ? 'text-white/40' : ''}>
             {formatAmount(event.amount)}
-          </span>
-
-          {/* Portfolio size */}
-          <span className="flex items-center gap-1">
-            {formatPortfolioSize(event.portfolioSize)} markets
-            {isMegaPortfolio && <MegaPortfolioBadge />}
           </span>
 
           {/* Timestamp */}

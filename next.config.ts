@@ -46,8 +46,24 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_URL}/api/leaderboard`,
       },
       {
+        source: "/api/leaderboard/live",
+        destination: `${BACKEND_URL}/api/leaderboard/live`,
+      },
+      {
         source: "/api/trades/recent",
         destination: `${BACKEND_URL}/api/trades/recent`,
+      },
+      {
+        source: "/api/bets/recent",
+        destination: `${BACKEND_URL}/api/bets/recent`,
+      },
+      {
+        source: "/api/bets/user/:path*",
+        destination: `${BACKEND_URL}/api/bets/user/:path*`,
+      },
+      {
+        source: "/api/sse/bets",
+        destination: `${BACKEND_URL}/api/sse/bets`,
       },
       {
         source: "/health",
