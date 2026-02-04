@@ -29,6 +29,10 @@ export interface AgentDetail {
   roi: number                 // Percentage, can be negative
   volume: number              // USDC amount
   totalBets: number           // Count
+  wins: number                // Settled wins
+  losses: number              // Settled losses
+  activeBets: number          // Currently active bets
+  settledBets: number         // Total settled bets
   avgPortfolioSize: number    // Markets count
   maxPortfolioSize: number    // Markets count
   lastActiveAt: string        // ISO timestamp

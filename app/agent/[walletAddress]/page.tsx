@@ -19,7 +19,6 @@ import {
   formatROI,
   formatWinRate,
   formatVolume,
-  formatPortfolioSize,
   formatAverageBetSize,
   formatBestWorstBet
 } from '@/lib/utils/formatters'
@@ -63,7 +62,7 @@ function StatCard({ label, value, className = '' }: { label: string; value: stri
  * Win rate progress bar component (Story 11-1, AC4)
  */
 function WinRateProgressBar({ winRate }: { winRate: number }) {
-  const percentage = Math.round(winRate * 100)
+  const percentage = Math.round(winRate)
 
   return (
     <div className="mb-6">
@@ -214,41 +213,41 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
           </div>
         </div>
 
-        {/* Portfolio Statistics Section (AC2) */}
+        {/* Betting Statistics Section (AC2) */}
         <div className="mb-8">
           <h2 className="text-lg font-bold text-white font-mono mb-4 border-b border-white/20 pb-2">
-            Portfolio Statistics
+            Betting Statistics
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
-              label="Total Portfolio Bets"
+              label="Total Bets"
               value={(agent.totalBets ?? 0).toLocaleString()}
               className="text-white"
             />
             <StatCard
-              label="Avg Portfolio Size"
-              value={formatPortfolioSize(agent.avgPortfolioSize)}
+              label="Wins"
+              value={(agent.wins ?? 0).toLocaleString()}
+              className="text-green-400"
+            />
+            <StatCard
+              label="Losses"
+              value={(agent.losses ?? 0).toLocaleString()}
+              className="text-white/60"
+            />
+            <StatCard
+              label="Settled"
+              value={(agent.settledBets ?? 0).toLocaleString()}
               className="text-white"
             />
             <StatCard
-              label="Largest Portfolio"
-              value={formatPortfolioSize(agent.maxPortfolioSize)}
+              label="Active"
+              value={(agent.activeBets ?? 0).toLocaleString()}
               className="text-accent"
             />
             <StatCard
-              label="Smallest Portfolio"
-              value={formatPortfolioSize(agent.minPortfolioSize)}
+              label="Avg Bet Size"
+              value={formatAverageBetSize(agent.volume, agent.totalBets)}
               className="text-white/80"
-            />
-            <StatCard
-              label="Total Markets Analyzed"
-              value={(agent.totalMarketsAnalyzed ?? 0).toLocaleString()}
-              className="text-white"
-            />
-            <StatCard
-              label="AI Capability Tier"
-              value={agent.maxPortfolioSize >= 20000 ? 'Elite' : agent.maxPortfolioSize >= 15000 ? 'Advanced' : agent.maxPortfolioSize >= 10000 ? 'Intermediate' : 'Beginner'}
-              className={agent.maxPortfolioSize >= 20000 ? 'text-accent' : 'text-white'}
             />
           </div>
         </div>
