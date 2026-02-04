@@ -33,41 +33,18 @@ const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   polymarket: 'Prediction Markets',
 }
 
-// Category display names
-const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
-  meteoTop100: 'Top 100 Cities',
-  meteoTop1000: 'Top 1000 Cities',
-  meteoOther: 'All Other Cities',
-  defiChainTvl: 'Chain TVL',
-  defiMegaCap: 'Mega Cap ($10B+)',
-  defiLargeCap: 'Large Cap ($1B+)',
-  defiMidCap: 'Mid Cap ($100M+)',
-  defiSmallCap: 'Small Cap',
-  defiDexVolume24h: 'DEX 24h Volume',
-  defiDexVolume30d: 'DEX 30d Volume',
-  interest_rates: 'Interest Rates',
-  inflation: 'Inflation',
-  macro: 'Macro',
-  treasury_yields: 'Treasury Yields',
-  mortgage_rates: 'Mortgage Rates',
-  yield_spreads: 'Yield Spreads',
-  // Stock subcategories
-  usTechLargeCap: 'US Tech Large Cap',
-  usTechMidCap: 'US Tech Mid Cap',
-  usFinancials: 'US Financials',
-  usHealthcare: 'US Healthcare',
-  usConsumer: 'US Consumer',
-  usIndustrials: 'US Industrials',
-  usEnergy: 'US Energy',
-  usMaterials: 'US Materials',
-  usUtilitiesReits: 'US Utilities & REITs',
-  usMediaTelecom: 'US Media & Telecom',
-  // BLS subcategories
-  employment: 'Employment',
-  labor: 'Labor Statistics',
-  // Treasury subcategories (treasury_yields already defined above)
-  tbill_rates: 'T-Bill Rates',
-  real_yields: 'Real Yields',
+// Subcategory display names (keyed by derived feed type)
+const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  // Weather metrics
+  temperature_2m: 'Temperature',
+  rain: 'Rainfall',
+  wind_speed_10m: 'Wind Speed',
+  pm2_5: 'PM2.5 Air Quality',
+  ozone: 'Ozone',
+  // DeFi feed types
+  chain_tvl: 'Chain TVL',
+  protocol_tvl: 'Protocol TVL',
+  dex_volume: 'DEX Volume',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -76,6 +53,27 @@ const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   poly_esports: 'Esports & Gaming',
   poly_science: 'Science & Tech',
   poly_other: 'Other',
+}
+
+// Derive the data feed type from a price entry's asset ID / source
+function deriveFeedType(p: SnapshotPrice): string | null {
+  if (p.source === 'weather') {
+    // asset_id format: {city_id}:{metric} e.g. "paris-fr:temperature_2m"
+    const colonIdx = p.assetId.lastIndexOf(':')
+    if (colonIdx > 0) return p.assetId.slice(colonIdx + 1)
+    return null
+  }
+  if (p.source === 'defi') {
+    // asset_id prefixes: chain_, protocol_, dex_24h_, dex_30d_
+    if (p.assetId.startsWith('chain_')) return 'chain_tvl'
+    if (p.assetId.startsWith('protocol_')) return 'protocol_tvl'
+    if (p.assetId.startsWith('dex_')) return 'dex_volume'
+    return null
+  }
+  if (p.source === 'polymarket') {
+    return classifyPolymarket(p.name)
+  }
+  return null
 }
 
 // Keyword-based classification for Polymarket assets
@@ -111,16 +109,28 @@ function classifyPolymarket(name: string): string {
   return 'poly_other'
 }
 
-// Sources that should show subcategories
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'rates', 'ecb', 'stocks', 'bls', 'bonds'])
+// Sources that should show subcategories (by data feed type)
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi'])
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatValue(v: number, source: string): string {
+function formatValue(v: number, source: string, assetId?: string): string {
   if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
   if (source === 'ecb') return v.toFixed(4)
+  if (source === 'weather') {
+    // Format weather values with appropriate units
+    if (assetId) {
+      const metric = assetId.split(':')[1]
+      if (metric === 'temperature_2m') return `${v.toFixed(1)}°C`
+      if (metric === 'rain') return `${v.toFixed(1)}mm`
+      if (metric === 'wind_speed_10m') return `${v.toFixed(1)}km/h`
+      if (metric === 'pm2_5') return `${v.toFixed(1)}µg/m³`
+      if (metric === 'ozone') return `${v.toFixed(1)}µg/m³`
+    }
+    return v.toFixed(1)
+  }
   if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
   if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`
@@ -260,10 +270,17 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   const isDown = changePct !== null && changePct < 0
   const hasCryptoLogo = price.source === 'crypto'
 
-  const displaySymbol =
+  let displaySymbol =
     !price.symbol || price.symbol === '-'
       ? price.name.replace(' TVL', '').slice(0, 10)
       : price.symbol
+  // Weather: show city name (strip metric suffix from name like "Paris Temperature")
+  if (price.source === 'weather') {
+    const parts = price.name.split(' ')
+    // Remove the last word (metric label), keep city name
+    displaySymbol = parts.length > 1 ? parts.slice(0, -1).join(' ') : price.name
+    if (displaySymbol.length > 14) displaySymbol = displaySymbol.slice(0, 12) + '..'
+  }
 
   return (
     <div
@@ -274,14 +291,14 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
             ? 'border-red-500/30 bg-red-500/5'
             : 'border-white/10 bg-white/5'
       }`}
-      title={`${price.name}\n${formatValue(value, price.source)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}`}
+      title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}`}
     >
       <div className="flex items-center gap-1.5">
         {hasCryptoLogo && <CryptoLogo assetId={price.assetId} symbol={price.symbol} size={16} />}
         <div className="font-mono text-xs font-bold text-white truncate">{displaySymbol}</div>
       </div>
       <div className="font-mono text-[10px] text-white/60 truncate">
-        {formatValue(value, price.source)}
+        {formatValue(value, price.source, price.assetId)}
       </div>
       {changePct !== null && (
         <div className={`font-mono text-[10px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>
@@ -348,12 +365,13 @@ export default function MarketPage() {
     return data.sources.filter((s) => s.enabled)
   }, [data?.sources])
 
-  // Assign derived categories (e.g. Polymarket keyword classification)
+  // Derive feed-type subcategories for sources that support them
   const enrichedPrices = useMemo(() => {
     if (!data?.prices) return []
     return data.prices.map((p) => {
-      if (p.source === 'polymarket' && !p.category) {
-        return { ...p, category: classifyPolymarket(p.name) }
+      if (SUBCATEGORIZED_SOURCES.has(p.source)) {
+        const feedType = deriveFeedType(p)
+        if (feedType) return { ...p, category: feedType }
       }
       return p
     })
@@ -422,17 +440,17 @@ export default function MarketPage() {
           catGrouped.set(cat, catList)
         }
 
-        // Sort categories: known categories first (by count desc), then unknowns
+        // Sort categories: known feed types first (by count desc), then unknowns
         const catEntries = Array.from(catGrouped.entries()).sort(([a, aList], [b, bList]) => {
-          const aKnown = a in CATEGORY_DISPLAY_NAMES
-          const bKnown = b in CATEGORY_DISPLAY_NAMES
+          const aKnown = a in FEED_TYPE_DISPLAY_NAMES
+          const bKnown = b in FEED_TYPE_DISPLAY_NAMES
           if (aKnown && !bKnown) return -1
           if (!aKnown && bKnown) return 1
           return bList.length - aList.length
         })
 
         for (const [cat, catPrices] of catEntries) {
-          const label = CATEGORY_DISPLAY_NAMES[cat] || cat
+          const label = FEED_TYPE_DISPLAY_NAMES[cat] || cat
           rows.push({ type: 'subheader', label, count: catPrices.length })
           for (let i = 0; i < catPrices.length; i += cols) {
             rows.push({ type: 'tiles', prices: catPrices.slice(i, i + cols) })
