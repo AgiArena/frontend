@@ -18,6 +18,7 @@ import {
 
 const TILE_HEIGHT = 64 // px per tile row
 const SECTION_HEADER_HEIGHT = 48
+const SUBHEADER_HEIGHT = 36
 const COLS_BY_WIDTH: [number, number][] = [
   [1800, 22],
   [1400, 18],
@@ -26,6 +27,70 @@ const COLS_BY_WIDTH: [number, number][] = [
   [768, 8],
   [0, 6],
 ]
+
+// Frontend display name overrides (sourceId → display name)
+const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
+  polymarket: 'Prediction Markets',
+}
+
+// Category display names
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  meteoTop100: 'Top 100 Cities',
+  meteoTop1000: 'Top 1000 Cities',
+  meteoOther: 'All Other Cities',
+  defiChainTvl: 'Chain TVL',
+  defiProtocols: 'Protocol TVL',
+  interest_rates: 'Interest Rates',
+  inflation: 'Inflation',
+  macro: 'Macro',
+  treasury_yields: 'Treasury Yields',
+  mortgage_rates: 'Mortgage Rates',
+  yield_spreads: 'Yield Spreads',
+  // Polymarket derived subcategories
+  poly_sports: 'Sports',
+  poly_politics: 'Politics & Elections',
+  poly_crypto: 'Crypto & Finance',
+  poly_entertainment: 'Entertainment & Awards',
+  poly_esports: 'Esports & Gaming',
+  poly_science: 'Science & Tech',
+  poly_other: 'Other',
+}
+
+// Keyword-based classification for Polymarket assets
+function classifyPolymarket(name: string): string {
+  const n = name.toLowerCase()
+  if (
+    /\b(nba|nfl|nhl|mlb|mls|ufc|atp|wta|epl|premier league|serie a|la liga|bundesliga|ligue 1|eredivisie|championship)\b/.test(n) ||
+    /\bvs\.\s/.test(n) ||
+    /\bo\/u\b/.test(n) ||
+    /\bover\/under\b/.test(n) ||
+    /\bgame handicap\b/.test(n) ||
+    /\b(win on 20|draw\?|relegated|promotion|champion)\b/.test(n) ||
+    /\b(total kills|total maps|total rounds|map winner)\b/.test(n) ||
+    /\b(fc:|fc\b.*win|score|goal scorer)\b/.test(n)
+  ) return 'poly_sports'
+  if (
+    /\b(democratic|republican|party.*win|election|senate|congress|house seat|president|governor|mayor|parliament|prime minister|political|legislation|bill\s|vote)\b/.test(n)
+  ) return 'poly_politics'
+  if (
+    /\b(btc|eth|xrp|sol|bitcoin|ethereum|solana|dogecoin|crypto|token|fdv|market cap|price.*\$|reach \$|above \$|below \$|s&p 500|nasdaq|dow jones|stock|trading|bull|bear)\b/.test(n) ||
+    /\bup or down\b/.test(n)
+  ) return 'poly_crypto'
+  if (
+    /\b(oscar|emmy|grammy|award|best director|best picture|best actor|best actress|snl|golden globe|bafta|tony award|razzie|box office)\b/.test(n)
+  ) return 'poly_entertainment'
+  if (
+    /\b(esport|league of legends|dota|counter-strike|valorant|overwatch|csgo|lol\b|lgd|fnatic|cloud9|faze|navi|g2)\b/.test(n) ||
+    /\b(kills|map\s\d|game\s\d.*winner)\b/.test(n)
+  ) return 'poly_esports'
+  if (
+    /\b(ai model|artificial intelligence|space|nasa|spacex|climate|weather|science|tech|quantum|fusion|chatbot arena)\b/.test(n)
+  ) return 'poly_science'
+  return 'poly_other'
+}
+
+// Sources that should show subcategories
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'rates', 'ecb', 'stocks'])
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -104,6 +169,7 @@ function useColumnCount() {
 
 type VirtualRow =
   | { type: 'header'; source: SourceSchedule; count: number }
+  | { type: 'subheader'; label: string; count: number }
   | { type: 'tiles'; prices: SnapshotPrice[] }
 
 // ---------------------------------------------------------------------------
@@ -136,11 +202,12 @@ function CryptoLogo({ assetId, symbol, size = 16 }: { assetId: string; symbol: s
 }
 
 function SourceCard({ source, assetCount }: { source: SourceSchedule; assetCount: number }) {
+  const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
     <div className="border border-white/15 bg-white/5 p-3 min-w-[180px] flex-shrink-0">
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
-        <span className="font-mono text-sm font-bold text-white">{source.displayName}</span>
+        <span className="font-mono text-sm font-bold text-white">{displayName}</span>
       </div>
       <div className="space-y-1 font-mono text-xs text-white/50">
         <div className="flex justify-between">
@@ -204,14 +271,24 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
 }
 
 function SectionHeader({ source, count }: { source: SourceSchedule; count: number }) {
+  const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
     <div className="flex items-center gap-3 px-3 py-2 bg-white/5 border-b border-white/10 sticky top-0 z-10">
       <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
-      <span className="font-mono text-sm font-bold text-white">{source.displayName}</span>
+      <span className="font-mono text-sm font-bold text-white">{displayName}</span>
       <span className="font-mono text-xs text-white/40">{count.toLocaleString()} assets</span>
       <span className="font-mono text-xs text-white/30">
         synced {relativeTime(source.lastSync)} &middot; every {humanInterval(source.syncIntervalSecs)}
       </span>
+    </div>
+  )
+}
+
+function SubSectionHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border-b border-white/5">
+      <span className="font-mono text-xs text-white/60">{label}</span>
+      <span className="font-mono text-[10px] text-white/30">{count.toLocaleString()}</span>
     </div>
   )
 }
@@ -249,12 +326,23 @@ export default function MarketPage() {
     return data.sources.filter((s) => s.enabled)
   }, [data?.sources])
 
+  // Assign derived categories (e.g. Polymarket keyword classification)
+  const enrichedPrices = useMemo(() => {
+    if (!data?.prices) return []
+    return data.prices.map((p) => {
+      if (p.source === 'polymarket' && !p.category) {
+        return { ...p, category: classifyPolymarket(p.name) }
+      }
+      return p
+    })
+  }, [data?.prices])
+
   // Group, filter, sort prices into sections → flat virtual rows
   const { virtualRows, totalFiltered } = useMemo(() => {
-    if (!data?.prices) return { virtualRows: [] as VirtualRow[], totalFiltered: 0 }
+    if (!enrichedPrices.length) return { virtualRows: [] as VirtualRow[], totalFiltered: 0 }
 
     // Filter
-    let prices = data.prices
+    let prices = enrichedPrices
     if (selectedSource) {
       prices = prices.filter((p) => p.source === selectedSource)
     }
@@ -286,7 +374,7 @@ export default function MarketPage() {
       })
     }
 
-    // Build flat virtual rows: header + tile rows per source
+    // Build flat virtual rows: header + (optional subcategories) + tile rows per source
     const rows: VirtualRow[] = []
     const sourceOrder = enabledSources.map((s) => s.sourceId)
 
@@ -298,22 +386,58 @@ export default function MarketPage() {
 
       rows.push({ type: 'header', source: schedule, count: list.length })
 
-      // Chunk into rows of `cols` tiles
-      for (let i = 0; i < list.length; i += cols) {
-        rows.push({ type: 'tiles', prices: list.slice(i, i + cols) })
+      // Check if this source should have subcategories
+      const hasCategories = SUBCATEGORIZED_SOURCES.has(sourceId) &&
+        list.some((p) => p.category && p.category !== 'null')
+
+      if (hasCategories) {
+        // Group by category within source
+        const catGrouped = new Map<string, SnapshotPrice[]>()
+        for (const p of list) {
+          const cat = p.category || 'uncategorized'
+          const catList = catGrouped.get(cat) || []
+          catList.push(p)
+          catGrouped.set(cat, catList)
+        }
+
+        // Sort categories: known categories first (by count desc), then unknowns
+        const catEntries = Array.from(catGrouped.entries()).sort(([a, aList], [b, bList]) => {
+          const aKnown = a in CATEGORY_DISPLAY_NAMES
+          const bKnown = b in CATEGORY_DISPLAY_NAMES
+          if (aKnown && !bKnown) return -1
+          if (!aKnown && bKnown) return 1
+          return bList.length - aList.length
+        })
+
+        for (const [cat, catPrices] of catEntries) {
+          const label = CATEGORY_DISPLAY_NAMES[cat] || cat
+          rows.push({ type: 'subheader', label, count: catPrices.length })
+          for (let i = 0; i < catPrices.length; i += cols) {
+            rows.push({ type: 'tiles', prices: catPrices.slice(i, i + cols) })
+          }
+        }
+      } else {
+        // No subcategories — flat tile rows
+        for (let i = 0; i < list.length; i += cols) {
+          rows.push({ type: 'tiles', prices: list.slice(i, i + cols) })
+        }
       }
     }
 
     return { virtualRows: rows, totalFiltered }
-  }, [data?.prices, selectedSource, search, cols, enabledSources, sourceMap])
+  }, [enrichedPrices, selectedSource, search, cols, enabledSources, sourceMap])
 
   // Virtual scrolling
   const virtualizer = useVirtualizer({
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: useCallback(
-      (index: number) =>
-        virtualRows[index]?.type === 'header' ? SECTION_HEADER_HEIGHT : TILE_HEIGHT,
+      (index: number) => {
+        const row = virtualRows[index]
+        if (row?.type === 'header') return SECTION_HEADER_HEIGHT
+        if (row?.type === 'subheader') return SUBHEADER_HEIGHT
+        return TILE_HEIGHT
+      },
       [virtualRows],
     ),
     overscan: 10,
@@ -399,7 +523,7 @@ export default function MarketPage() {
                       : 'border-transparent text-white/60 hover:text-white'
                   }`}
                 >
-                  {s.displayName}
+                  {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
                   <span className="ml-1 text-xs text-white/40">
                     ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
                   </span>
@@ -449,6 +573,23 @@ export default function MarketPage() {
                           }}
                         >
                           <SectionHeader source={row.source} count={row.count} />
+                        </div>
+                      )
+                    }
+                    if (row.type === 'subheader') {
+                      return (
+                        <div
+                          key={virtualItem.key}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: `${virtualItem.size}px`,
+                            transform: `translateY(${virtualItem.start}px)`,
+                          }}
+                        >
+                          <SubSectionHeader label={row.label} count={row.count} />
                         </div>
                       )
                     }
