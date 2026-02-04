@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import {
   useMarketSnapshot,
+  useMarketSnapshotMeta,
   type SnapshotPrice,
   type SourceSchedule,
 } from '@/hooks/useMarketSnapshot'
@@ -337,33 +338,41 @@ function SubSectionHeader({ label, count }: { label: string; count: number }) {
 // ---------------------------------------------------------------------------
 
 export default function MarketPage() {
-  const { data, isLoading, isError, error } = useMarketSnapshot()
+  // Progressive loading: meta loads instantly (~1KB), full snapshot loads in background (~3MB)
+  const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
+  const { data, isLoading: snapshotLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const cols = useColumnCount()
 
+  // Use meta for instant display, full data once loaded
+  const totalAssets = data?.totalAssets ?? meta?.totalAssets ?? 0
+  const sources = data?.sources ?? meta?.sources ?? []
+  const generatedAtRaw = data?.generatedAt ?? meta?.generatedAt ?? null
+  const pricesLoaded = !!data?.prices?.length
+
   // Source schedule map for quick lookup
   const sourceMap = useMemo(() => {
-    if (!data?.sources) return new Map<string, SourceSchedule>()
-    return new Map(data.sources.map((s) => [s.sourceId, s]))
-  }, [data?.sources])
+    return new Map(sources.map((s) => [s.sourceId, s]))
+  }, [sources])
 
-  // Count assets per source (from full dataset, ignoring filters)
+  // Count assets per source — from full data if available, else from meta counts
   const assetCountBySource = useMemo(() => {
-    if (!data?.prices) return {} as Record<string, number>
-    const counts: Record<string, number> = {}
-    for (const p of data.prices) {
-      counts[p.source] = (counts[p.source] || 0) + 1
+    if (data?.prices) {
+      const counts: Record<string, number> = {}
+      for (const p of data.prices) {
+        counts[p.source] = (counts[p.source] || 0) + 1
+      }
+      return counts
     }
-    return counts
-  }, [data?.prices])
+    return (meta?.assetCounts ?? {}) as Record<string, number>
+  }, [data?.prices, meta?.assetCounts])
 
-  // Enabled sources for tabs
+  // Enabled sources for tabs — hide sources with 0 assets
   const enabledSources = useMemo(() => {
-    if (!data?.sources) return []
-    return data.sources.filter((s) => s.enabled)
-  }, [data?.sources])
+    return sources.filter((s) => s.enabled && (assetCountBySource[s.sourceId] ?? 0) > 0)
+  }, [sources, assetCountBySource])
 
   // Derive feed-type subcategories for sources that support them
   const enrichedPrices = useMemo(() => {
@@ -483,8 +492,8 @@ export default function MarketPage() {
     overscan: 10,
   })
 
-  const generatedAt = data?.generatedAt
-    ? new Date(data.generatedAt).toLocaleTimeString()
+  const generatedAt = generatedAtRaw
+    ? new Date(generatedAtRaw).toLocaleTimeString()
     : '-'
 
   return (
@@ -500,31 +509,29 @@ export default function MarketPage() {
             </Link>
             <div className="flex items-baseline gap-4">
               <h1 className="text-2xl font-bold text-white font-mono">Market Data</h1>
-              {data && (
+              {totalAssets > 0 && (
                 <span className="text-white/40 font-mono text-sm">
-                  {data.totalAssets.toLocaleString()} assets &middot; Generated {generatedAt}
+                  {totalAssets.toLocaleString()} assets &middot; Generated {generatedAt}
                 </span>
               )}
-              {isLoading && (
+              {metaLoading && (
                 <span className="text-white/40 font-mono text-sm animate-pulse">
-                  Loading snapshot...
+                  Connecting...
                 </span>
               )}
             </div>
           </div>
 
-          {/* Source schedule cards */}
-          {data?.sources && (
+          {/* Source schedule cards — show from meta (instant) or full data */}
+          {enabledSources.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0">
-              {data.sources
-                .filter((s) => s.enabled)
-                .map((source) => (
-                  <SourceCard
-                    key={source.sourceId}
-                    source={source}
-                    assetCount={assetCountBySource[source.sourceId] || 0}
-                  />
-                ))}
+              {enabledSources.map((source) => (
+                <SourceCard
+                  key={source.sourceId}
+                  source={source}
+                  assetCount={assetCountBySource[source.sourceId] || 0}
+                />
+              ))}
             </div>
           )}
 
@@ -549,7 +556,7 @@ export default function MarketPage() {
               >
                 All
                 <span className="ml-1 text-xs text-white/40">
-                  ({(data?.totalAssets || 0).toLocaleString()})
+                  ({totalAssets.toLocaleString()})
                 </span>
               </button>
               {enabledSources.map((s) => (
@@ -579,14 +586,36 @@ export default function MarketPage() {
                 <p className="text-lg mb-2">Failed to load</p>
                 <p className="text-sm text-white/40">{error?.message}</p>
               </div>
-            ) : isLoading ? (
-              <div className="grid gap-px bg-white/5" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-                {Array.from({ length: cols * 12 }).map((_, i) => (
-                  <div key={i} className="p-2 bg-terminal animate-pulse">
-                    <div className="h-3 w-10 bg-white/10 rounded mb-1" />
-                    <div className="h-2 w-8 bg-white/5 rounded" />
+            ) : !pricesLoaded ? (
+              <div className="flex flex-col items-center justify-center h-full gap-6">
+                {/* Animated loading indicator */}
+                <div className="relative">
+                  <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
+                  <div className="absolute inset-0 w-16 h-16 border-2 border-transparent border-t-accent rounded-full animate-spin" />
+                </div>
+                <div className="text-center font-mono">
+                  <p className="text-lg text-white/80 mb-1">
+                    Loading {totalAssets > 0 ? totalAssets.toLocaleString() : '50,000+'} markets
+                  </p>
+                  <p className="text-sm text-white/40">
+                    {enabledSources.length > 0
+                      ? `${enabledSources.length} sources across stocks, crypto, DeFi, weather, and more`
+                      : 'Fetching market data from data node...'}
+                  </p>
+                </div>
+                {/* Mini source breakdown while loading */}
+                {enabledSources.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center max-w-md">
+                    {enabledSources.map((s) => {
+                      const count = assetCountBySource[s.sourceId] || 0
+                      return (
+                        <span key={s.sourceId} className="px-2 py-1 bg-white/5 border border-white/10 font-mono text-xs text-white/50">
+                          {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}: {count.toLocaleString()}
+                        </span>
+                      )
+                    })}
                   </div>
-                ))}
+                )}
               </div>
             ) : virtualRows.length > 0 ? (
               <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden">
@@ -672,11 +701,21 @@ export default function MarketPage() {
           {/* Footer stats */}
           <div className="flex justify-between items-center mt-2 text-xs font-mono text-white/40 flex-shrink-0">
             <span>
-              {totalFiltered.toLocaleString()} assets
-              {data && totalFiltered < data.totalAssets && ` of ${data.totalAssets.toLocaleString()}`}
+              {pricesLoaded
+                ? <>
+                    {totalFiltered.toLocaleString()} assets
+                    {totalFiltered < totalAssets && ` of ${totalAssets.toLocaleString()}`}
+                  </>
+                : <>{totalAssets.toLocaleString()} assets</>
+              }
               {' '}&middot; Auto-refreshes every 30s
             </span>
-            <span>Virtual scroll &middot; {virtualRows.length.toLocaleString()} rows</span>
+            <span>
+              {pricesLoaded
+                ? `Virtual scroll \u00B7 ${virtualRows.length.toLocaleString()} rows`
+                : snapshotLoading ? 'Loading prices...' : ''
+              }
+            </span>
           </div>
         </div>
       </div>

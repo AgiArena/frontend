@@ -34,8 +34,30 @@ export interface SnapshotResponse {
   prices: SnapshotPrice[]
 }
 
+export interface SnapshotMetaResponse {
+  generatedAt: string
+  totalAssets: number
+  sources: SourceSchedule[]
+  assetCounts: Record<string, number>
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+/** Lightweight meta: source schedules + per-source counts (instant, ~1KB) */
+export function useMarketSnapshotMeta() {
+  return useQuery<SnapshotMetaResponse>({
+    queryKey: ['market-snapshot-meta'],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/data-node/snapshot/meta`)
+      if (!res.ok) throw new Error('Failed to fetch snapshot meta')
+      return res.json()
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+}
+
+/** Full snapshot with all prices (~3MB gzipped) */
 export function useMarketSnapshot() {
   return useQuery<SnapshotResponse>({
     queryKey: ['market-snapshot'],
