@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const BACKEND_URL = "https://63.179.141.230";
-const DATA_NODE_URL = "http://116.203.156.98:3002";
+const DATA_NODE_URL = "http://116.203.156.98/datanode";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
