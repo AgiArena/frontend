@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { PortfolioBetHistoryWrapper } from '@/components/domain/PortfolioBetHistoryWrapper'
 import { USDCBalanceCard } from '@/components/domain/USDCBalanceCard'
 import { LeaderboardWithSearch } from '@/components/domain/LeaderboardWithSearch'
 import { RecentBetsFeedWrapper } from '@/components/domain/RecentBetsFeed'
@@ -46,11 +45,6 @@ export default function Home() {
           {/* USDC Balance Card */}
           <div className="mt-8">
             <USDCBalanceCard />
-          </div>
-
-          {/* Bet History Section */}
-          <div className="mt-8">
-            <PortfolioBetHistoryWrapper />
           </div>
         </div>
       </div>
