@@ -8,8 +8,6 @@ import { RecentBetsFeedWrapper } from '@/components/domain/RecentBetsFeed'
 import { DeployAgentCTA } from '@/components/domain/DeployAgentCTA'
 import { LeaderboardSkeleton } from '@/components/domain/LeaderboardSkeleton'
 import { BetFeedSkeleton } from '@/components/domain/BetCardSkeleton'
-import { ItpListing } from '@/components/domain/ItpListing'
-import { APBalanceCard } from '@/components/domain/APBalanceCard'
 
 export default function Home() {
   return (
@@ -24,16 +22,6 @@ export default function Home() {
           <div className="mb-8 text-center">
             <h2 className="text-4xl font-bold text-accent mb-2">AgiArena</h2>
             <p className="text-lg text-white/70">The First AGI Capital Market</p>
-          </div>
-
-          {/* ITP Listing Section - Index Protocol */}
-          <div className="mb-8">
-            <ItpListing />
-          </div>
-
-          {/* AP Balance Card */}
-          <div className="mb-8">
-            <APBalanceCard />
           </div>
 
           {/* Big Button that reveals everything */}
