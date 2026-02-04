@@ -39,13 +39,35 @@ const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   meteoTop1000: 'Top 1000 Cities',
   meteoOther: 'All Other Cities',
   defiChainTvl: 'Chain TVL',
-  defiProtocols: 'Protocol TVL',
+  defiMegaCap: 'Mega Cap ($10B+)',
+  defiLargeCap: 'Large Cap ($1B+)',
+  defiMidCap: 'Mid Cap ($100M+)',
+  defiSmallCap: 'Small Cap',
+  defiDexVolume24h: 'DEX 24h Volume',
+  defiDexVolume30d: 'DEX 30d Volume',
   interest_rates: 'Interest Rates',
   inflation: 'Inflation',
   macro: 'Macro',
   treasury_yields: 'Treasury Yields',
   mortgage_rates: 'Mortgage Rates',
   yield_spreads: 'Yield Spreads',
+  // Stock subcategories
+  usTechLargeCap: 'US Tech Large Cap',
+  usTechMidCap: 'US Tech Mid Cap',
+  usFinancials: 'US Financials',
+  usHealthcare: 'US Healthcare',
+  usConsumer: 'US Consumer',
+  usIndustrials: 'US Industrials',
+  usEnergy: 'US Energy',
+  usMaterials: 'US Materials',
+  usUtilitiesReits: 'US Utilities & REITs',
+  usMediaTelecom: 'US Media & Telecom',
+  // BLS subcategories
+  employment: 'Employment',
+  labor: 'Labor Statistics',
+  // Treasury subcategories (treasury_yields already defined above)
+  tbill_rates: 'T-Bill Rates',
+  real_yields: 'Real Yields',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -90,7 +112,7 @@ function classifyPolymarket(name: string): string {
 }
 
 // Sources that should show subcategories
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'rates', 'ecb', 'stocks'])
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'rates', 'ecb', 'stocks', 'bls', 'bonds'])
 
 // ---------------------------------------------------------------------------
 // Helpers
