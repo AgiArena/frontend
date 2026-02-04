@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { OddsBadge } from './OddsBadge'
+import { SignatureProgress } from './SignatureProgress'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { type Bet, calculateOddsDisplay, formatImpliedProbability, type TradeHorizon } from '@/lib/types/bet'
 import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
@@ -49,16 +50,33 @@ interface BetCardProps {
 
 /**
  * Format status for display
+ * Maps status codes to human-readable strings
+ * Story 4-2: Added bilateral bet status mapping
  */
 function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ')
+  const statusMap: Record<string, string> = {
+    // Legacy statuses
+    pending: 'Pending',
+    matched: 'Matched',
+    settling: 'Settling',
+    settled: 'Settled',
+    // Bilateral custody statuses
+    active: 'Active',
+    in_arbitration: 'Disputed',
+    custom_payout: 'Custom Split',
+  }
+  return statusMap[status] || status.replace(/_/g, ' ')
 }
 
 /**
  * Get status color class
+ * Supports both legacy (pending/matched/settling/settled) and
+ * bilateral custody statuses (active/in_arbitration/settled/custom_payout)
+ * Story 4-2: Added bilateral bet status support
  */
 function getStatusColor(status: string): string {
   switch (status) {
+    // Legacy statuses (AgiArenaCore)
     case 'pending':
       return 'text-yellow-400'
     case 'matched':
@@ -67,6 +85,13 @@ function getStatusColor(status: string): string {
       return 'text-blue-400'
     case 'settled':
       return 'text-cyan-400'
+    // Bilateral custody statuses (CollateralVault)
+    case 'active':
+      return 'text-green-400'
+    case 'in_arbitration':
+      return 'text-orange-400'
+    case 'custom_payout':
+      return 'text-purple-400'
     default:
       return 'text-white/60'
   }
@@ -203,6 +228,17 @@ export function BetCard({ bet, className = '' }: BetCardProps) {
           <span>Portfolio: {(bet.portfolioSize || 0).toLocaleString()} markets</span>
         )}
       </div>
+
+      {/* Story 14.3: Signature progress for bets pending resolution */}
+      {(bet.status === 'matched' || bet.status === 'settling') && (
+        <div className="mb-3">
+          <SignatureProgress
+            betId={parseInt(bet.betId, 10)}
+            compact={true}
+            enabled={bet.status === 'matched' || bet.status === 'settling'}
+          />
+        </div>
+      )}
 
       {/* View details link */}
       <div className="flex justify-between items-center">

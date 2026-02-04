@@ -3,11 +3,11 @@
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useEffect, useRef } from 'react'
 import { erc20Abi } from '@/lib/contracts/abi'
-import { COLLATERAL_TOKEN_ADDRESS, CONTRACT_ADDRESS } from '@/lib/contracts/addresses'
+import { COLLATERAL_TOKEN_ADDRESS, COLLATERAL_VAULT_ADDRESS } from '@/lib/contracts/addresses'
 
 type ApprovalState = 'idle' | 'checking' | 'approval-required' | 'approving' | 'approved' | 'error'
 
-interface UseUsdcApprovalReturn {
+interface UseCollateralApprovalReturn {
   state: ApprovalState
   currentAllowance: bigint | undefined
   approve: (amount: bigint) => void
@@ -17,14 +17,15 @@ interface UseUsdcApprovalReturn {
 }
 
 /**
- * Hook for managing collateral token ERC20 approval for the AgiArenaCore contract
+ * Hook for managing collateral token ERC20 approval for the CollateralVault contract
+ * Story 4-3: Updated to target bilateral custody system (CollateralVault)
  * Checks current allowance and requests approval if needed
  */
-export function useUsdcApproval(): UseUsdcApprovalReturn {
+export function useCollateralApproval(): UseCollateralApprovalReturn {
   const { address, isConnected } = useAccount()
 
-  // Contract address
-  const contractAddress = CONTRACT_ADDRESS
+  // Target CollateralVault for bilateral bets
+  const spenderAddress = COLLATERAL_VAULT_ADDRESS
 
   // Read current allowance
   const {
@@ -36,9 +37,9 @@ export function useUsdcApproval(): UseUsdcApprovalReturn {
     address: COLLATERAL_TOKEN_ADDRESS,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: address && contractAddress ? [address, contractAddress] : undefined,
+    args: address && spenderAddress ? [address, spenderAddress] : undefined,
     query: {
-      enabled: isConnected && !!address && !!contractAddress
+      enabled: isConnected && !!address && !!spenderAddress
     }
   })
 
@@ -73,7 +74,7 @@ export function useUsdcApproval(): UseUsdcApprovalReturn {
 
   // Determine current state
   const getState = (): ApprovalState => {
-    if (!isConnected || !address || !contractAddress) return 'idle'
+    if (!isConnected || !address || !spenderAddress) return 'idle'
     if (isCheckingAllowance) return 'checking'
     if (isWritePending || isConfirming) return 'approving'
     if (allowanceError || writeError || confirmError) return 'error'
@@ -89,14 +90,14 @@ export function useUsdcApproval(): UseUsdcApprovalReturn {
 
   // Request approval
   const approve = (amount: bigint) => {
-    if (!contractAddress) return
+    if (!spenderAddress) return
 
     resetWrite()
     writeContract({
       address: COLLATERAL_TOKEN_ADDRESS,
       abi: erc20Abi,
       functionName: 'approve',
-      args: [contractAddress, amount]
+      args: [spenderAddress, amount]
     })
   }
 
@@ -112,3 +113,9 @@ export function useUsdcApproval(): UseUsdcApprovalReturn {
     txHash
   }
 }
+
+/**
+ * @deprecated Use useCollateralApproval instead
+ * Alias for backward compatibility
+ */
+export const useUsdcApproval = useCollateralApproval

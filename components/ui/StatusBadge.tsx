@@ -1,7 +1,12 @@
 'use client'
 
 import type { BetStatus } from '@/hooks/useBetHistory'
-import type { ResolutionStatus } from '@/hooks/useResolution'
+
+/**
+ * Resolution status types (defined locally after legacy hook removal)
+ * Story 4-3: Removed import from deleted useResolution hook
+ */
+export type ResolutionStatus = 'pending' | 'resolving' | 'resolved' | 'tie'
 
 /**
  * Agent bet status types (from useAgentBets)

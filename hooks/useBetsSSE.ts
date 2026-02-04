@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getBackendUrl } from '@/lib/contracts/addresses'
 import type { RecentBetEvent, RecentBetsResponse } from '@/hooks/useRecentBets'
+import { updateSignatureStatusFromEvent } from '@/hooks/useResolutionSignatures'
+import type { SignatureCollectedEvent, ResolutionSubmittedEvent } from '@/lib/types/resolution'
 
 /**
  * SSE connection states for bet feed
@@ -334,6 +336,42 @@ export function useBetsSSE(): UseBetsSSEReturn {
 
             // Emit event for animation system
             emitNewBetEvent(data.betId, 0)
+          } catch {
+            // Silently ignore malformed events
+          }
+        })
+
+        // Story 14.3: Handle signature-collected events
+        eventSource.addEventListener('signature-collected', (event: MessageEvent) => {
+          try {
+            const data: SignatureCollectedEvent = JSON.parse(event.data)
+            // Update signature status cache
+            updateSignatureStatusFromEvent(queryClient, data)
+
+            // Emit custom event for UI updates
+            window.dispatchEvent(
+              new CustomEvent('signature-collected', {
+                detail: data
+              })
+            )
+          } catch {
+            // Silently ignore malformed events
+          }
+        })
+
+        // Story 14.3: Handle resolution-submitted events
+        eventSource.addEventListener('resolution-submitted', (event: MessageEvent) => {
+          try {
+            const data: ResolutionSubmittedEvent = JSON.parse(event.data)
+            // Update signature status cache
+            updateSignatureStatusFromEvent(queryClient, data)
+
+            // Emit custom event for UI updates
+            window.dispatchEvent(
+              new CustomEvent('resolution-submitted', {
+                detail: data
+              })
+            )
           } catch {
             // Silently ignore malformed events
           }

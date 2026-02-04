@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { useUsdcBalance } from '@/hooks/useUsdcBalance'
-import { useEscrowedAmount } from '@/hooks/useEscrowedAmount'
 import { getAddressUrl } from '@/lib/utils/basescan'
 import { formatUsdcAmount } from '@/lib/utils/formatters'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card'
-import { COLLATERAL_SYMBOL, CHAIN_ID } from '@/lib/contracts/addresses'
+import { COLLATERAL_SYMBOL } from '@/lib/contracts/addresses'
 
 /**
  * Collateral Balance Card Component
@@ -25,16 +24,13 @@ export function USDCBalanceCard() {
     setMounted(true)
   }, [])
   const { balance, formatted: totalFormatted, isLoading: balanceLoading, isError: balanceError } = useUsdcBalance()
-  const { escrowed, formatted: escrowedFormatted, isLoading: escrowLoading } = useEscrowedAmount()
 
-  const isLoading = balanceLoading || escrowLoading
+  const isLoading = balanceLoading
 
-  // Calculate available = total - escrowed (escrowed is always defined as bigint)
-  const available = balance !== undefined && balance >= escrowed
-    ? balance - escrowed
-    : BigInt(0)
-
-  const availableFormatted = formatUsdcAmount(available)
+  // Story 4-3: Escrow tracking removed with bilateral system migration
+  // In bilateral system, collateral is locked per-bet in CollateralVault
+  // Available = total balance (escrow tracking would require summing active bets)
+  const availableFormatted = totalFormatted
 
   // SSR placeholder - render consistent skeleton during hydration
   if (!mounted) {
@@ -110,14 +106,6 @@ export function USDCBalanceCard() {
           <p className="text-white/60 text-xs mb-1">Available for Betting</p>
           <p className="text-white text-xl font-mono">
             {showDollarPrefix ? '$' : ''}{availableFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
-          </p>
-        </div>
-
-        {/* Escrowed in Bets */}
-        <div>
-          <p className="text-white/60 text-xs mb-1">Escrowed in Bets</p>
-          <p className="text-white text-xl font-mono">
-            {showDollarPrefix ? '$' : ''}{escrowedFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
           </p>
         </div>
       </CardContent>

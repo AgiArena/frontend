@@ -5,6 +5,9 @@ import type { BetRecord } from '@/hooks/useBetHistory'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { PortfolioModal, PortfolioPosition } from '@/components/domain/PortfolioModal'
 import { PortfolioResolution } from '@/components/domain/PortfolioResolution'
+import { SignatureProgress } from '@/components/domain/SignatureProgress'
+import { KeeperSignatureList } from '@/components/domain/KeeperSignatureList'
+import { useResolutionSignatures } from '@/hooks/useResolutionSignatures'
 import { useCategoryById, formatCategoryDisplay } from '@/hooks/useCategories'
 import { truncateAddress } from '@/lib/utils/address'
 import { getAddressUrl, getTxUrl } from '@/lib/utils/basescan'
@@ -30,6 +33,13 @@ function shouldShowResolution(status: BetRecord['status']): boolean {
 export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const category = useCategoryById(bet.categoryId)
+
+  // Story 14.3: Fetch signature status for matched/settling bets
+  const showSignatures = bet.status === 'matched' || bet.status === 'settling'
+  const { data: signatureStatus } = useResolutionSignatures(
+    parseInt(bet.betId, 10),
+    showSignatures
+  )
 
   // Parse portfolio JSON to get positions for preview
   const portfolioPositions = useMemo((): PortfolioPosition[] => {
@@ -204,6 +214,23 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
         positions={portfolioPositions}
         portfolioSize={bet.tradeCount || bet.portfolioSize}
       />
+
+      {/* Story 14.3: Signature collection progress for matched/settling bets */}
+      {showSignatures && (
+        <div className="pt-4 border-t border-white/10">
+          <h3 className="text-sm font-bold text-white font-mono mb-3">Signature Collection</h3>
+          <SignatureProgress
+            betId={parseInt(bet.betId, 10)}
+            compact={false}
+            enabled={showSignatures}
+          />
+          {signatureStatus?.keepers && signatureStatus.keepers.length > 0 && (
+            <div className="mt-4">
+              <KeeperSignatureList keepers={signatureStatus.keepers} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Resolution Section - shown for matched/settling/settled bets */}
       {shouldShowResolution(bet.status) && (
