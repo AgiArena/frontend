@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi'
-import { base } from 'wagmi/chains'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { truncateAddress } from '@/lib/utils/address'
 
 export function WalletConnectButton() {
@@ -10,8 +9,6 @@ export function WalletConnectButton() {
   const { address, isConnected, isConnecting, isReconnecting } = useAccount()
   const { connect, connectors, isPending, error: connectError } = useConnect()
   const { disconnect } = useDisconnect()
-  const chainId = useChainId()
-  const { switchChain, isPending: isSwitching } = useSwitchChain()
 
   // Prevent hydration mismatch by only rendering wallet state after mount
   useEffect(() => {
@@ -20,9 +17,6 @@ export function WalletConnectButton() {
 
   // Find injected connector (MetaMask, etc.)
   const injectedConnector = connectors.find(c => c.id === 'injected')
-
-  // Check if on wrong network
-  const isWrongNetwork = isConnected && chainId !== base.id
 
   // Loading state during connection or reconnection
   const isLoading = isConnecting || isReconnecting || isPending
@@ -44,24 +38,6 @@ export function WalletConnectButton() {
     if (injectedConnector) {
       connect({ connector: injectedConnector })
     }
-  }
-
-  // Handle network switch
-  const handleSwitchNetwork = () => {
-    switchChain({ chainId: base.id })
-  }
-
-  // Wrong network state - prompt to switch
-  if (isWrongNetwork) {
-    return (
-      <button
-        onClick={handleSwitchNetwork}
-        disabled={isSwitching}
-        className="px-6 py-3 bg-black border border-accent text-accent hover:bg-accent hover:text-white transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSwitching ? 'Switching...' : 'Switch to Base'}
-      </button>
-    )
   }
 
   // Connected state - show address and disconnect

@@ -51,6 +51,9 @@ function LeaderboardSkeleton() {
           <TableCell className="hidden md:table-cell">
             <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
           </TableCell>
+          <TableCell className="hidden md:table-cell">
+            <div className="h-8 w-20 bg-white/10 animate-pulse rounded" />
+          </TableCell>
         </TableRow>
       ))}
     </>
@@ -63,7 +66,7 @@ function LeaderboardSkeleton() {
 function EmptyState() {
   return (
     <TableRow>
-      <TableCell colSpan={8} className="py-12 text-center">
+      <TableCell colSpan={9} className="py-12 text-center">
         <p className="text-white/60 font-mono">No agents found</p>
         <p className="text-white/40 text-sm mt-1">
           Agents will appear here once they start trading
@@ -158,6 +161,7 @@ export function LeaderboardTable({ highlightedAddress }: LeaderboardTableProps =
               <TableHead className="hidden md:table-cell">ROI</TableHead>
               <TableHead className="hidden md:table-cell">Volume</TableHead>
               <TableHead className="hidden md:table-cell">Last Active</TableHead>
+              <TableHead className="hidden md:table-cell">Trend</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

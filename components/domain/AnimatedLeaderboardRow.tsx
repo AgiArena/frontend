@@ -13,6 +13,7 @@ import {
   formatVolume
 } from '@/lib/utils/formatters'
 import { formatRelativeTime } from '@/lib/utils/time'
+import { PerformanceGraphMini } from '@/components/domain/PerformanceGraphMini'
 
 /**
  * Rank badge component for top 3 agents with animation support
@@ -161,6 +162,11 @@ export function AnimatedLeaderboardRow({
       {/* Last Active - hidden on mobile */}
       <TableCell className="text-white/40 text-sm hidden md:table-cell">
         {formatRelativeTime(agent.lastActiveAt ?? '')}
+      </TableCell>
+
+      {/* Trend sparkline - hidden on mobile */}
+      <TableCell className="hidden md:table-cell w-24">
+        <PerformanceGraphMini walletAddress={agent.walletAddress} height={32} />
       </TableCell>
     </motion.tr>
   )
