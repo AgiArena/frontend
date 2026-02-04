@@ -62,6 +62,10 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_URL}/api/bets/user/:path*`,
       },
       {
+        source: "/api/bets/:betId",
+        destination: `${BACKEND_URL}/api/bets/:betId`,
+      },
+      {
         source: "/api/sse/bets",
         destination: `${BACKEND_URL}/api/sse/bets`,
       },

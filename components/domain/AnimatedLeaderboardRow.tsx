@@ -120,23 +120,28 @@ export function AnimatedLeaderboardRow({
         {formatWalletAddress(agent.walletAddress)}
       </TableCell>
 
-      {/* P&L with count animation (AC3) */}
+      {/* P&L with count animation (AC3) + inline trend sparkline */}
       <TableCell className={`font-mono font-bold ${pnlColor}`}>
-        <AnimatedNumber
-          value={agent.pnl}
-          prefix="$"
-          decimals={2}
-          duration={1000}
-          disabled={!shouldAnimate}
-          formatFn={(val) => {
-            // Format with commas and maintain sign
-            const formatted = Math.abs(val).toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })
-            return val < 0 ? `-${formatted}` : formatted
-          }}
-        />
+        <div className="flex items-center gap-2">
+          <AnimatedNumber
+            value={agent.pnl}
+            prefix="$"
+            decimals={2}
+            duration={1000}
+            disabled={!shouldAnimate}
+            formatFn={(val) => {
+              // Format with commas and maintain sign
+              const formatted = Math.abs(val).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })
+              return val < 0 ? `-${formatted}` : formatted
+            }}
+          />
+          <span className="hidden md:inline-block w-16">
+            <PerformanceGraphMini walletAddress={agent.walletAddress} height={24} />
+          </span>
+        </div>
       </TableCell>
 
       {/* Bets - hidden on mobile */}
@@ -164,10 +169,6 @@ export function AnimatedLeaderboardRow({
         {formatRelativeTime(agent.lastActiveAt ?? '')}
       </TableCell>
 
-      {/* Trend sparkline - hidden on mobile */}
-      <TableCell className="hidden md:table-cell w-24">
-        <PerformanceGraphMini walletAddress={agent.walletAddress} height={32} />
-      </TableCell>
     </motion.tr>
   )
 }
