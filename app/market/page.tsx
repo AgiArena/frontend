@@ -1,18 +1,38 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { useMarketSnapshot, type SnapshotPrice, type SourceSchedule } from '@/hooks/useMarketSnapshot'
+import {
+  useMarketSnapshot,
+  type SnapshotPrice,
+  type SourceSchedule,
+} from '@/hooks/useMarketSnapshot'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const TILE_HEIGHT = 64 // px per tile row
+const SECTION_HEADER_HEIGHT = 48
+const COLS_BY_WIDTH: [number, number][] = [
+  [1800, 22],
+  [1400, 18],
+  [1200, 14],
+  [1000, 10],
+  [768, 8],
+  [0, 6],
+]
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function formatValue(v: number, source: string): string {
-  if (source === 'rates' || source === 'bls') return `${v.toFixed(2)}%`
+  if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
   if (source === 'ecb') return v.toFixed(4)
   if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
@@ -62,6 +82,30 @@ const STATUS_COLORS: Record<string, string> = {
   disabled: 'bg-white/30',
 }
 
+function useColumnCount() {
+  const [cols, setCols] = useState(10)
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth
+      for (const [breakpoint, c] of COLS_BY_WIDTH) {
+        if (w >= breakpoint) { setCols(c); return }
+      }
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+  return cols
+}
+
+// ---------------------------------------------------------------------------
+// Row types for virtualizer
+// ---------------------------------------------------------------------------
+
+type VirtualRow =
+  | { type: 'header'; source: SourceSchedule; count: number }
+  | { type: 'tiles'; prices: SnapshotPrice[] }
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -91,13 +135,7 @@ function CryptoLogo({ assetId, symbol, size = 16 }: { assetId: string; symbol: s
   )
 }
 
-function SourceCard({
-  source,
-  assetCount,
-}: {
-  source: SourceSchedule
-  assetCount: number
-}) {
+function SourceCard({ source, assetCount }: { source: SourceSchedule; assetCount: number }) {
   return (
     <div className="border border-white/15 bg-white/5 p-3 min-w-[180px] flex-shrink-0">
       <div className="flex items-center gap-2 mb-2">
@@ -126,56 +164,36 @@ function SourceCard({
   )
 }
 
-function PriceTile({ price }: { price: SnapshotPrice }) {
+function PriceTileInline({ price }: { price: SnapshotPrice }) {
   const value = parseFloat(price.value)
   const changePct = price.changePct ? parseFloat(price.changePct) : null
   const isUp = changePct !== null && changePct >= 0
   const isDown = changePct !== null && changePct < 0
-
-  const tooltipLines = [
-    price.name,
-    `Price: ${formatValue(value, price.source)}`,
-  ]
-  if (changePct !== null) {
-    tooltipLines.push(`24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`)
-  }
-  if (price.marketCap) tooltipLines.push(formatMarketCap(price.marketCap))
-  if (price.volume24h) {
-    const vol = parseFloat(price.volume24h)
-    if (vol >= 1e6) tooltipLines.push(`Vol: $${(vol / 1e6).toFixed(1)}M`)
-    else if (vol >= 1e3) tooltipLines.push(`Vol: $${(vol / 1e3).toFixed(0)}K`)
-  }
+  const hasCryptoLogo = price.source === 'crypto'
 
   const displaySymbol =
     !price.symbol || price.symbol === '-'
       ? price.name.replace(' TVL', '').slice(0, 10)
       : price.symbol
 
-  const hasCryptoLogo = price.source === 'crypto'
-
   return (
     <div
-      className={`p-2 border transition-all cursor-default hover:scale-105 hover:z-10 relative group ${
+      className={`p-2 border cursor-default relative group ${
         isUp
-          ? 'border-green-500/30 bg-green-500/5 hover:border-green-500/60'
+          ? 'border-green-500/30 bg-green-500/5'
           : isDown
-            ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/60'
-            : 'border-white/10 bg-white/5 hover:border-white/30'
+            ? 'border-red-500/30 bg-red-500/5'
+            : 'border-white/10 bg-white/5'
       }`}
+      title={`${price.name}\n${formatValue(value, price.source)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}`}
     >
-      {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black border border-white/20 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
-        {tooltipLines.map((line, i) => (
-          <div key={i} className={`font-mono text-xs ${i === 0 ? 'text-white font-bold' : 'text-white/70'}`}>
-            {line}
-          </div>
-        ))}
-      </div>
       <div className="flex items-center gap-1.5">
         {hasCryptoLogo && <CryptoLogo assetId={price.assetId} symbol={price.symbol} size={16} />}
         <div className="font-mono text-xs font-bold text-white truncate">{displaySymbol}</div>
       </div>
-      <div className="font-mono text-[10px] text-white/60 truncate">{formatValue(value, price.source)}</div>
+      <div className="font-mono text-[10px] text-white/60 truncate">
+        {formatValue(value, price.source)}
+      </div>
       {changePct !== null && (
         <div className={`font-mono text-[10px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>
           {isUp ? '\u2191' : '\u2193'}{Math.abs(changePct).toFixed(1)}%
@@ -185,16 +203,37 @@ function PriceTile({ price }: { price: SnapshotPrice }) {
   )
 }
 
+function SectionHeader({ source, count }: { source: SourceSchedule; count: number }) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 bg-white/5 border-b border-white/10 sticky top-0 z-10">
+      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
+      <span className="font-mono text-sm font-bold text-white">{source.displayName}</span>
+      <span className="font-mono text-xs text-white/40">{count.toLocaleString()} assets</span>
+      <span className="font-mono text-xs text-white/30">
+        synced {relativeTime(source.lastSync)} &middot; every {humanInterval(source.syncIntervalSecs)}
+      </span>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default function MarketPage() {
-  const { data, isLoading } = useMarketSnapshot()
+  const { data, isLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const cols = useColumnCount()
 
-  // Count assets per source
+  // Source schedule map for quick lookup
+  const sourceMap = useMemo(() => {
+    if (!data?.sources) return new Map<string, SourceSchedule>()
+    return new Map(data.sources.map((s) => [s.sourceId, s]))
+  }, [data?.sources])
+
+  // Count assets per source (from full dataset, ignoring filters)
   const assetCountBySource = useMemo(() => {
     if (!data?.prices) return {} as Record<string, number>
     const counts: Record<string, number> = {}
@@ -210,31 +249,75 @@ export default function MarketPage() {
     return data.sources.filter((s) => s.enabled)
   }, [data?.sources])
 
-  // Filter prices
-  const filteredPrices = useMemo(() => {
-    if (!data?.prices) return []
-    let prices = data.prices
+  // Group, filter, sort prices into sections → flat virtual rows
+  const { virtualRows, totalFiltered } = useMemo(() => {
+    if (!data?.prices) return { virtualRows: [] as VirtualRow[], totalFiltered: 0 }
 
+    // Filter
+    let prices = data.prices
     if (selectedSource) {
       prices = prices.filter((p) => p.source === selectedSource)
     }
-
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       prices = prices.filter(
         (p) =>
           p.symbol.toLowerCase().includes(q) ||
-          p.name.toLowerCase().includes(q)
+          p.name.toLowerCase().includes(q),
       )
     }
 
-    // Sort by market cap desc, then value desc
-    return [...prices].sort((a, b) => {
-      const mcA = a.marketCap ? parseFloat(a.marketCap) : parseFloat(a.value)
-      const mcB = b.marketCap ? parseFloat(b.marketCap) : parseFloat(b.value)
-      return mcB - mcA
-    })
-  }, [data?.prices, selectedSource, search])
+    const totalFiltered = prices.length
+
+    // Group by source
+    const grouped = new Map<string, SnapshotPrice[]>()
+    for (const p of prices) {
+      const list = grouped.get(p.source) || []
+      list.push(p)
+      grouped.set(p.source, list)
+    }
+
+    // Sort each group by marketCap desc
+    for (const [, list] of grouped) {
+      list.sort((a, b) => {
+        const mcA = a.marketCap ? parseFloat(a.marketCap) : parseFloat(a.value)
+        const mcB = b.marketCap ? parseFloat(b.marketCap) : parseFloat(b.value)
+        return mcB - mcA
+      })
+    }
+
+    // Build flat virtual rows: header + tile rows per source
+    const rows: VirtualRow[] = []
+    const sourceOrder = enabledSources.map((s) => s.sourceId)
+
+    for (const sourceId of sourceOrder) {
+      const list = grouped.get(sourceId)
+      if (!list || list.length === 0) continue
+      const schedule = sourceMap.get(sourceId)
+      if (!schedule) continue
+
+      rows.push({ type: 'header', source: schedule, count: list.length })
+
+      // Chunk into rows of `cols` tiles
+      for (let i = 0; i < list.length; i += cols) {
+        rows.push({ type: 'tiles', prices: list.slice(i, i + cols) })
+      }
+    }
+
+    return { virtualRows: rows, totalFiltered }
+  }, [data?.prices, selectedSource, search, cols, enabledSources, sourceMap])
+
+  // Virtual scrolling
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: useCallback(
+      (index: number) =>
+        virtualRows[index]?.type === 'header' ? SECTION_HEADER_HEIGHT : TILE_HEIGHT,
+      [virtualRows],
+    ),
+    overscan: 10,
+  })
 
   const generatedAt = data?.generatedAt
     ? new Date(data.generatedAt).toLocaleTimeString()
@@ -258,11 +341,16 @@ export default function MarketPage() {
                   {data.totalAssets.toLocaleString()} assets &middot; Generated {generatedAt}
                 </span>
               )}
+              {isLoading && (
+                <span className="text-white/40 font-mono text-sm animate-pulse">
+                  Loading snapshot...
+                </span>
+              )}
             </div>
           </div>
 
           {/* Source schedule cards */}
-          {!isLoading && data?.sources && (
+          {data?.sources && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0">
               {data.sources
                 .filter((s) => s.enabled)
@@ -320,41 +408,94 @@ export default function MarketPage() {
             </div>
           </div>
 
-          {/* Price grid */}
+          {/* Virtualized grid */}
           <div className="flex-1 border border-white/20 bg-black/30 overflow-hidden min-h-0">
-            <div className="h-full overflow-y-auto overflow-x-hidden">
-              {isLoading ? (
-                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-14 xl:grid-cols-18 2xl:grid-cols-22 gap-px bg-white/5">
-                  {Array.from({ length: 300 }).map((_, i) => (
-                    <div key={i} className="p-2 bg-terminal animate-pulse">
-                      <div className="h-3 w-10 bg-white/10 rounded mb-1" />
-                      <div className="h-2 w-8 bg-white/5 rounded" />
-                    </div>
-                  ))}
+            {isError ? (
+              <div className="py-20 text-center text-red-400/80 font-mono">
+                <p className="text-lg mb-2">Failed to load</p>
+                <p className="text-sm text-white/40">{error?.message}</p>
+              </div>
+            ) : isLoading ? (
+              <div className="grid gap-px bg-white/5" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+                {Array.from({ length: cols * 12 }).map((_, i) => (
+                  <div key={i} className="p-2 bg-terminal animate-pulse">
+                    <div className="h-3 w-10 bg-white/10 rounded mb-1" />
+                    <div className="h-2 w-8 bg-white/5 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : virtualRows.length > 0 ? (
+              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden">
+                <div
+                  style={{
+                    height: `${virtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const row = virtualRows[virtualItem.index]
+                    if (row.type === 'header') {
+                      return (
+                        <div
+                          key={virtualItem.key}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: `${virtualItem.size}px`,
+                            transform: `translateY(${virtualItem.start}px)`,
+                          }}
+                        >
+                          <SectionHeader source={row.source} count={row.count} />
+                        </div>
+                      )
+                    }
+                    return (
+                      <div
+                        key={virtualItem.key}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualItem.size}px`,
+                          transform: `translateY(${virtualItem.start}px)`,
+                          display: 'grid',
+                          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                          gap: '1px',
+                        }}
+                      >
+                        {row.prices.map((price) => (
+                          <PriceTileInline
+                            key={`${price.source}-${price.assetId}`}
+                            price={price}
+                          />
+                        ))}
+                      </div>
+                    )
+                  })}
                 </div>
-              ) : filteredPrices.length > 0 ? (
-                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-14 xl:grid-cols-18 2xl:grid-cols-22 gap-px bg-white/10">
-                  {filteredPrices.map((price) => (
-                    <PriceTile key={`${price.source}-${price.assetId}`} price={price} />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-20 text-center text-white/40 font-mono">
-                  <p className="text-lg mb-2">No data found</p>
-                  <p className="text-sm">
-                    {search ? 'Try a different search term' : 'Data sync may be in progress'}
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="py-20 text-center text-white/40 font-mono">
+                <p className="text-lg mb-2">No data found</p>
+                <p className="text-sm">
+                  {search ? 'Try a different search term' : 'Data sync may be in progress'}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Footer stats */}
           <div className="flex justify-between items-center mt-2 text-xs font-mono text-white/40 flex-shrink-0">
             <span>
-              {filteredPrices.length.toLocaleString()} assets shown &middot; Auto-refreshes every 30s
+              {totalFiltered.toLocaleString()} assets
+              {data && totalFiltered < data.totalAssets && ` of ${data.totalAssets.toLocaleString()}`}
+              {' '}&middot; Auto-refreshes every 30s
             </span>
-            <span>Data from data-node</span>
+            <span>Virtual scroll &middot; {virtualRows.length.toLocaleString()} rows</span>
           </div>
         </div>
       </div>
