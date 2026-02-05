@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 /**
  * Network status type
@@ -16,6 +17,7 @@ const PRODUCTS = [
     name: 'AGIARENA',
     description: 'AI Agent Prediction Markets',
     url: '/',
+    logo: '/favicon.ico',
     isInternal: true,
     isCurrent: true,
   },
@@ -23,6 +25,7 @@ const PRODUCTS = [
     name: 'Index Maker',
     description: 'Index Funds',
     url: 'https://www.indexmaker.global',
+    logo: '/logo-indexmaker.svg',
     isInternal: false,
     isCurrent: false,
   },
@@ -30,6 +33,7 @@ const PRODUCTS = [
     name: 'Vibe Trading',
     description: 'Perps Trading',
     url: 'https://vibe.trading',
+    logo: '/logo-vibe.png',
     isInternal: false,
     isCurrent: false,
   },
@@ -148,9 +152,13 @@ export function Header() {
                             : 'text-white/70 hover:bg-white/5 hover:text-white'
                         }`}
                       >
-                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                          {product.name.charAt(0)}
-                        </div>
+                        <Image
+                          src={product.logo}
+                          alt={product.name}
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-md object-contain"
+                        />
                         <div className="flex-1">
                           <div className="font-mono text-sm font-medium">{product.name}</div>
                           <div className="text-xs text-white/50">{product.description}</div>
@@ -168,9 +176,13 @@ export function Header() {
                         onClick={() => setProductMenuOpen(false)}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
                       >
-                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
-                          {product.name.charAt(0)}
-                        </div>
+                        <Image
+                          src={product.logo}
+                          alt={product.name}
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-md object-contain"
+                        />
                         <div className="flex-1">
                           <div className="font-mono text-sm font-medium">{product.name}</div>
                           <div className="text-xs text-white/50">{product.description}</div>
