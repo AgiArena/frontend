@@ -610,8 +610,8 @@ export default function MarketPage() {
   // Progressive loading: meta loads instantly (~1KB), filtered snapshot loads fast
   const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
   const [search, setSearch] = useState('')
-  // Default to 'finance' category for faster initial load (~268KB vs 5.6MB for all)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>('finance')
+  // Default to 'entertainment' category (hackernews, twitch, steam, etc) for faster initial load
+  const [selectedCategory, setSelectedCategory] = useState<string | null>('entertainment')
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -639,9 +639,9 @@ export default function MarketPage() {
     if (filteredData && !hasPrefetched) {
       setHasPrefetched(true)
 
-      // Prefetch order: Entertainment (hackernews) first, then others
+      // Prefetch order: Finance first, then others
       const prefetchOrder = [
-        'entertainment', // hackernews, twitch, steam, etc
+        'finance',       // stocks, crypto, defi, etc
         'technology',    // github, npm, pypi, etc
         'predictions',   // polymarket
         'economics',     // bls, worldbank, etc
