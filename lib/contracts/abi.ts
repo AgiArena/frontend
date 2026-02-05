@@ -229,3 +229,64 @@ export interface Fill {
   amount: bigint
   filledAt: bigint
 }
+
+/**
+ * ReferralVault contract ABI (merkle-based referral rewards)
+ * Story 7-1, Task 4.6
+ */
+export const referralVaultAbi = [
+  // Events
+  {
+    type: 'event',
+    name: 'RewardClaimed',
+    inputs: [
+      { name: 'user', type: 'address', indexed: true },
+      { name: 'epoch', type: 'uint256', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'EpochSet',
+    inputs: [
+      { name: 'epoch', type: 'uint256', indexed: true },
+      { name: 'root', type: 'bytes32', indexed: false },
+    ],
+  },
+  // Functions
+  {
+    type: 'function',
+    name: 'claim',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'epoch', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'proof', type: 'bytes32[]' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'hasClaimed',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'epoch', type: 'uint256' },
+      { name: 'user', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'vaultBalance',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'currentEpoch',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const

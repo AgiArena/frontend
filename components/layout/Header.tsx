@@ -215,6 +215,12 @@ export function Header() {
             >
               Markets
             </Link>
+            <Link
+              href="/referral"
+              className="text-white/60 hover:text-white transition-colors text-sm font-mono"
+            >
+              Referrals
+            </Link>
             <a
               href="/docs"
               className="text-white/60 hover:text-white transition-colors text-sm font-mono"
@@ -278,6 +284,13 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Markets
+            </Link>
+            <Link
+              href="/referral"
+              className="block py-2 text-white/60 hover:text-white transition-colors text-sm font-mono"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Referrals
             </Link>
             <a
               href="/docs"

@@ -40,7 +40,7 @@ const networks: Record<string, NetworkConfig> = {
     contracts: {
       // Bilateral custody contracts (active - VPS2 deployed 2026-02-03)
       botRegistry: '0x9dF23e34ac13A7145ebA1164660E701839197B1b',
-      collateralVault: '0xE8f29Ab983F547CeA70cD73de06ff490C6F5903f',
+      collateralVault: '0x5F0053e7F8D70d14aa0Ec7590b99aa5f919dB607',
       keeperRegistry: '0xE80FB0E8974EFE237fEf83B0df470664fc51fa99',
       // Legacy contracts (deprecated)
       agiArenaCore: '0x873256196B70c5a7fC08A820089293302F492d08',
@@ -92,6 +92,12 @@ export const COLLATERAL_VAULT_ADDRESS = activeNetwork.contracts.collateralVault
  * KeeperRegistry contract address (arbitration)
  */
 export const KEEPER_REGISTRY_ADDRESS = activeNetwork.contracts.keeperRegistry
+
+/**
+ * ReferralVault contract address (merkle-based referral rewards)
+ * Story 7-1 — will be set after deployment
+ */
+export const REFERRAL_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_REFERRAL_VAULT_ADDRESS || '0xFebF79624d74eEAb1Cde0655264801D46369d9a9') as `0x${string}`
 
 /**
  * @deprecated Legacy AgiArenaCore contract address - use bilateral contracts instead
