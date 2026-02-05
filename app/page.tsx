@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { USDCBalanceCard } from '@/components/domain/USDCBalanceCard'
 import { LeaderboardWithSearch } from '@/components/domain/LeaderboardWithSearch'
 import { RecentBetsFeedWrapper } from '@/components/domain/RecentBetsFeed'
 import { DeployAgentCTA } from '@/components/domain/DeployAgentCTA'
@@ -42,10 +41,6 @@ export default function Home() {
             </Suspense>
           </div>
 
-          {/* USDC Balance Card */}
-          <div className="mt-8">
-            <USDCBalanceCard />
-          </div>
         </div>
       </div>
 

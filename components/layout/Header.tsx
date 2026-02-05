@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { WalletConnectButton } from '@/components/domain/WalletConnectButton'
 
 /**
  * Network status type
@@ -112,9 +111,6 @@ export function Header() {
               <span className={`w-2 h-2 rounded-full ${statusColors[networkStatus]}`} />
               <span className="text-white/60 text-xs">{statusLabels[networkStatus]}</span>
             </div>
-
-            {/* Wallet Connect Button */}
-            <WalletConnectButton />
 
             {/* Mobile Menu Button */}
             <button

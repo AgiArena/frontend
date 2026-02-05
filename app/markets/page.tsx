@@ -32,6 +32,7 @@ const COLS_BY_WIDTH: [number, number][] = [
 // Frontend display name overrides (sourceId → display name)
 const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   polymarket: 'Prediction Markets',
+  twitch: 'Twitch Live',
 }
 
 // Subcategory display names (keyed by derived feed type)
@@ -46,6 +47,9 @@ const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
   chain_tvl: 'Chain TVL',
   protocol_tvl: 'Protocol TVL',
   dex_volume: 'DEX Volume',
+  // Twitch feed types
+  streamers: 'Live Streamers',
+  games: 'Games',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -73,6 +77,12 @@ function deriveFeedType(p: SnapshotPrice): string | null {
   }
   if (p.source === 'polymarket') {
     return classifyPolymarket(p.name)
+  }
+  if (p.source === 'twitch') {
+    // asset_id format: twitch_stream_{login} or twitch_game_{id}
+    if (p.assetId.startsWith('twitch_stream_')) return 'streamers'
+    if (p.assetId.startsWith('twitch_game_')) return 'games'
+    return null
   }
   return null
 }
@@ -111,7 +121,7 @@ function classifyPolymarket(name: string): string {
 }
 
 // Sources that should show subcategories (by data feed type)
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi'])
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch'])
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -120,6 +130,11 @@ const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi'])
 function formatValue(v: number, source: string, assetId?: string): string {
   if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
   if (source === 'ecb') return v.toFixed(4)
+  if (source === 'twitch') {
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M viewers`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K viewers`
+    return `${Math.round(v)} viewers`
+  }
   if (source === 'weather') {
     // Format weather values with appropriate units
     if (assetId) {
@@ -257,7 +272,7 @@ function SourceCard({ source, assetCount }: { source: SourceSchedule; assetCount
         </div>
         <div className="flex justify-between">
           <span>Interval</span>
-          <span className="text-white/80">every {humanInterval(source.syncIntervalSecs)}</span>
+          <span className="text-white/80">{source.syncIntervalSecs < 60 ? 'rolling' : `every ${humanInterval(source.syncIntervalSecs)}`}</span>
         </div>
       </div>
     </div>
