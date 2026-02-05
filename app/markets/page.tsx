@@ -461,10 +461,11 @@ export default function MarketPage() {
   const tick = useLiveClock()
 
   // Use meta for instant display, full data once loaded
-  const totalAssets = data?.totalAssets ?? meta?.totalAssets ?? 0
   const sources = data?.sources ?? meta?.sources ?? []
   const generatedAtRaw = data?.generatedAt ?? meta?.generatedAt ?? null
   const pricesLoaded = !!data?.prices?.length
+  // Once prices are loaded, use actual count (meta over-counts registered assets without prices)
+  const totalAssets = pricesLoaded ? data!.prices.length : (meta?.totalAssets ?? 0)
 
   // Source schedule map for quick lookup
   const sourceMap = useMemo(() => {
@@ -655,8 +656,8 @@ export default function MarketPage() {
           </div>
 
           {/* Source schedule cards — show from meta (instant) or full data */}
-          {enabledSources.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-thin">
+          {pricesLoaded && enabledSources.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-thin animate-[fadeSlideIn_0.3s_ease-out]">
               {enabledSources.map((source) => (
                 <SourceCard
                   key={source.sourceId}
@@ -668,7 +669,7 @@ export default function MarketPage() {
             </div>
           )}
 
-          {/* Filter bar */}
+          {/* Filter bar — only show tabs once prices are loaded to avoid meta/snapshot count mismatch */}
           <div className="mb-3 flex-shrink-0 space-y-2">
             <div className="flex items-start gap-3">
               <input
@@ -678,39 +679,46 @@ export default function MarketPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-64 flex-shrink-0"
               />
-              <div className="flex flex-wrap gap-1 border-b border-white/20 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
-                  className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                    selectedSource === null
-                      ? 'border-accent text-accent'
-                      : 'border-transparent text-white/60 hover:text-white'
-                  }`}
-                >
-                  All
-                  <span className="ml-1 text-xs text-white/40">
-                    ({totalAssets.toLocaleString()})
-                  </span>
-                </button>
-                {enabledSources.map((s) => (
+              {pricesLoaded ? (
+                <div className="flex flex-wrap gap-1 border-b border-white/20 min-w-0 animate-[fadeSlideIn_0.3s_ease-out]">
                   <button
-                    key={s.sourceId}
                     type="button"
-                    onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
+                    onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
                     className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                      selectedSource === s.sourceId
+                      selectedSource === null
                         ? 'border-accent text-accent'
                         : 'border-transparent text-white/60 hover:text-white'
                     }`}
                   >
-                    {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                    All
                     <span className="ml-1 text-xs text-white/40">
-                      ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                      ({totalAssets.toLocaleString()})
                     </span>
                   </button>
-                ))}
-              </div>
+                  {enabledSources.map((s) => (
+                    <button
+                      key={s.sourceId}
+                      type="button"
+                      onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
+                      className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
+                        selectedSource === s.sourceId
+                          ? 'border-accent text-accent'
+                          : 'border-transparent text-white/60 hover:text-white'
+                      }`}
+                    >
+                      {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                      <span className="ml-1 text-xs text-white/40">
+                        ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 py-2 text-white/30 font-mono text-sm">
+                  <div className="w-4 h-4 border-2 border-white/10 border-t-accent rounded-full animate-spin" />
+                  Loading sources...
+                </div>
+              )}
             </div>
 
             {/* Subcategory filter chips — shown when a subcategorized source is selected */}
@@ -763,27 +771,14 @@ export default function MarketPage() {
                 </div>
                 <div className="text-center font-mono">
                   <p className="text-lg text-white/80 mb-1">
-                    Loading {totalAssets > 0 ? totalAssets.toLocaleString() : '50,000+'} markets
+                    Loading market data...
                   </p>
                   <p className="text-sm text-white/40">
-                    {enabledSources.length > 0
-                      ? `${enabledSources.length} sources across stocks, crypto, DeFi, weather, and more`
-                      : 'Fetching market data from data node...'}
+                    {sources.length > 0
+                      ? `${sources.filter(s => s.enabled).length} sources across stocks, crypto, DeFi, weather, and more`
+                      : 'Connecting to data node...'}
                   </p>
                 </div>
-                {/* Mini source breakdown while loading */}
-                {enabledSources.length > 0 && (
-                  <div className="flex flex-wrap gap-2 justify-center max-w-md">
-                    {enabledSources.map((s) => {
-                      const count = assetCountBySource[s.sourceId] || 0
-                      return (
-                        <span key={s.sourceId} className="px-2 py-1 bg-white/5 border border-white/10 font-mono text-xs text-white/50">
-                          {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}: {count.toLocaleString()}
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
               </div>
             ) : virtualRows.length > 0 ? (
               <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden">
