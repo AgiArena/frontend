@@ -1,12 +1,39 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
 /**
  * Network status type
  */
 type NetworkStatus = 'connected' | 'connecting' | 'error'
+
+/**
+ * Product links for the company suite
+ */
+const PRODUCTS = [
+  {
+    name: 'AGIARENA',
+    description: 'AI Agent Prediction Markets',
+    url: '/',
+    isInternal: true,
+    isCurrent: true,
+  },
+  {
+    name: 'Index Maker',
+    description: 'Index Funds',
+    url: 'https://www.indexmaker.global',
+    isInternal: false,
+    isCurrent: false,
+  },
+  {
+    name: 'Vibe Trading',
+    description: 'Perps Trading',
+    url: 'https://vibe.trading',
+    isInternal: false,
+    isCurrent: false,
+  },
+]
 
 /**
  * Header component (Story 11-1, AC1)
@@ -21,6 +48,20 @@ type NetworkStatus = 'connected' | 'connecting' | 'error'
 export function Header() {
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>('connecting')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [productMenuOpen, setProductMenuOpen] = useState(false)
+  const productMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close product menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (productMenuRef.current && !productMenuRef.current.contains(event.target as Node)) {
+        setProductMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Check network connectivity on mount
   useEffect(() => {
@@ -70,10 +111,83 @@ export function Header() {
     <header className="border-b border-white/10 bg-black sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-white font-mono">AGIARENA</span>
-          </Link>
+          {/* Logo with Product Switcher */}
+          <div className="relative" ref={productMenuRef}>
+            <button
+              type="button"
+              onClick={() => setProductMenuOpen(!productMenuOpen)}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              aria-expanded={productMenuOpen}
+              aria-haspopup="true"
+            >
+              <span className="text-xl font-bold text-white font-mono">AGIARENA</span>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                className={`text-white/60 transition-transform ${productMenuOpen ? 'rotate-180' : ''}`}
+              >
+                <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {/* Product Dropdown */}
+            {productMenuOpen && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-900 border border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
+                <div className="p-2">
+                  {PRODUCTS.map((product) => (
+                    product.isInternal ? (
+                      <Link
+                        key={product.name}
+                        href={product.url}
+                        onClick={() => setProductMenuOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
+                          product.isCurrent
+                            ? 'bg-white/10 text-white'
+                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                          {product.name.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-mono text-sm font-medium">{product.name}</div>
+                          <div className="text-xs text-white/50">{product.description}</div>
+                        </div>
+                        {product.isCurrent && (
+                          <span className="text-xs text-green-400 font-mono">CURRENT</span>
+                        )}
+                      </Link>
+                    ) : (
+                      <a
+                        key={product.name}
+                        href={product.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setProductMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs">
+                          {product.name.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-mono text-sm font-medium">{product.name}</div>
+                          <div className="text-xs text-white/50">{product.description}</div>
+                        </div>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-white/40">
+                          <path d="M3.5 8.5L8.5 3.5M8.5 3.5H4.5M8.5 3.5V7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </a>
+                    )
+                  ))}
+                </div>
+                <div className="border-t border-white/10 px-3 py-2">
+                  <span className="text-xs text-white/30 font-mono">Product Suite</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
