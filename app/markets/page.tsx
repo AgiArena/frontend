@@ -844,7 +844,7 @@ export default function MarketPage() {
 
           {/* Source schedule cards — show from meta (instant) or full data, filtered by category */}
           {(selectedCategory ? sourcesInCategory : enabledSources).length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-thin">
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide">
               {(selectedCategory ? sourcesInCategory : enabledSources).map((source) => (
                 <SourceCard
                   key={source.sourceId}
@@ -1009,7 +1009,7 @@ export default function MarketPage() {
                 )}
               </div>
             ) : virtualRows.length > 0 ? (
-              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden">
+              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin">
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
