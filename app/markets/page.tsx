@@ -661,11 +661,6 @@ export default function MarketPage() {
           }, (index + 1) * 500) // 500ms delay between each
         }
       })
-
-      // Also prefetch full snapshot last (for "All" view)
-      setTimeout(() => {
-        prefetchSnapshot([]) // Empty triggers full snapshot
-      }, prefetchOrder.length * 500 + 1000)
     }
   }, [filteredData, hasPrefetched, selectedCategory, prefetchSnapshot])
 
@@ -679,8 +674,12 @@ export default function MarketPage() {
   const sources = data?.sources ?? meta?.sources ?? []
   const generatedAtRaw = data?.generatedAt ?? meta?.generatedAt ?? null
   const pricesLoaded = !!data?.prices?.length
-  // Once prices are loaded, use actual count (meta over-counts registered assets without prices)
-  const totalAssets = pricesLoaded ? data!.prices.length : (meta?.totalAssets ?? 0)
+  // Global total from meta (stable, for header display)
+  const totalAssetsGlobal = meta?.totalAssets ?? 0
+  // Current view count (filtered category)
+  const totalAssetsInView = pricesLoaded ? data!.prices.length : 0
+  // For backward compat
+  const totalAssets = totalAssetsGlobal
 
   // Source schedule map for quick lookup
   const sourceMap = useMemo(() => {
@@ -900,9 +899,13 @@ export default function MarketPage() {
             </Link>
             <div className="flex items-baseline gap-4">
               <h1 className="text-2xl font-bold text-white font-mono">Market Data</h1>
-              {totalAssets > 0 && (
+              {totalAssetsGlobal > 0 && (
                 <span className="text-white/40 font-mono text-sm tabular-nums flex items-center gap-1.5">
-                  {totalAssets.toLocaleString()} assets
+                  {totalAssetsInView > 0 ? (
+                    <>{totalAssetsInView.toLocaleString()} / {totalAssetsGlobal.toLocaleString()} assets</>
+                  ) : (
+                    <>{totalAssetsGlobal.toLocaleString()} assets</>
+                  )}
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   updated {generatedAt}
                 </span>
@@ -941,20 +944,6 @@ export default function MarketPage() {
                 className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-56 flex-shrink-0"
               />
               <div className="flex flex-wrap gap-1 border-b border-white/20 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => { setSelectedCategory(null); setSelectedSource(null); setSelectedSubcategory(null) }}
-                  className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                    selectedCategory === null
-                      ? 'border-accent text-accent'
-                      : 'border-transparent text-white/60 hover:text-white'
-                  }`}
-                >
-                  All
-                  <span className="ml-1 text-xs text-white/40">
-                    ({totalAssets.toLocaleString()})
-                  </span>
-                </button>
                 {categoryGroupsWithCounts.map((group) => (
                   <button
                     key={group.id}
@@ -1059,7 +1048,7 @@ export default function MarketPage() {
                 </div>
                 <div className="text-center font-mono">
                   <p className="text-lg text-white/80 mb-1">
-                    Loading {totalAssets > 0 ? totalAssets.toLocaleString() : '50,000+'} markets
+                    Loading {totalAssetsGlobal > 0 ? totalAssetsGlobal.toLocaleString() : '50,000+'} markets
                   </p>
                   <p className="text-sm text-white/40">
                     {enabledSources.length > 0
@@ -1082,13 +1071,15 @@ export default function MarketPage() {
                 )}
               </div>
             ) : virtualRows.length > 0 ? (
-              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin bg-black">
+              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin bg-black" style={{ backgroundColor: '#000' }}>
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
                     width: '100%',
                     position: 'relative',
                     backgroundColor: '#000',
+                    // Hide until virtualizer has calculated positions (prevents stacking flash)
+                    visibility: virtualizer.getTotalSize() > 0 ? 'visible' : 'hidden',
                   }}
                 >
                   {virtualizer.getVirtualItems().map((virtualItem) => {
