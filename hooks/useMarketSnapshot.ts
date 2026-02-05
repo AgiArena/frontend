@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 export interface SnapshotPrice {
   source: string
@@ -88,4 +88,37 @@ export function useMarketSnapshotBySources(sources: string[]) {
     staleTime: 15_000,
     enabled: sources.length > 0, // Only fetch if sources are provided
   })
+}
+
+/** Hook to get prefetch function for background loading categories */
+export function usePrefetchMarketSnapshot() {
+  const queryClient = useQueryClient()
+
+  return (sources: string[]) => {
+    if (sources.length === 0) {
+      // Prefetch full snapshot
+      queryClient.prefetchQuery({
+        queryKey: ['market-snapshot'],
+        queryFn: async () => {
+          const res = await fetch(`${API_URL}/data-node/snapshot`)
+          if (!res.ok) throw new Error('Failed to fetch market snapshot')
+          return res.json()
+        },
+        staleTime: 15_000,
+      })
+    } else {
+      // Prefetch filtered snapshot
+      const sourcesParam = sources.join(',')
+      queryClient.prefetchQuery({
+        queryKey: ['market-snapshot-sources', sourcesParam],
+        queryFn: async () => {
+          const url = `${API_URL}/data-node/snapshot?sources=${encodeURIComponent(sourcesParam)}`
+          const res = await fetch(url)
+          if (!res.ok) throw new Error('Failed to fetch market snapshot')
+          return res.json()
+        },
+        staleTime: 15_000,
+      })
+    }
+  }
 }

@@ -10,6 +10,7 @@ import {
   useMarketSnapshot,
   useMarketSnapshotMeta,
   useMarketSnapshotBySources,
+  usePrefetchMarketSnapshot,
   type SnapshotPrice,
   type SourceSchedule,
 } from '@/hooks/useMarketSnapshot'
@@ -626,8 +627,47 @@ export default function MarketPage() {
 
   // Progressive fetch: only fetch selected category's sources when category is selected
   const { data: filteredData, isLoading: filteredLoading, isError: filteredError, error: filteredErrorMsg } = useMarketSnapshotBySources(sourcesToFetch)
-  // Full snapshot for "All" view
+  // Full snapshot for "All" view (lazy - only fetched when user clicks "All")
   const { data: fullData, isLoading: fullLoading, isError: fullError, error: fullErrorMsg } = useMarketSnapshot()
+
+  // Prefetch other categories in background after initial load
+  const prefetchSnapshot = usePrefetchMarketSnapshot()
+  const [hasPrefetched, setHasPrefetched] = useState(false)
+
+  useEffect(() => {
+    // Once initial data is loaded, prefetch other categories in background
+    if (filteredData && !hasPrefetched) {
+      setHasPrefetched(true)
+
+      // Prefetch order: Entertainment (hackernews) first, then others
+      const prefetchOrder = [
+        'entertainment', // hackernews, twitch, steam, etc
+        'technology',    // github, npm, pypi, etc
+        'predictions',   // polymarket
+        'economics',     // bls, worldbank, etc
+        'environment',   // weather, tides, etc
+        'energy',        // eia, opec, etc
+        'commodities',   // opec, eia, zillow, etc
+        'transport',     // opensky
+      ]
+
+      // Stagger prefetches to not overwhelm the server
+      prefetchOrder.forEach((categoryId, index) => {
+        if (categoryId === selectedCategory) return // Skip current category
+        const group = CATEGORY_GROUPS.find((g) => g.id === categoryId)
+        if (group) {
+          setTimeout(() => {
+            prefetchSnapshot(group.sources)
+          }, (index + 1) * 500) // 500ms delay between each
+        }
+      })
+
+      // Also prefetch full snapshot last (for "All" view)
+      setTimeout(() => {
+        prefetchSnapshot([]) // Empty triggers full snapshot
+      }, prefetchOrder.length * 500 + 1000)
+    }
+  }, [filteredData, hasPrefetched, selectedCategory, prefetchSnapshot])
 
   // Use filtered data when category is selected, full data otherwise
   const data = selectedCategory && sourcesToFetch.length > 0 ? filteredData : fullData
