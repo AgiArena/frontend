@@ -646,7 +646,21 @@ export default function MarketPage() {
     return new Map(sources.map((s) => [s.sourceId, s]))
   }, [sources])
 
-  // Count assets per source — from full data if available, else from meta counts
+  // Count assets per source — always use meta for category nav counts (stable across filters)
+  // Use full data counts when available, else meta counts
+  const assetCountBySourceForNav = useMemo(() => {
+    // For category navigation, prefer fullData counts (or meta) to keep all categories visible
+    if (fullData?.prices) {
+      const counts: Record<string, number> = {}
+      for (const p of fullData.prices) {
+        counts[p.source] = (counts[p.source] || 0) + 1
+      }
+      return counts
+    }
+    return (meta?.assetCounts ?? {}) as Record<string, number>
+  }, [fullData?.prices, meta?.assetCounts])
+
+  // Count assets in current view (for display only)
   const assetCountBySource = useMemo(() => {
     if (data?.prices) {
       const counts: Record<string, number> = {}
@@ -658,19 +672,19 @@ export default function MarketPage() {
     return (meta?.assetCounts ?? {}) as Record<string, number>
   }, [data?.prices, meta?.assetCounts])
 
-  // Enabled sources for tabs — hide sources with 0 assets
+  // Enabled sources for tabs — hide sources with 0 assets (use stable nav counts)
   const enabledSources = useMemo(() => {
-    return sources.filter((s) => s.enabled && (assetCountBySource[s.sourceId] ?? 0) > 0)
-  }, [sources, assetCountBySource])
+    return sources.filter((s) => s.enabled && (assetCountBySourceForNav[s.sourceId] ?? 0) > 0)
+  }, [sources, assetCountBySourceForNav])
 
-  // Category groups with their asset counts
+  // Category groups with their asset counts (use stable nav counts)
   const categoryGroupsWithCounts = useMemo(() => {
     return CATEGORY_GROUPS.map((group) => {
-      const groupSources = group.sources.filter((s) => (assetCountBySource[s] ?? 0) > 0)
-      const totalAssets = groupSources.reduce((sum, s) => sum + (assetCountBySource[s] || 0), 0)
+      const groupSources = group.sources.filter((s) => (assetCountBySourceForNav[s] ?? 0) > 0)
+      const totalAssets = groupSources.reduce((sum, s) => sum + (assetCountBySourceForNav[s] || 0), 0)
       return { ...group, sources: groupSources, totalAssets }
     }).filter((g) => g.totalAssets > 0)
-  }, [assetCountBySource])
+  }, [assetCountBySourceForNav])
 
   // Sources in the selected category (for secondary filter)
   const sourcesInCategory = useMemo(() => {
