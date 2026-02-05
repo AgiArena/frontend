@@ -580,7 +580,7 @@ function SectionHeader({ source, count, tick }: { source: SourceSchedule; count:
   void tick
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
-    <div className="flex items-center gap-3 px-3 py-2 bg-white/5 border-b border-white/10 sticky top-0 z-10">
+    <div className="flex items-center gap-3 px-3 py-2 bg-black border-b border-white/10">
       <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
       <span className="font-mono text-sm font-bold text-white">{displayName}</span>
       <span className="font-mono text-xs text-white/40">{count.toLocaleString()} assets</span>
@@ -593,7 +593,7 @@ function SectionHeader({ source, count, tick }: { source: SourceSchedule; count:
 
 function SubSectionHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border-b border-white/5">
+    <div className="flex items-center gap-2 px-4 py-1.5 bg-black/90 border-b border-white/5">
       <span className="font-mono text-xs text-white/60">{label}</span>
       <span className="font-mono text-[10px] text-white/30">{count.toLocaleString()}</span>
     </div>
