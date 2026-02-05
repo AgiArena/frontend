@@ -901,11 +901,7 @@ export default function MarketPage() {
               <h1 className="text-2xl font-bold text-white font-mono">Market Data</h1>
               {totalAssetsGlobal > 0 && (
                 <span className="text-white/40 font-mono text-sm tabular-nums flex items-center gap-1.5">
-                  {totalAssetsInView > 0 ? (
-                    <>{totalAssetsInView.toLocaleString()} / {totalAssetsGlobal.toLocaleString()} assets</>
-                  ) : (
-                    <>{totalAssetsGlobal.toLocaleString()} assets</>
-                  )}
+                  {totalAssetsGlobal.toLocaleString()} assets
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   updated {generatedAt}
                 </span>
