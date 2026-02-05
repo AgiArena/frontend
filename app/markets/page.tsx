@@ -609,7 +609,8 @@ export default function MarketPage() {
   // Progressive loading: meta loads instantly (~1KB), filtered snapshot loads fast
   const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  // Default to 'finance' category for faster initial load (~268KB vs 5.6MB for all)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>('finance')
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -847,11 +848,11 @@ export default function MarketPage() {
     : '-'
 
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
+    <main className="min-h-screen bg-black flex flex-col">
       <Header />
 
-      <div className="flex-1 overflow-hidden bg-black">
-        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col bg-black">
+      <div className="flex-1 overflow-hidden bg-black" style={{ backgroundColor: '#000' }}>
+        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col bg-black" style={{ backgroundColor: '#000' }}>
           {/* Page header */}
           <div className="mb-3 flex-shrink-0">
             <Link href="/" className="text-white/60 hover:text-white font-mono text-sm mb-1 inline-block">
@@ -876,7 +877,7 @@ export default function MarketPage() {
 
           {/* Source schedule cards — show from meta (instant) or full data, filtered by category */}
           {(selectedCategory ? sourcesInCategory : enabledSources).length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide bg-transparent" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide bg-black" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', backgroundColor: '#000' }}>
               {(selectedCategory ? sourcesInCategory : enabledSources).map((source) => (
                 <SourceCard
                   key={source.sourceId}
@@ -1003,14 +1004,14 @@ export default function MarketPage() {
           </div>
 
           {/* Virtualized grid */}
-          <div className="flex-1 border border-white/20 bg-black/30 overflow-hidden min-h-0">
+          <div className="flex-1 border border-white/20 bg-black overflow-hidden min-h-0">
             {isError ? (
-              <div className="py-20 text-center text-red-400/80 font-mono">
+              <div className="py-20 text-center text-red-400/80 font-mono bg-black">
                 <p className="text-lg mb-2">Failed to load</p>
                 <p className="text-sm text-white/40">{error?.message}</p>
               </div>
             ) : !pricesLoaded ? (
-              <div className="flex flex-col items-center justify-center h-full gap-6">
+              <div className="flex flex-col items-center justify-center h-full gap-6 bg-black">
                 {/* Animated loading indicator */}
                 <div className="relative">
                   <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
@@ -1041,12 +1042,13 @@ export default function MarketPage() {
                 )}
               </div>
             ) : virtualRows.length > 0 ? (
-              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin">
+              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin bg-black">
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
                     width: '100%',
                     position: 'relative',
+                    backgroundColor: '#000',
                   }}
                 >
                   {virtualizer.getVirtualItems().map((virtualItem) => {
