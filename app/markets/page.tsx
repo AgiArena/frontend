@@ -169,9 +169,9 @@ function formatValue(v: number, source: string, assetId?: string): string {
   if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
   if (source === 'ecb') return v.toFixed(4)
   if (source === 'twitch') {
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M peak`
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K peak`
-    return `${Math.round(v)} peak`
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M viewers`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K viewers`
+    return `${Math.round(v)} viewers`
   }
   if (source === 'hackernews') {
     const unit = assetId?.endsWith('_comments') ? 'comments' : 'pts'
