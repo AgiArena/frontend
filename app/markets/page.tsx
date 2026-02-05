@@ -818,8 +818,8 @@ export default function MarketPage() {
     <main className="min-h-screen bg-terminal flex flex-col">
       <Header />
 
-      <div className="flex-1 overflow-hidden">
-        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col">
+      <div className="flex-1 overflow-hidden bg-black">
+        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col bg-black">
           {/* Page header */}
           <div className="mb-3 flex-shrink-0">
             <Link href="/" className="text-white/60 hover:text-white font-mono text-sm mb-1 inline-block">
@@ -844,7 +844,7 @@ export default function MarketPage() {
 
           {/* Source schedule cards — show from meta (instant) or full data, filtered by category */}
           {(selectedCategory ? sourcesInCategory : enabledSources).length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide bg-transparent" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {(selectedCategory ? sourcesInCategory : enabledSources).map((source) => (
                 <SourceCard
                   key={source.sourceId}
