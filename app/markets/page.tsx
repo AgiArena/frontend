@@ -42,6 +42,94 @@ const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   npm: 'npm Packages',
   pypi: 'PyPI Packages',
   crates_io: 'Rust Crates',
+  bls: 'Labor Stats',
+  bchain: 'Bitcoin On-Chain',
+  goes_xray: 'Solar X-Ray',
+  tides: 'NOAA Tides',
+  usgs_water: 'USGS Water',
+  sec_13f: 'SEC 13F Filings',
+  watttime: 'Grid Carbon',
+  caiso: 'CA Energy Grid',
+  energy_charts: 'EU Energy',
+  opensky: 'Aviation Tracking',
+  anilist: 'Anime & Manga',
+  fourchan: '4chan Activity',
+  twse: 'Taiwan Stocks',
+}
+
+// Category groupings for hierarchical navigation
+interface CategoryGroup {
+  id: string
+  name: string
+  icon: string
+  sources: string[]
+}
+
+const CATEGORY_GROUPS: CategoryGroup[] = [
+  {
+    id: 'finance',
+    name: 'Finance',
+    icon: '💹',
+    sources: ['stocks', 'twse', 'crypto', 'defi', 'rates', 'bonds', 'ecb', 'futures', 'cftc'],
+  },
+  {
+    id: 'predictions',
+    name: 'Predictions',
+    icon: '🎯',
+    sources: ['polymarket'],
+  },
+  {
+    id: 'economics',
+    name: 'Economics',
+    icon: '📊',
+    sources: ['bls', 'worldbank', 'imf', 'fred', 'congress', 'sec_13f', 'finra'],
+  },
+  {
+    id: 'entertainment',
+    name: 'Entertainment',
+    icon: '🎮',
+    sources: ['twitch', 'steam', 'backpacktf', 'tmdb', 'anilist', 'hackernews', 'fourchan'],
+  },
+  {
+    id: 'technology',
+    name: 'Technology',
+    icon: '💻',
+    sources: ['github', 'npm', 'pypi', 'crates_io', 'cloudflare'],
+  },
+  {
+    id: 'environment',
+    name: 'Environment',
+    icon: '🌍',
+    sources: ['weather', 'tides', 'usgs_water', 'goes_xray'],
+  },
+  {
+    id: 'energy',
+    name: 'Energy',
+    icon: '⚡',
+    sources: ['eia', 'opec', 'watttime', 'caiso', 'energy_charts'],
+  },
+  {
+    id: 'commodities',
+    name: 'Commodities',
+    icon: '🛢️',
+    sources: ['opec', 'eia', 'zillow', 'bchain'],
+  },
+  {
+    id: 'transport',
+    name: 'Transport',
+    icon: '✈️',
+    sources: ['opensky'],
+  },
+]
+
+// Build reverse lookup: sourceId → categoryId
+const SOURCE_TO_CATEGORY: Record<string, string> = {}
+for (const group of CATEGORY_GROUPS) {
+  for (const source of group.sources) {
+    if (!SOURCE_TO_CATEGORY[source]) {
+      SOURCE_TO_CATEGORY[source] = group.id
+    }
+  }
 }
 
 // Subcategory display names (keyed by derived feed type)
@@ -521,6 +609,7 @@ export default function MarketPage() {
   const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
   const { data, isLoading: snapshotLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -556,6 +645,23 @@ export default function MarketPage() {
     return sources.filter((s) => s.enabled && (assetCountBySource[s.sourceId] ?? 0) > 0)
   }, [sources, assetCountBySource])
 
+  // Category groups with their asset counts
+  const categoryGroupsWithCounts = useMemo(() => {
+    return CATEGORY_GROUPS.map((group) => {
+      const groupSources = group.sources.filter((s) => (assetCountBySource[s] ?? 0) > 0)
+      const totalAssets = groupSources.reduce((sum, s) => sum + (assetCountBySource[s] || 0), 0)
+      return { ...group, sources: groupSources, totalAssets }
+    }).filter((g) => g.totalAssets > 0)
+  }, [assetCountBySource])
+
+  // Sources in the selected category (for secondary filter)
+  const sourcesInCategory = useMemo(() => {
+    if (!selectedCategory) return enabledSources
+    const group = categoryGroupsWithCounts.find((g) => g.id === selectedCategory)
+    if (!group) return enabledSources
+    return enabledSources.filter((s) => group.sources.includes(s.sourceId))
+  }, [selectedCategory, categoryGroupsWithCounts, enabledSources])
+
   // Derive feed-type subcategories for sources that support them
   const enrichedPrices = useMemo(() => {
     if (!data?.prices) return []
@@ -586,6 +692,16 @@ export default function MarketPage() {
 
     // Filter
     let prices = enrichedPrices
+
+    // Filter by category first
+    if (selectedCategory) {
+      const group = CATEGORY_GROUPS.find((g) => g.id === selectedCategory)
+      if (group) {
+        prices = prices.filter((p) => group.sources.includes(p.source))
+      }
+    }
+
+    // Then filter by specific source if selected
     if (selectedSource) {
       prices = prices.filter((p) => p.source === selectedSource)
     }
@@ -622,7 +738,11 @@ export default function MarketPage() {
 
     // Build flat virtual rows: header + (optional subcategories) + tile rows per source
     const rows: VirtualRow[] = []
-    const sourceOrder = enabledSources.map((s) => s.sourceId)
+    // Use sources in current category if filtered, otherwise all enabled
+    const relevantSources = selectedCategory
+      ? sourcesInCategory
+      : enabledSources
+    const sourceOrder = relevantSources.map((s) => s.sourceId)
 
     for (const sourceId of sourceOrder) {
       const list = grouped.get(sourceId)
@@ -671,7 +791,7 @@ export default function MarketPage() {
     }
 
     return { virtualRows: rows, totalFiltered }
-  }, [enrichedPrices, selectedSource, selectedSubcategory, search, cols, enabledSources, sourceMap])
+  }, [enrichedPrices, selectedCategory, selectedSource, selectedSubcategory, search, cols, enabledSources, sourcesInCategory, sourceMap])
 
   // Virtual scrolling
   const virtualizer = useVirtualizer({
@@ -722,10 +842,10 @@ export default function MarketPage() {
             </div>
           </div>
 
-          {/* Source schedule cards — show from meta (instant) or full data */}
-          {enabledSources.length > 0 && (
+          {/* Source schedule cards — show from meta (instant) or full data, filtered by category */}
+          {(selectedCategory ? sourcesInCategory : enabledSources).length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-thin">
-              {enabledSources.map((source) => (
+              {(selectedCategory ? sourcesInCategory : enabledSources).map((source) => (
                 <SourceCard
                   key={source.sourceId}
                   source={source}
@@ -738,20 +858,21 @@ export default function MarketPage() {
 
           {/* Filter bar */}
           <div className="mb-3 flex-shrink-0 space-y-2">
+            {/* Search + Category tabs */}
             <div className="flex items-start gap-3">
               <input
                 type="text"
                 placeholder="Search symbol or name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-64 flex-shrink-0"
+                className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-56 flex-shrink-0"
               />
               <div className="flex flex-wrap gap-1 border-b border-white/20 min-w-0">
                 <button
                   type="button"
-                  onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
+                  onClick={() => { setSelectedCategory(null); setSelectedSource(null); setSelectedSubcategory(null) }}
                   className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                    selectedSource === null
+                    selectedCategory === null
                       ? 'border-accent text-accent'
                       : 'border-transparent text-white/60 hover:text-white'
                   }`}
@@ -761,39 +882,73 @@ export default function MarketPage() {
                     ({totalAssets.toLocaleString()})
                   </span>
                 </button>
-                {enabledSources.map((s) => (
+                {categoryGroupsWithCounts.map((group) => (
                   <button
-                    key={s.sourceId}
+                    key={group.id}
                     type="button"
-                    onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
-                    className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                      selectedSource === s.sourceId
+                    onClick={() => { setSelectedCategory(group.id); setSelectedSource(null); setSelectedSubcategory(null) }}
+                    className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap flex items-center gap-1.5 ${
+                      selectedCategory === group.id
                         ? 'border-accent text-accent'
                         : 'border-transparent text-white/60 hover:text-white'
                     }`}
                   >
-                    {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
-                    <span className="ml-1 text-xs text-white/40">
-                      ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                    <span>{group.icon}</span>
+                    {group.name}
+                    <span className="text-xs text-white/40">
+                      ({group.totalAssets.toLocaleString()})
                     </span>
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Source filter chips — shown when a category is selected */}
+            {selectedCategory && sourcesInCategory.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 pl-[calc(14rem+0.75rem)] animate-[fadeSlideIn_0.25s_ease-out]">
+                <button
+                  type="button"
+                  onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
+                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
+                    selectedSource === null
+                      ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
+                      : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  All Sources
+                </button>
+                {sourcesInCategory.map((s, i) => (
+                  <button
+                    key={s.sourceId}
+                    type="button"
+                    onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
+                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
+                      selectedSource === s.sourceId
+                        ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
+                        : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                    }`}
+                    style={{ animationDelay: `${i * 30}ms` }}
+                  >
+                    {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                    <span className="ml-1 text-white/30">({(assetCountBySource[s.sourceId] || 0).toLocaleString()})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Subcategory filter chips — shown when a subcategorized source is selected */}
             {selectedSource && availableSubcategories.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 pl-[calc(16rem+0.75rem)] animate-[fadeSlideIn_0.25s_ease-out]">
+              <div className="flex flex-wrap gap-1.5 pl-[calc(14rem+0.75rem)] animate-[fadeSlideIn_0.25s_ease-out]">
                 <button
                   type="button"
                   onClick={() => setSelectedSubcategory(null)}
                   className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
                     selectedSubcategory === null
-                      ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
+                      ? 'bg-white/15 text-white border border-white/30'
                       : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
                   }`}
                 >
-                  All
+                  All Types
                 </button>
                 {availableSubcategories.map(([key, count], i) => (
                   <button
@@ -802,7 +957,7 @@ export default function MarketPage() {
                     onClick={() => setSelectedSubcategory(key)}
                     className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
                       selectedSubcategory === key
-                        ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
+                        ? 'bg-white/15 text-white border border-white/30'
                         : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
                     }`}
                     style={{ animationDelay: `${i * 30}ms` }}
