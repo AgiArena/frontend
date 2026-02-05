@@ -36,6 +36,12 @@ const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   hackernews: 'Hacker News',
   steam: 'Steam Games',
   tmdb: 'Movies & TV',
+  backpacktf: 'Steam Marketplace',
+  cloudflare: 'Cloudflare Radar',
+  github: 'GitHub Repos',
+  npm: 'npm Packages',
+  pypi: 'PyPI Packages',
+  crates_io: 'Rust Crates',
 }
 
 // Subcategory display names (keyed by derived feed type)
@@ -59,6 +65,12 @@ const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
   // TMDb feed types
   tmdb_movie: 'Movies',
   tmdb_tv: 'TV Shows',
+  // Cloudflare Radar feed types
+  cf_http: 'HTTP Metrics',
+  cf_iqi: 'Internet Quality',
+  cf_speed: 'Speed Tests',
+  cf_domain: 'Domain Rankings',
+  cf_service: 'Service Rankings',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -102,6 +114,14 @@ function deriveFeedType(p: SnapshotPrice): string | null {
     if (p.assetId.startsWith('tmdb_tv_')) return 'tmdb_tv'
     return null
   }
+  if (p.source === 'cloudflare') {
+    if (p.assetId.startsWith('cf_http_')) return 'cf_http'
+    if (p.assetId.startsWith('cf_iqi_')) return 'cf_iqi'
+    if (p.assetId.startsWith('cf_speed_')) return 'cf_speed'
+    if (p.assetId.startsWith('cf_domain_')) return 'cf_domain'
+    if (p.assetId.startsWith('cf_service_')) return 'cf_service'
+    return null
+  }
   return null
 }
 
@@ -139,7 +159,7 @@ function classifyPolymarket(name: string): string {
 }
 
 // Sources that should show subcategories (by data feed type)
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch', 'hackernews', 'tmdb'])
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch', 'hackernews', 'tmdb', 'cloudflare'])
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -149,9 +169,9 @@ function formatValue(v: number, source: string, assetId?: string): string {
   if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
   if (source === 'ecb') return v.toFixed(4)
   if (source === 'twitch') {
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M viewers`
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K viewers`
-    return `${Math.round(v)} viewers`
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M peak`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K peak`
+    return `${Math.round(v)} peak`
   }
   if (source === 'hackernews') {
     const unit = assetId?.endsWith('_comments') ? 'comments' : 'pts'
@@ -178,6 +198,25 @@ function formatValue(v: number, source: string, assetId?: string): string {
       if (metric === 'ozone') return `${v.toFixed(1)}µg/m³`
     }
     return v.toFixed(1)
+  }
+  if (source === 'cloudflare') {
+    if (assetId?.startsWith('cf_domain_') || assetId?.startsWith('cf_service_')) {
+      return `#${Math.round(v).toLocaleString()}`
+    }
+    if (assetId?.startsWith('cf_http_')) return `${v.toFixed(1)}%`
+    if (assetId?.startsWith('cf_speed_')) return `${v.toFixed(1)} Mbps`
+    return v.toFixed(2)
+  }
+  if (source === 'github') {
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M ★`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K ★`
+    return `${Math.round(v)} ★`
+  }
+  if (source === 'npm' || source === 'pypi' || source === 'crates_io') {
+    if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B dl`
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M dl`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K dl`
+    return `${Math.round(v)} dl`
   }
   if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
@@ -222,36 +261,64 @@ function humanInterval(secs: number): string {
 
 /** Build an external link for a price tile, if available */
 function getExternalLink(price: SnapshotPrice): string | null {
-  if (price.source === 'twitch') {
-    const login = price.assetId.replace('twitch_stream_', '')
-    if (price.assetId.startsWith('twitch_stream_')) return `https://twitch.tv/${login}`
-    return null
-  }
-  if (price.source === 'hackernews') {
-    // asset_id: hn_{id}_score or hn_{id}_comments
-    const m = price.assetId.match(/^hn_(\d+)_/)
-    if (m) return `https://news.ycombinator.com/item?id=${m[1]}`
-    return null
-  }
-  if (price.source === 'steam') {
-    const appId = price.assetId.replace('steam_game_', '')
-    return `https://store.steampowered.com/app/${appId}`
-  }
-  if (price.source === 'tmdb') {
-    if (price.assetId.startsWith('tmdb_movie_')) {
-      const id = price.assetId.replace('tmdb_movie_', '')
-      return `https://www.themoviedb.org/movie/${id}`
+  switch (price.source) {
+    case 'twitch':
+      if (price.assetId.startsWith('twitch_stream_'))
+        return `https://twitch.tv/${price.assetId.replace('twitch_stream_', '')}`
+      return null
+    case 'hackernews': {
+      const m = price.assetId.match(/^hn_(\d+)_/)
+      return m ? `https://news.ycombinator.com/item?id=${m[1]}` : null
     }
-    if (price.assetId.startsWith('tmdb_tv_')) {
-      const id = price.assetId.replace('tmdb_tv_', '')
-      return `https://www.themoviedb.org/tv/${id}`
+    case 'steam':
+      return `https://store.steampowered.com/app/${price.assetId.replace('steam_game_', '')}`
+    case 'tmdb':
+      if (price.assetId.startsWith('tmdb_movie_'))
+        return `https://www.themoviedb.org/movie/${price.assetId.replace('tmdb_movie_', '')}`
+      if (price.assetId.startsWith('tmdb_tv_'))
+        return `https://www.themoviedb.org/tv/${price.assetId.replace('tmdb_tv_', '')}`
+      return null
+    case 'crypto':
+      return `https://www.coingecko.com/en/coins/${price.assetId}`
+    case 'defi':
+      if (price.assetId.startsWith('protocol_'))
+        return `https://defillama.com/protocol/${price.assetId.replace('protocol_', '')}`
+      if (price.assetId.startsWith('chain_')) {
+        const chain = price.assetId.replace('chain_', '')
+        return `https://defillama.com/chain/${chain.charAt(0).toUpperCase() + chain.slice(1)}`
+      }
+      return null
+    case 'rates':
+      return `https://fred.stlouisfed.org/series/${price.assetId}`
+    case 'stocks':
+      return `https://finance.yahoo.com/quote/${price.assetId}`
+    case 'github': {
+      const gh = price.symbol.replace('GH:', '')
+      return gh.includes('/') ? `https://github.com/${gh}` : null
     }
-    return null
+    case 'npm': {
+      const pkg = price.symbol.replace('NPM:', '')
+      return `https://www.npmjs.com/package/${pkg}`
+    }
+    case 'pypi': {
+      const pkg = price.symbol.replace('PYPI:', '')
+      return `https://pypi.org/project/${pkg}/`
+    }
+    case 'crates_io':
+      return `https://crates.io/crates/${price.assetId.replace('crate_', '')}`
+    case 'backpacktf':
+      return `https://backpack.tf/stats/Unique/${encodeURIComponent(price.name)}/Tradable/Craftable`
+    case 'cloudflare':
+      if (price.assetId.startsWith('cf_domain_')) {
+        const domain = price.assetId.replace('cf_domain_', '').replace(/_/g, '.')
+        return `https://radar.cloudflare.com/domains/${domain}`
+      }
+      return 'https://radar.cloudflare.com/'
+    case 'bls':
+      return `https://data.bls.gov/timeseries/${price.assetId}`
+    default:
+      return null
   }
-  if (price.source === 'polymarket') {
-    return null // No direct link derivable from asset_id
-  }
-  return null
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -373,8 +440,8 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   } else if (price.source === 'hackernews') {
     // Strip "(score)" / "(comments)" suffix from name, show story title
     displaySymbol = price.name.replace(/\s*\((score|comments)\)\s*$/, '').slice(0, 30)
-  } else if (price.source === 'steam' || price.source === 'polymarket' || price.source === 'tmdb') {
-    // Show the full name (game title / market question) instead of symbol ID
+  } else if (['steam', 'polymarket', 'tmdb', 'backpacktf', 'cloudflare', 'github', 'npm', 'pypi', 'crates_io'].includes(price.source)) {
+    // Show the full name instead of symbol ID
     displaySymbol = price.name.slice(0, 30)
   } else {
     displaySymbol =
