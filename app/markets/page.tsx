@@ -33,6 +33,8 @@ const COLS_BY_WIDTH: [number, number][] = [
 const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   polymarket: 'Prediction Markets',
   twitch: 'Twitch Live',
+  hackernews: 'Hacker News',
+  steam: 'Steam Games',
 }
 
 // Subcategory display names (keyed by derived feed type)
@@ -50,6 +52,9 @@ const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
   // Twitch feed types
   streamers: 'Live Streamers',
   games: 'Games',
+  // HackerNews feed types
+  hn_score: 'Story Scores',
+  hn_comments: 'Comment Counts',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -79,9 +84,13 @@ function deriveFeedType(p: SnapshotPrice): string | null {
     return classifyPolymarket(p.name)
   }
   if (p.source === 'twitch') {
-    // asset_id format: twitch_stream_{login} or twitch_game_{id}
     if (p.assetId.startsWith('twitch_stream_')) return 'streamers'
     if (p.assetId.startsWith('twitch_game_')) return 'games'
+    return null
+  }
+  if (p.source === 'hackernews') {
+    if (p.assetId.endsWith('_score')) return 'hn_score'
+    if (p.assetId.endsWith('_comments')) return 'hn_comments'
     return null
   }
   return null
@@ -121,7 +130,7 @@ function classifyPolymarket(name: string): string {
 }
 
 // Sources that should show subcategories (by data feed type)
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch'])
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch', 'hackernews'])
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -134,6 +143,16 @@ function formatValue(v: number, source: string, assetId?: string): string {
     if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M viewers`
     if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K viewers`
     return `${Math.round(v)} viewers`
+  }
+  if (source === 'hackernews') {
+    const unit = assetId?.endsWith('_comments') ? 'comments' : 'pts'
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K ${unit}`
+    return `${Math.round(v)} ${unit}`
+  }
+  if (source === 'steam') {
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M playing`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K playing`
+    return `${Math.round(v)} playing`
   }
   if (source === 'weather') {
     // Format weather values with appropriate units
@@ -186,6 +205,29 @@ function humanInterval(secs: number): string {
   if (secs < 3600) return `${Math.round(secs / 60)}m`
   if (secs < 86400) return `${Math.round(secs / 3600)}h`
   return `${Math.round(secs / 86400)}d`
+}
+
+/** Build an external link for a price tile, if available */
+function getExternalLink(price: SnapshotPrice): string | null {
+  if (price.source === 'twitch') {
+    const login = price.assetId.replace('twitch_stream_', '')
+    if (price.assetId.startsWith('twitch_stream_')) return `https://twitch.tv/${login}`
+    return null
+  }
+  if (price.source === 'hackernews') {
+    // asset_id: hn_{id}_score or hn_{id}_comments
+    const m = price.assetId.match(/^hn_(\d+)_/)
+    if (m) return `https://news.ycombinator.com/item?id=${m[1]}`
+    return null
+  }
+  if (price.source === 'steam') {
+    const appId = price.assetId.replace('steam_game_', '')
+    return `https://store.steampowered.com/app/${appId}`
+  }
+  if (price.source === 'polymarket') {
+    return null // No direct link derivable from asset_id
+  }
+  return null
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -285,33 +327,52 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   const isUp = changePct !== null && changePct >= 0
   const isDown = changePct !== null && changePct < 0
   const hasCryptoLogo = price.source === 'crypto'
+  const link = getExternalLink(price)
 
-  let displaySymbol =
-    !price.symbol || price.symbol === '-'
-      ? price.name.replace(' TVL', '').slice(0, 10)
-      : price.symbol
-  // Weather: show city name (strip metric suffix from name like "Paris Temperature")
+  // Determine display label
+  let displaySymbol: string
   if (price.source === 'weather') {
     const parts = price.name.split(' ')
-    // Remove the last word (metric label), keep city name
     displaySymbol = parts.length > 1 ? parts.slice(0, -1).join(' ') : price.name
     if (displaySymbol.length > 14) displaySymbol = displaySymbol.slice(0, 12) + '..'
+  } else if (price.source === 'hackernews') {
+    // Strip "(score)" / "(comments)" suffix from name, show story title
+    displaySymbol = price.name.replace(/\s*\((score|comments)\)\s*$/, '').slice(0, 30)
+  } else if (price.source === 'steam' || price.source === 'polymarket') {
+    // Show the full name (game title / market question) instead of symbol ID
+    displaySymbol = price.name.slice(0, 30)
+  } else {
+    displaySymbol =
+      !price.symbol || price.symbol === '-'
+        ? price.name.replace(' TVL', '').slice(0, 10)
+        : price.symbol
   }
 
+  const Wrapper = link ? 'a' : 'div'
+  const wrapperProps = link
+    ? { href: link, target: '_blank', rel: 'noopener noreferrer' }
+    : {}
+
   return (
-    <div
-      className={`p-2 border cursor-default relative group ${
+    <Wrapper
+      {...wrapperProps}
+      className={`p-2 border relative group ${link ? 'cursor-pointer hover:bg-white/10' : 'cursor-default'} ${
         isUp
           ? 'border-green-500/30 bg-green-500/5'
           : isDown
             ? 'border-red-500/30 bg-red-500/5'
             : 'border-white/10 bg-white/5'
       }`}
-      title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}`}
+      title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}${link ? `\n${link}` : ''}`}
     >
       <div className="flex items-center gap-1.5">
         {hasCryptoLogo && <CryptoLogo assetId={price.assetId} symbol={price.symbol} size={16} />}
         <div className="font-mono text-xs font-bold text-white truncate">{displaySymbol}</div>
+        {link && (
+          <svg className="w-2.5 h-2.5 text-white/30 flex-shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 1h7v7M11 1L4 8" />
+          </svg>
+        )}
       </div>
       <div className="font-mono text-[10px] text-white/60 truncate">
         {formatValue(value, price.source, price.assetId)}
@@ -321,7 +382,7 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
           {isUp ? '\u2191' : '\u2193'}{Math.abs(changePct).toFixed(1)}%
         </div>
       )}
-    </div>
+    </Wrapper>
   )
 }
 
@@ -358,6 +419,7 @@ export default function MarketPage() {
   const { data, isLoading: snapshotLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const cols = useColumnCount()
 
@@ -401,6 +463,18 @@ export default function MarketPage() {
     })
   }, [data?.prices])
 
+  // Compute available subcategories for the selected source
+  const availableSubcategories = useMemo(() => {
+    if (!selectedSource || !SUBCATEGORIZED_SOURCES.has(selectedSource)) return []
+    const counts: Record<string, number> = {}
+    for (const p of enrichedPrices) {
+      if (p.source === selectedSource && p.category) {
+        counts[p.category] = (counts[p.category] || 0) + 1
+      }
+    }
+    return Object.entries(counts).sort(([, a], [, b]) => b - a)
+  }, [enrichedPrices, selectedSource])
+
   // Group, filter, sort prices into sections → flat virtual rows
   const { virtualRows, totalFiltered } = useMemo(() => {
     if (!enrichedPrices.length) return { virtualRows: [] as VirtualRow[], totalFiltered: 0 }
@@ -409,6 +483,9 @@ export default function MarketPage() {
     let prices = enrichedPrices
     if (selectedSource) {
       prices = prices.filter((p) => p.source === selectedSource)
+    }
+    if (selectedSubcategory) {
+      prices = prices.filter((p) => p.category === selectedSubcategory)
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -489,7 +566,7 @@ export default function MarketPage() {
     }
 
     return { virtualRows: rows, totalFiltered }
-  }, [enrichedPrices, selectedSource, search, cols, enabledSources, sourceMap])
+  }, [enrichedPrices, selectedSource, selectedSubcategory, search, cols, enabledSources, sourceMap])
 
   // Virtual scrolling
   const virtualizer = useVirtualizer({
@@ -551,47 +628,81 @@ export default function MarketPage() {
           )}
 
           {/* Filter bar */}
-          <div className="flex items-center gap-3 mb-3 flex-shrink-0">
-            <input
-              type="text"
-              placeholder="Search symbol or name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-64"
-            />
-            <div className="flex gap-1 border-b border-white/20 overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => setSelectedSource(null)}
-                className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                  selectedSource === null
-                    ? 'border-accent text-accent'
-                    : 'border-transparent text-white/60 hover:text-white'
-                }`}
-              >
-                All
-                <span className="ml-1 text-xs text-white/40">
-                  ({totalAssets.toLocaleString()})
-                </span>
-              </button>
-              {enabledSources.map((s) => (
+          <div className="mb-3 flex-shrink-0 space-y-2">
+            <div className="flex items-start gap-3">
+              <input
+                type="text"
+                placeholder="Search symbol or name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-64 flex-shrink-0"
+              />
+              <div className="flex flex-wrap gap-1 border-b border-white/20 min-w-0">
                 <button
-                  key={s.sourceId}
                   type="button"
-                  onClick={() => setSelectedSource(s.sourceId)}
+                  onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
                   className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                    selectedSource === s.sourceId
+                    selectedSource === null
                       ? 'border-accent text-accent'
                       : 'border-transparent text-white/60 hover:text-white'
                   }`}
                 >
-                  {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                  All
                   <span className="ml-1 text-xs text-white/40">
-                    ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                    ({totalAssets.toLocaleString()})
                   </span>
                 </button>
-              ))}
+                {enabledSources.map((s) => (
+                  <button
+                    key={s.sourceId}
+                    type="button"
+                    onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
+                    className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
+                      selectedSource === s.sourceId
+                        ? 'border-accent text-accent'
+                        : 'border-transparent text-white/60 hover:text-white'
+                    }`}
+                  >
+                    {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                    <span className="ml-1 text-xs text-white/40">
+                      ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Subcategory filter chips — shown when a subcategorized source is selected */}
+            {selectedSource && availableSubcategories.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 pl-[calc(16rem+0.75rem)]">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubcategory(null)}
+                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all ${
+                    selectedSubcategory === null
+                      ? 'bg-accent/20 text-accent border border-accent/40'
+                      : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  All
+                </button>
+                {availableSubcategories.map(([key, count]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedSubcategory(key)}
+                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all ${
+                      selectedSubcategory === key
+                        ? 'bg-accent/20 text-accent border border-accent/40'
+                        : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                    }`}
+                  >
+                    {FEED_TYPE_DISPLAY_NAMES[key] || key}
+                    <span className="ml-1 text-white/30">({count.toLocaleString()})</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Virtualized grid */}
