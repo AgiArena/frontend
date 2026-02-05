@@ -35,6 +35,7 @@ const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   twitch: 'Twitch Live',
   hackernews: 'Hacker News',
   steam: 'Steam Games',
+  tmdb: 'Movies & TV',
 }
 
 // Subcategory display names (keyed by derived feed type)
@@ -55,6 +56,9 @@ const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
   // HackerNews feed types
   hn_score: 'Story Scores',
   hn_comments: 'Comment Counts',
+  // TMDb feed types
+  tmdb_movie: 'Movies',
+  tmdb_tv: 'TV Shows',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -91,6 +95,11 @@ function deriveFeedType(p: SnapshotPrice): string | null {
   if (p.source === 'hackernews') {
     if (p.assetId.endsWith('_score')) return 'hn_score'
     if (p.assetId.endsWith('_comments')) return 'hn_comments'
+    return null
+  }
+  if (p.source === 'tmdb') {
+    if (p.assetId.startsWith('tmdb_movie_')) return 'tmdb_movie'
+    if (p.assetId.startsWith('tmdb_tv_')) return 'tmdb_tv'
     return null
   }
   return null
@@ -130,7 +139,7 @@ function classifyPolymarket(name: string): string {
 }
 
 // Sources that should show subcategories (by data feed type)
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch', 'hackernews'])
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch', 'hackernews', 'tmdb'])
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -153,6 +162,10 @@ function formatValue(v: number, source: string, assetId?: string): string {
     if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M playing`
     if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K playing`
     return `${Math.round(v)} playing`
+  }
+  if (source === 'tmdb') {
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K pop`
+    return `${v.toFixed(1)} pop`
   }
   if (source === 'weather') {
     // Format weather values with appropriate units
@@ -224,6 +237,17 @@ function getExternalLink(price: SnapshotPrice): string | null {
     const appId = price.assetId.replace('steam_game_', '')
     return `https://store.steampowered.com/app/${appId}`
   }
+  if (price.source === 'tmdb') {
+    if (price.assetId.startsWith('tmdb_movie_')) {
+      const id = price.assetId.replace('tmdb_movie_', '')
+      return `https://www.themoviedb.org/movie/${id}`
+    }
+    if (price.assetId.startsWith('tmdb_tv_')) {
+      const id = price.assetId.replace('tmdb_tv_', '')
+      return `https://www.themoviedb.org/tv/${id}`
+    }
+    return null
+  }
   if (price.source === 'polymarket') {
     return null // No direct link derivable from asset_id
   }
@@ -251,6 +275,16 @@ function useColumnCount() {
     return () => window.removeEventListener('resize', update)
   }, [])
   return cols
+}
+
+/** Returns a tick counter that increments every second — forces re-renders of relative timestamps */
+function useLiveClock() {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return tick
 }
 
 // ---------------------------------------------------------------------------
@@ -291,12 +325,13 @@ function CryptoLogo({ assetId, symbol, size = 16 }: { assetId: string; symbol: s
   )
 }
 
-function SourceCard({ source, assetCount }: { source: SourceSchedule; assetCount: number }) {
+function SourceCard({ source, assetCount, tick }: { source: SourceSchedule; assetCount: number; tick: number }) {
+  void tick // used to force re-render for live timestamps
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
-    <div className="border border-white/15 bg-white/5 p-3 min-w-[180px] flex-shrink-0">
+    <div className="border border-white/15 bg-white/5 p-3 min-w-[180px] flex-shrink-0 transition-all duration-300 hover:border-white/30 hover:bg-white/[0.08] hover:-translate-y-0.5">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
+        <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
         <span className="font-mono text-sm font-bold text-white">{displayName}</span>
       </div>
       <div className="space-y-1 font-mono text-xs text-white/50">
@@ -306,11 +341,11 @@ function SourceCard({ source, assetCount }: { source: SourceSchedule; assetCount
         </div>
         <div className="flex justify-between">
           <span>Last sync</span>
-          <span className="text-white/80">{relativeTime(source.lastSync)}</span>
+          <span className="text-white/80 tabular-nums">{relativeTime(source.lastSync)}</span>
         </div>
         <div className="flex justify-between">
           <span>Next</span>
-          <span className="text-white/80">{relativeTime(source.estimatedNextUpdate)}</span>
+          <span className="text-white/80 tabular-nums">{relativeTime(source.estimatedNextUpdate)}</span>
         </div>
         <div className="flex justify-between">
           <span>Interval</span>
@@ -338,7 +373,7 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   } else if (price.source === 'hackernews') {
     // Strip "(score)" / "(comments)" suffix from name, show story title
     displaySymbol = price.name.replace(/\s*\((score|comments)\)\s*$/, '').slice(0, 30)
-  } else if (price.source === 'steam' || price.source === 'polymarket') {
+  } else if (price.source === 'steam' || price.source === 'polymarket' || price.source === 'tmdb') {
     // Show the full name (game title / market question) instead of symbol ID
     displaySymbol = price.name.slice(0, 30)
   } else {
@@ -356,12 +391,12 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   return (
     <Wrapper
       {...wrapperProps}
-      className={`p-2 border relative group ${link ? 'cursor-pointer hover:bg-white/10' : 'cursor-default'} ${
+      className={`p-2 border relative group transition-all duration-200 ${link ? 'cursor-pointer' : 'cursor-default'} hover:scale-[1.03] hover:z-10 hover:shadow-lg hover:shadow-black/30 ${
         isUp
-          ? 'border-green-500/30 bg-green-500/5'
+          ? 'border-green-500/30 bg-green-500/5 hover:border-green-500/50 hover:bg-green-500/10'
           : isDown
-            ? 'border-red-500/30 bg-red-500/5'
-            : 'border-white/10 bg-white/5'
+            ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50 hover:bg-red-500/10'
+            : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10'
       }`}
       title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}${link ? `\n${link}` : ''}`}
     >
@@ -369,7 +404,7 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
         {hasCryptoLogo && <CryptoLogo assetId={price.assetId} symbol={price.symbol} size={16} />}
         <div className="font-mono text-xs font-bold text-white truncate">{displaySymbol}</div>
         {link && (
-          <svg className="w-2.5 h-2.5 text-white/30 flex-shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="w-2.5 h-2.5 text-white/30 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white/60" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 1h7v7M11 1L4 8" />
           </svg>
         )}
@@ -386,14 +421,15 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   )
 }
 
-function SectionHeader({ source, count }: { source: SourceSchedule; count: number }) {
+function SectionHeader({ source, count, tick }: { source: SourceSchedule; count: number; tick: number }) {
+  void tick
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
     <div className="flex items-center gap-3 px-3 py-2 bg-white/5 border-b border-white/10 sticky top-0 z-10">
-      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
+      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
       <span className="font-mono text-sm font-bold text-white">{displayName}</span>
       <span className="font-mono text-xs text-white/40">{count.toLocaleString()} assets</span>
-      <span className="font-mono text-xs text-white/30">
+      <span className="font-mono text-xs text-white/30 tabular-nums">
         synced {relativeTime(source.lastSync)} &middot; every {humanInterval(source.syncIntervalSecs)}
       </span>
     </div>
@@ -422,6 +458,7 @@ export default function MarketPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const cols = useColumnCount()
+  const tick = useLiveClock()
 
   // Use meta for instant display, full data once loaded
   const totalAssets = data?.totalAssets ?? meta?.totalAssets ?? 0
@@ -584,8 +621,9 @@ export default function MarketPage() {
     overscan: 10,
   })
 
+  void tick // force re-render every second for live timestamps
   const generatedAt = generatedAtRaw
-    ? new Date(generatedAtRaw).toLocaleTimeString()
+    ? relativeTime(generatedAtRaw)
     : '-'
 
   return (
@@ -602,8 +640,10 @@ export default function MarketPage() {
             <div className="flex items-baseline gap-4">
               <h1 className="text-2xl font-bold text-white font-mono">Market Data</h1>
               {totalAssets > 0 && (
-                <span className="text-white/40 font-mono text-sm">
-                  {totalAssets.toLocaleString()} assets &middot; Generated {generatedAt}
+                <span className="text-white/40 font-mono text-sm tabular-nums flex items-center gap-1.5">
+                  {totalAssets.toLocaleString()} assets
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  updated {generatedAt}
                 </span>
               )}
               {metaLoading && (
@@ -616,12 +656,13 @@ export default function MarketPage() {
 
           {/* Source schedule cards — show from meta (instant) or full data */}
           {enabledSources.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0">
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-thin">
               {enabledSources.map((source) => (
                 <SourceCard
                   key={source.sourceId}
                   source={source}
                   assetCount={assetCountBySource[source.sourceId] || 0}
+                  tick={tick}
                 />
               ))}
             </div>
@@ -674,28 +715,29 @@ export default function MarketPage() {
 
             {/* Subcategory filter chips — shown when a subcategorized source is selected */}
             {selectedSource && availableSubcategories.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 pl-[calc(16rem+0.75rem)]">
+              <div className="flex flex-wrap gap-1.5 pl-[calc(16rem+0.75rem)] animate-[fadeSlideIn_0.25s_ease-out]">
                 <button
                   type="button"
                   onClick={() => setSelectedSubcategory(null)}
-                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all ${
+                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
                     selectedSubcategory === null
-                      ? 'bg-accent/20 text-accent border border-accent/40'
+                      ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
                       : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
                   }`}
                 >
                   All
                 </button>
-                {availableSubcategories.map(([key, count]) => (
+                {availableSubcategories.map(([key, count], i) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setSelectedSubcategory(key)}
-                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all ${
+                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
                       selectedSubcategory === key
-                        ? 'bg-accent/20 text-accent border border-accent/40'
+                        ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
                         : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
                     }`}
+                    style={{ animationDelay: `${i * 30}ms` }}
                   >
                     {FEED_TYPE_DISPLAY_NAMES[key] || key}
                     <span className="ml-1 text-white/30">({count.toLocaleString()})</span>
@@ -767,7 +809,7 @@ export default function MarketPage() {
                             transform: `translateY(${virtualItem.start}px)`,
                           }}
                         >
-                          <SectionHeader source={row.source} count={row.count} />
+                          <SectionHeader source={row.source} count={row.count} tick={tick} />
                         </div>
                       )
                     }
@@ -791,6 +833,7 @@ export default function MarketPage() {
                     return (
                       <div
                         key={virtualItem.key}
+                        className="animate-[tileEnter_0.3s_ease-out]"
                         style={{
                           position: 'absolute',
                           top: 0,
