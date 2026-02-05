@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer'
 import {
   useMarketSnapshot,
   useMarketSnapshotMeta,
+  useMarketSnapshotBySources,
   type SnapshotPrice,
   type SourceSchedule,
 } from '@/hooks/useMarketSnapshot'
@@ -605,9 +606,8 @@ function SubSectionHeader({ label, count }: { label: string; count: number }) {
 // ---------------------------------------------------------------------------
 
 export default function MarketPage() {
-  // Progressive loading: meta loads instantly (~1KB), full snapshot loads in background (~3MB)
+  // Progressive loading: meta loads instantly (~1KB), filtered snapshot loads fast
   const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
-  const { data, isLoading: snapshotLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
@@ -615,6 +615,24 @@ export default function MarketPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const cols = useColumnCount()
   const tick = useLiveClock()
+
+  // Determine which sources to fetch based on selected category
+  const sourcesToFetch = useMemo(() => {
+    if (!selectedCategory) return [] // Empty = fetch all via full snapshot
+    const group = CATEGORY_GROUPS.find((g) => g.id === selectedCategory)
+    return group ? group.sources : []
+  }, [selectedCategory])
+
+  // Progressive fetch: only fetch selected category's sources when category is selected
+  const { data: filteredData, isLoading: filteredLoading, isError: filteredError, error: filteredErrorMsg } = useMarketSnapshotBySources(sourcesToFetch)
+  // Full snapshot for "All" view
+  const { data: fullData, isLoading: fullLoading, isError: fullError, error: fullErrorMsg } = useMarketSnapshot()
+
+  // Use filtered data when category is selected, full data otherwise
+  const data = selectedCategory && sourcesToFetch.length > 0 ? filteredData : fullData
+  const snapshotLoading = selectedCategory && sourcesToFetch.length > 0 ? filteredLoading : fullLoading
+  const isError = selectedCategory && sourcesToFetch.length > 0 ? filteredError : fullError
+  const error = selectedCategory && sourcesToFetch.length > 0 ? filteredErrorMsg : fullErrorMsg
 
   // Use meta for instant display, full data once loaded
   const sources = data?.sources ?? meta?.sources ?? []

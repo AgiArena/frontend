@@ -70,3 +70,22 @@ export function useMarketSnapshot() {
     staleTime: 15_000,
   })
 }
+
+/** Filtered snapshot by source IDs (for progressive loading) */
+export function useMarketSnapshotBySources(sources: string[]) {
+  const sourcesParam = sources.length ? sources.join(',') : null
+  return useQuery<SnapshotResponse>({
+    queryKey: ['market-snapshot-sources', sourcesParam],
+    queryFn: async () => {
+      const url = sourcesParam
+        ? `${API_URL}/data-node/snapshot?sources=${encodeURIComponent(sourcesParam)}`
+        : `${API_URL}/data-node/snapshot`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Failed to fetch market snapshot')
+      return res.json()
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    enabled: sources.length > 0, // Only fetch if sources are provided
+  })
+}
