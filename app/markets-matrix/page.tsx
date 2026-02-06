@@ -223,7 +223,7 @@ export default function MarketsMatrixPage() {
   }, [isPaused])
 
   return (
-    <main className="relative w-screen h-screen bg-black overflow-hidden">
+    <main className="relative w-screen h-screen bg-primary overflow-hidden">
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
@@ -231,25 +231,25 @@ export default function MarketsMatrixPage() {
 
       {/* Header overlay */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
-        <Link href="/" className="text-white/60 hover:text-white font-mono text-sm">
+        <Link href="/" className="text-secondary hover:text-primary font-mono text-sm">
           ← Back
         </Link>
         <div className="text-right">
           <div className="text-accent font-mono font-bold text-xl">AGIARENA</div>
-          <div className="text-white/40 font-mono text-xs">THE MATRIX</div>
+          <div className="text-muted font-mono text-xs">THE MATRIX</div>
         </div>
       </div>
 
       {/* Center content */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div className="text-center">
-          <div className="text-8xl md:text-[12rem] font-bold text-white font-mono opacity-90 tracking-tighter">
+          <div className="text-8xl md:text-[12rem] font-semibold text-primary opacity-90 tracking-tighter">
             {totalCount.toLocaleString()}
           </div>
           <div className="text-2xl md:text-4xl text-accent font-mono font-bold -mt-4">
             TRADEABLE MARKETS
           </div>
-          <div className="text-white/40 font-mono text-sm mt-4">
+          <div className="text-muted font-mono text-sm mt-4">
             hover any symbol for details
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function MarketsMatrixPage() {
       {/* Hover tooltip */}
       {hoveredTicker && (
         <div
-          className="fixed z-50 bg-black/95 border border-accent p-4 rounded-lg shadow-2xl min-w-[200px]"
+          className="fixed z-50 bg-primary/95 border border-accent p-4 rounded-lg shadow-2xl min-w-[200px]"
           style={{
             left: mouseRef.current.x + 20,
             top: mouseRef.current.y - 20,
@@ -269,15 +269,15 @@ export default function MarketsMatrixPage() {
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: SOURCE_COLORS[hoveredTicker.source] }}
             />
-            <span className="text-white/60 font-mono text-xs uppercase">{hoveredTicker.source}</span>
+            <span className="text-secondary font-mono text-xs uppercase">{hoveredTicker.source}</span>
           </div>
-          <div className="text-xl font-bold text-white font-mono">{hoveredTicker.symbol}</div>
-          <div className="text-white/60 font-mono text-sm mb-2">{hoveredTicker.name}</div>
-          <div className="text-2xl font-bold text-white font-mono">
+          <div className="text-xl font-semibold text-primary">{hoveredTicker.symbol}</div>
+          <div className="text-secondary font-mono text-sm mb-2">{hoveredTicker.name}</div>
+          <div className="text-2xl font-semibold text-primary">
             {formatValue(hoveredTicker.value, hoveredTicker.source)}
           </div>
           {hoveredTicker.changePct !== null && (
-            <div className={`font-mono ${hoveredTicker.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`font-mono ${hoveredTicker.changePct >= 0 ? 'text-green' : 'text-red-loss'}`}>
               {hoveredTicker.changePct >= 0 ? '↑' : '↓'} {Math.abs(hoveredTicker.changePct).toFixed(2)}%
             </div>
           )}
@@ -288,13 +288,13 @@ export default function MarketsMatrixPage() {
       <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4 z-20">
         <button
           onClick={() => setIsPaused(!isPaused)}
-          className="bg-white/10 hover:bg-white/20 text-white font-mono px-4 py-2 transition-colors"
+          className="bg-hover hover:bg-hover text-primary font-mono px-4 py-2 transition-colors"
         >
           {isPaused ? '▶ RESUME' : '⏸ PAUSE'}
         </button>
         <Link
           href="/markets"
-          className="bg-accent hover:bg-accent/80 text-white font-mono font-bold px-6 py-2 transition-colors"
+          className="bg-accent hover:bg-accent/80 text-primary font-mono font-bold px-6 py-2 transition-colors"
         >
           EXPLORE ALL →
         </Link>
@@ -305,7 +305,7 @@ export default function MarketsMatrixPage() {
         {Object.entries(SOURCE_COLORS).map(([source, color]) => (
           <div key={source} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-            <span className="text-white/40 font-mono text-xs uppercase">{source}</span>
+            <span className="text-muted font-mono text-xs uppercase">{source}</span>
           </div>
         ))}
       </div>

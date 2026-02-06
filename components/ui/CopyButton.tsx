@@ -44,8 +44,8 @@ export function CopyButton({ text, className = '', onCopy, size = 16 }: CopyButt
       <button
         type="button"
         onClick={handleCopy}
-        className={`inline-flex items-center justify-center p-1 rounded hover:bg-white/10 transition-colors btn-interactive ${
-          copied ? 'text-green-400' : 'text-white/60 hover:text-white'
+        className={`inline-flex items-center justify-center p-1 rounded hover:bg-hover transition-colors transition-colors duration-150 ${
+          copied ? 'text-green' : 'text-secondary hover:text-primary'
         } ${className}`}
         title={copied ? 'Copied!' : 'Copy to clipboard'}
         aria-label={copied ? 'Copied!' : 'Copy to clipboard'}
@@ -86,7 +86,7 @@ export function CopyButton({ text, className = '', onCopy, size = 16 }: CopyButt
       {/* Tooltip */}
       {showTooltip && (
         <span
-          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black border border-white/20 text-xs text-green-400 font-mono whitespace-nowrap z-50"
+          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-primary border border text-xs text-green font-mono whitespace-nowrap z-50"
           role="status"
           aria-live="polite"
         >

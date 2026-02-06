@@ -30,7 +30,7 @@ const RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
  */
 export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
   return (
-    <div className="inline-flex bg-terminal border border-white/20 rounded overflow-hidden">
+    <div className="inline-flex bg-primary border border rounded overflow-hidden">
       {RANGE_OPTIONS.map((option) => {
         const isSelected = value === option.value
         return (
@@ -40,10 +40,10 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
             className={`
               px-3 py-1.5 font-mono text-sm transition-colors
               ${isSelected
-                ? 'bg-white/10 text-white font-bold'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                ? 'bg-hover text-primary font-bold'
+                : 'text-secondary hover:text-primary hover:bg-surface'
               }
-              ${option.value !== '7d' ? 'border-l border-white/20' : ''}
+              ${option.value !== '7d' ? 'border-l border' : ''}
             `}
             aria-pressed={isSelected}
             aria-label={`Show ${option.label === 'All' ? 'all time' : `last ${option.label.toLowerCase()}`} data`}

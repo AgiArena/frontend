@@ -76,17 +76,17 @@ export function TelegramConnect({ walletAddress }: TelegramConnectProps) {
   const telegramUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}`
 
   return (
-    <div className="border border-white/20 bg-terminal mb-8">
-      <div className="flex justify-between items-center p-4 border-b border-white/20">
-        <h2 className="text-lg font-bold text-white font-mono">
+    <div className="border border bg-primary mb-8">
+      <div className="flex justify-between items-center p-4 border-b border">
+        <h2 className="text-lg font-semibold text-primary">
           Telegram Notifications
         </h2>
         {/* Connection Status Badge */}
         {isLoading ? (
-          <span className="text-white/40 text-sm font-mono">Checking...</span>
+          <span className="text-muted text-sm font-mono">Checking...</span>
         ) : status?.connected ? (
-          <span className="text-white text-sm font-mono flex items-center gap-2">
-            <span className="w-2 h-2 bg-white rounded-full" />
+          <span className="text-primary text-sm font-mono flex items-center gap-2">
+            <span className="w-2 h-2 bg-primary rounded-full" />
             Connected
           </span>
         ) : (
@@ -102,17 +102,17 @@ export function TelegramConnect({ walletAddress }: TelegramConnectProps) {
           /* Connected State */
           <div className="text-center">
             <div className="text-4xl mb-4">✅</div>
-            <p className="text-white font-mono mb-2">
+            <p className="text-primary font-mono mb-2">
               Notifications Enabled
             </p>
-            <p className="text-white/60 text-sm font-mono">
+            <p className="text-secondary text-sm font-mono">
               You'll receive Telegram notifications for bet matches, settlements, and rank changes.
             </p>
             <a
               href={telegramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-4 px-4 py-2 border border-white/20 text-white/60 hover:text-white hover:bg-white/10 font-mono text-sm transition-colors"
+              className="inline-block mt-4 px-4 py-2 border border text-secondary hover:text-primary hover:bg-hover font-mono text-sm transition-colors"
             >
               Open Bot →
             </a>
@@ -122,7 +122,7 @@ export function TelegramConnect({ walletAddress }: TelegramConnectProps) {
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* QR Code */}
             <div className="flex-shrink-0">
-              <div className="bg-white p-3 rounded">
+              <div className="bg-surface p-3 rounded">
                 <QRCodeSVG
                   value={telegramUrl}
                   size={120}
@@ -134,20 +134,20 @@ export function TelegramConnect({ walletAddress }: TelegramConnectProps) {
 
             {/* Instructions */}
             <div className="flex-1 text-center md:text-left">
-              <p className="text-white font-mono mb-4">
+              <p className="text-primary font-mono mb-4">
                 Get notified on Telegram
               </p>
-              <ol className="text-white/60 text-sm font-mono space-y-2 list-decimal list-inside">
+              <ol className="text-secondary text-sm font-mono space-y-2 list-decimal list-inside">
                 <li>Open Telegram on your phone</li>
-                <li>Scan the QR code or <a href={telegramUrl} target="_blank" rel="noopener noreferrer" className="text-white underline hover:no-underline">click here</a></li>
-                <li>Send <code className="bg-white/10 px-1 rounded">/start</code> to the bot</li>
+                <li>Scan the QR code or <a href={telegramUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">click here</a></li>
+                <li>Send <code className="bg-hover px-1 rounded">/start</code> to the bot</li>
                 <li>Follow the link to verify your wallet</li>
               </ol>
               <a
                 href={telegramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-4 px-4 py-2 bg-white text-black hover:bg-white/90 font-mono text-sm transition-colors"
+                className="inline-block mt-4 px-4 py-2 bg-accent text-primary hover:bg-accent-hover font-mono text-sm transition-colors"
               >
                 Open @{TELEGRAM_BOT_USERNAME}
               </a>

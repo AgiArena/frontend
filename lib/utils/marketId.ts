@@ -149,36 +149,36 @@ export function getSourceBadge(dataSource: DataSource): {
       return {
         label: 'CoinGecko',
         icon: '🦎',
-        bgColor: 'bg-green-100 dark:bg-green-900/30',
-        textColor: 'text-green-700 dark:text-green-300',
+        bgColor: 'bg-green-muted dark:bg-green-muted',
+        textColor: 'text-green dark:text-green',
       };
     case 'stocks':
       return {
         label: 'Stocks',
         icon: '📈',
-        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
-        textColor: 'text-blue-700 dark:text-blue-300',
+        bgColor: 'bg-accent-muted',
+        textColor: 'text-accent ',
       };
     case 'openmeteo':
       return {
         label: 'Weather',
         icon: '🌤️',
-        bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
-        textColor: 'text-cyan-700 dark:text-cyan-300',
+        bgColor: 'bg-accent-muted',
+        textColor: 'text-accent ',
       };
     case 'bls':
       return {
         label: 'Employment',
         icon: '👷',
-        bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-        textColor: 'text-orange-700 dark:text-orange-300',
+        bgColor: 'bg-accent-muted',
+        textColor: 'text-accent ',
       };
     case 'fred':
       return {
         label: 'Rates',
         icon: '🏛️',
-        bgColor: 'bg-red-100 dark:bg-red-900/30',
-        textColor: 'text-red-700 dark:text-red-300',
+        bgColor: 'bg-red-loss-muted dark:bg-red-loss-muted',
+        textColor: 'text-red-loss dark:text-red-loss',
       };
     case 'ecb':
       return {
@@ -198,8 +198,8 @@ export function getSourceBadge(dataSource: DataSource): {
       return {
         label: 'Unknown',
         icon: '❓',
-        bgColor: 'bg-gray-100 dark:bg-gray-800',
-        textColor: 'text-gray-700 dark:text-gray-300',
+        bgColor: 'bg-hover',
+        textColor: 'text-secondary ',
       };
   }
 }
@@ -218,8 +218,8 @@ export function getResolutionBadge(method: ResolutionMethod): {
       return {
         label: 'Keeper Vote',
         icon: '🗳️',
-        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
-        textColor: 'text-blue-700 dark:text-blue-300',
+        bgColor: 'bg-accent-muted',
+        textColor: 'text-accent ',
       };
     case 'deterministic':
       return {
@@ -232,8 +232,8 @@ export function getResolutionBadge(method: ResolutionMethod): {
       return {
         label: 'Unknown',
         icon: '❓',
-        bgColor: 'bg-gray-100 dark:bg-gray-800',
-        textColor: 'text-gray-700 dark:text-gray-300',
+        bgColor: 'bg-hover',
+        textColor: 'text-secondary ',
       };
   }
 }

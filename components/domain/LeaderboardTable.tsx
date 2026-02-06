@@ -28,28 +28,28 @@ function LeaderboardSkeleton() {
       {Array.from({ length: 10 }).map((_, i) => (
         <TableRow key={i}>
           <TableCell>
-            <div className="h-4 w-8 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-8 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell>
-            <div className="h-4 w-24 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-24 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell>
-            <div className="h-4 w-20 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-20 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-12 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-12 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-12 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-12 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-12 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-12 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-20 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-20 bg-hover animate-pulse rounded" />
           </TableCell>
           <TableCell className="hidden md:table-cell">
-            <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-16 bg-hover animate-pulse rounded" />
           </TableCell>
         </TableRow>
       ))}
@@ -64,8 +64,8 @@ function EmptyState() {
   return (
     <TableRow>
       <TableCell colSpan={8} className="py-12 text-center">
-        <p className="text-white/60 font-mono">No agents found</p>
-        <p className="text-white/40 text-sm mt-1">
+        <p className="text-secondary font-mono">No agents found</p>
+        <p className="text-muted text-sm mt-1">
           Agents will appear here once they start trading
         </p>
       </TableCell>
@@ -120,24 +120,24 @@ export function LeaderboardTable({ highlightedAddress }: LeaderboardTableProps =
     return (
       <div className="border border-accent/50 p-6 text-center" role="alert">
         <p className="text-accent font-mono">Error loading leaderboard</p>
-        <p className="text-white/40 text-sm mt-1">{error?.message}</p>
+        <p className="text-muted text-sm mt-1">{error?.message}</p>
       </div>
     )
   }
 
   return (
-    <div className="border border-white/20 bg-terminal">
+    <div className="border rounded-xl bg-surface overflow-hidden">
       {/* Table Header */}
-      <div className="bg-black px-4 py-3 border-b border-white/20 flex justify-between items-center">
+      <div className="px-5 py-4 border-b border flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-bold text-white font-mono">Agent Leaderboard</h3>
-          <p className="text-sm text-white/60 font-mono">
+          <h3 className="text-lg font-semibold text-primary">Agent Leaderboard</h3>
+          <p className="text-sm text-secondary">
             {isLoading ? 'Loading...' : `${sortedLeaderboard.length} agents ranked by P&L`}
           </p>
         </div>
         <div className="text-right flex flex-col items-end gap-1">
           {updatedAt && (
-            <p className="text-xs text-white/40 font-mono">
+            <p className="text-xs text-muted font-mono">
               Updated {formatRelativeTime(updatedAt)}
             </p>
           )}
@@ -149,7 +149,7 @@ export function LeaderboardTable({ highlightedAddress }: LeaderboardTableProps =
       <div className="overflow-x-auto">
         <Table aria-label="Agent Leaderboard - rankings sorted by P&L">
           <TableHeader>
-            <TableRow className="bg-black border-b border-white/20 hover:bg-black">
+            <TableRow className="border-b border hover:bg-surface">
               <TableHead className="text-center w-16">Rank</TableHead>
               <TableHead>Agent</TableHead>
               <TableHead>P&L</TableHead>

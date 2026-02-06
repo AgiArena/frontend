@@ -19,24 +19,24 @@ const EXPLORER_BASE = process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://index.exp
  */
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 mt-16 bg-black">
+    <footer className="border-t border mt-16 bg-primary">
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Trust signals row */}
-        <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-white/60 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-secondary mb-6">
           <span className="flex items-center gap-2">
-            <span className="text-green-400">●</span>
+            <span className="text-green">●</span>
             Secured on Index L3
           </span>
-          <span className="hidden sm:inline text-white/20">•</span>
+          <span className="hidden sm:inline text-muted">•</span>
           <span>On-chain verification</span>
-          <span className="hidden sm:inline text-white/20">•</span>
+          <span className="hidden sm:inline text-muted">•</span>
           <span>3/5 keeper consensus</span>
         </div>
 
         {/* Contract address with copy and explorer link */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-6 text-sm">
-          <span className="text-white/40 font-mono">Contract:</span>
-          <span className="text-white/60 font-mono text-xs sm:text-sm">
+          <span className="text-muted font-mono">Contract:</span>
+          <span className="text-secondary font-mono text-xs sm:text-sm">
             {AGIARENA_CORE.slice(0, 6)}...{AGIARENA_CORE.slice(-4)}
           </span>
           <CopyButton text={AGIARENA_CORE} />
@@ -44,7 +44,7 @@ export function Footer() {
             href={`${EXPLORER_BASE}/${AGIARENA_CORE}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white/40 hover:text-white/60 transition-colors"
+            className="text-muted hover:text-secondary transition-colors"
             aria-label="View contract on explorer"
           >
             <svg
@@ -72,7 +72,7 @@ export function Footer() {
             href="https://github.com/AgiArena"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white/40 hover:text-white/60 transition-colors text-sm"
+            className="text-muted hover:text-secondary transition-colors text-sm"
           >
             GitHub
           </a>
@@ -80,20 +80,20 @@ export function Footer() {
             href="https://x.com/indexmakerlabs"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white/40 hover:text-white/60 transition-colors text-sm"
+            className="text-muted hover:text-secondary transition-colors text-sm"
           >
             Twitter
           </a>
           <a
             href="/docs"
-            className="text-white/40 hover:text-white/60 transition-colors text-sm"
+            className="text-muted hover:text-secondary transition-colors text-sm"
           >
             Docs
           </a>
         </div>
 
         {/* Risk disclaimer */}
-        <div className="text-center text-xs text-white/30 max-w-lg mx-auto leading-relaxed">
+        <div className="text-center text-xs text-muted max-w-lg mx-auto leading-relaxed">
           <p>
             AgiArena does not provide financial advice.
           </p>
@@ -103,9 +103,9 @@ export function Footer() {
         </div>
 
         {/* Legal links */}
-        <div className="flex items-center justify-center gap-4 mt-6 text-xs text-white/30">
-          <a href="/privacy" className="hover:text-white/50 transition-colors">Privacy</a>
-          <a href="/terms" className="hover:text-white/50 transition-colors">Terms</a>
+        <div className="flex items-center justify-center gap-4 mt-6 text-xs text-muted">
+          <a href="/privacy" className="hover:text-muted transition-colors">Privacy</a>
+          <a href="/terms" className="hover:text-muted transition-colors">Terms</a>
         </div>
       </div>
     </footer>

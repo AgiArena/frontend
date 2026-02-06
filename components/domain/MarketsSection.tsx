@@ -152,12 +152,12 @@ export function MarketsSection() {
   // SSR placeholder
   if (!isHydrated) {
     return (
-      <section id="markets" className="border border-white/20 bg-terminal" aria-labelledby="markets-heading">
+      <section id="markets" className="border border bg-primary" aria-labelledby="markets-heading">
         <button className="w-full flex justify-between items-center p-4 text-left font-mono" disabled>
-          <h2 id="markets-heading" className="text-lg font-bold text-white">
+          <h2 id="markets-heading" className="text-lg font-semibold text-primary">
             TRACKED MARKETS
           </h2>
-          <span className="text-white/40">▾</span>
+          <span className="text-muted">▾</span>
         </button>
       </section>
     )
@@ -173,23 +173,23 @@ export function MarketsSection() {
   })
 
   return (
-    <section id="markets" className="border border-white/20 bg-terminal" aria-labelledby="markets-heading">
+    <section id="markets" className="border border bg-primary" aria-labelledby="markets-heading">
       {/* Header - toggle */}
       <button
         type="button"
-        className="w-full flex justify-between items-center p-4 text-left font-mono hover:bg-white/5 transition-colors"
+        className="w-full flex justify-between items-center p-4 text-left font-mono hover:bg-surface transition-colors"
         onClick={toggleCollapsed}
         aria-expanded={!isCollapsed}
         aria-controls="markets-content"
       >
-        <h2 id="markets-heading" className="text-lg font-bold text-white">
+        <h2 id="markets-heading" className="text-lg font-semibold text-primary">
           TRACKED MARKETS
         </h2>
         <div className="flex items-center gap-3">
-          <span className="text-white/40 text-sm">
+          <span className="text-muted text-sm">
             {activeTypes.length} types • {activeCategories.length} categories
           </span>
-          <span className="text-white/40 text-xl" aria-hidden="true">
+          <span className="text-muted text-xl" aria-hidden="true">
             {isCollapsed ? '▸' : '▾'}
           </span>
         </div>
@@ -197,9 +197,9 @@ export function MarketsSection() {
 
       {/* Content */}
       {!isCollapsed && (
-        <div id="markets-content" className="border-t border-white/10">
+        <div id="markets-content" className="border-t border">
           {/* Market type grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-hover">
             {activeTypes.map(([typeId, config]) => {
               const isExpanded = expandedType === typeId
               const relatedCategories = activeCategories.filter(cat =>
@@ -209,7 +209,7 @@ export function MarketsSection() {
               return (
                 <div
                   key={typeId}
-                  className="bg-terminal p-4"
+                  className="bg-primary p-4"
                 >
                   <button
                     type="button"
@@ -219,32 +219,32 @@ export function MarketsSection() {
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-2xl">{config.emoji}</span>
                       <div className="flex-1">
-                        <h3 className="text-white font-mono font-bold">{config.name}</h3>
-                        <p className="text-white/40 text-xs font-mono">{config.description}</p>
+                        <h3 className="text-primary font-mono font-bold">{config.name}</h3>
+                        <p className="text-muted text-xs font-mono">{config.description}</p>
                       </div>
-                      <span className="text-white/30 text-sm" aria-hidden="true">
+                      <span className="text-primary/30 text-sm" aria-hidden="true">
                         {isExpanded ? '▾' : '▸'}
                       </span>
                     </div>
 
                     {/* Update frequency badge */}
                     <div className="flex items-center gap-2 text-xs font-mono">
-                      <span className="text-white/60">Updates:</span>
+                      <span className="text-secondary">Updates:</span>
                       <span className="text-accent">{config.updateFreq}</span>
                     </div>
                   </button>
 
                   {/* Expanded view with sample prices */}
                   {isExpanded && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="mt-3 pt-3 border-t border">
                       {/* Categories in this type */}
                       <div className="mb-3">
-                        <p className="text-white/40 text-xs font-mono mb-1">Categories:</p>
+                        <p className="text-muted text-xs font-mono mb-1">Categories:</p>
                         <div className="flex flex-wrap gap-1">
                           {relatedCategories.map(cat => (
                             <span
                               key={cat.id}
-                              className="px-2 py-0.5 bg-white/5 text-white/60 text-xs font-mono rounded"
+                              className="px-2 py-0.5 bg-surface text-secondary text-xs font-mono rounded"
                             >
                               {cat.emoji} {cat.name}
                             </span>
@@ -255,23 +255,23 @@ export function MarketsSection() {
                       {/* Sample prices */}
                       {pricesData?.prices && pricesData.prices.length > 0 ? (
                         <div>
-                          <p className="text-white/40 text-xs font-mono mb-1">Sample assets:</p>
+                          <p className="text-muted text-xs font-mono mb-1">Sample assets:</p>
                           <div className="space-y-1">
                             {pricesData.prices.slice(0, 3).map(price => (
                               <div
                                 key={price.assetId}
                                 className="flex justify-between items-center text-xs font-mono"
                               >
-                                <span className="text-white/80">{price.symbol}</span>
+                                <span className="text-secondary">{price.symbol}</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-white">
+                                  <span className="text-primary">
                                     ${parseFloat(price.value).toLocaleString(undefined, {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
                                   </span>
                                   {price.changePct && (
-                                    <span className={parseFloat(price.changePct) >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                    <span className={parseFloat(price.changePct) >= 0 ? 'text-green' : 'text-red-loss'}>
                                       {parseFloat(price.changePct) >= 0 ? '+' : ''}{parseFloat(price.changePct).toFixed(2)}%
                                     </span>
                                   )}
@@ -281,7 +281,7 @@ export function MarketsSection() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-white/30 text-xs font-mono">Loading prices...</p>
+                        <p className="text-primary/30 text-xs font-mono">Loading prices...</p>
                       )}
                     </div>
                   )}
@@ -291,11 +291,11 @@ export function MarketsSection() {
           </div>
 
           {/* Footer with data freshness */}
-          <div className="p-4 border-t border-white/10 text-center">
-            <p className="text-white/40 text-xs font-mono">
+          <div className="p-4 border-t border text-center">
+            <p className="text-muted text-xs font-mono">
               Data sourced from CoinGecko, Finnhub, Open-Meteo, FRED, ECB, Treasury, DefiLlama
             </p>
-            <p className="text-white/30 text-xs font-mono mt-1">
+            <p className="text-primary/30 text-xs font-mono mt-1">
               All bets resolved using on-chain keeper consensus
             </p>
           </div>

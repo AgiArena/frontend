@@ -77,8 +77,8 @@ describe('cn utility', () => {
     test('Input component pattern', () => {
       const className = 'custom-input'
       const result = cn(
-        'flex h-10 w-full rounded-none border border-white/20 bg-terminal px-3 py-2',
-        'text-sm text-white font-mono placeholder:text-white/40',
+        'flex h-10 w-full rounded-none border border bg-primary px-3 py-2',
+        'text-sm text-white font-mono placeholder:text-muted',
         'focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className
@@ -102,14 +102,14 @@ describe('cn utility', () => {
       const variant = 'outline'
       const variantClasses = {
         default: 'bg-accent text-white',
-        outline: 'border border-white/20 bg-transparent',
-        ghost: 'bg-transparent hover:bg-white/10'
+        outline: 'border border bg-transparent',
+        ghost: 'bg-transparent hover:bg-hover'
       }
       const result = cn(
         'inline-flex items-center',
         variantClasses[variant as keyof typeof variantClasses]
       )
-      expect(result).toBe('inline-flex items-center border border-white/20 bg-transparent')
+      expect(result).toBe('inline-flex items-center border border bg-transparent')
     })
   })
 })

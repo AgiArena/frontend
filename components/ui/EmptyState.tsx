@@ -69,16 +69,16 @@ export function EmptyState({
   return (
     <div className={`py-12 text-center ${className}`}>
       {/* ASCII art icon */}
-      <div className="text-white/20 font-mono text-lg whitespace-pre mb-4" aria-hidden="true">
+      <div className="text-primary/20 font-mono text-lg whitespace-pre mb-4" aria-hidden="true">
         {ICONS[icon]}
       </div>
 
       {/* Title */}
-      <p className="text-white/60 font-mono text-sm mb-1">{title}</p>
+      <p className="text-secondary font-mono text-sm mb-1">{title}</p>
 
       {/* Description */}
       {description && (
-        <p className="text-white/40 font-mono text-xs">{description}</p>
+        <p className="text-muted font-mono text-xs">{description}</p>
       )}
 
       {/* Action button */}

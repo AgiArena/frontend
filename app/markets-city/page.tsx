@@ -400,17 +400,17 @@ export default function MarketsCityPage() {
   }
 
   return (
-    <main className="relative w-screen h-screen bg-black overflow-hidden">
+    <main className="relative w-screen h-screen bg-primary overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0 cursor-move" />
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20 pointer-events-none">
-        <Link href="/" className="text-white/60 hover:text-white font-mono text-sm pointer-events-auto">
+        <Link href="/" className="text-secondary hover:text-primary font-mono text-sm pointer-events-auto">
           ← Back
         </Link>
         <div className="text-right">
           <div className="text-accent font-mono font-bold text-2xl tracking-wider">MARKET CITY</div>
-          <div className="text-white/40 font-mono text-xs">{totalCount.toLocaleString()} markets • Live</div>
+          <div className="text-muted font-mono text-xs">{totalCount.toLocaleString()} markets • Live</div>
         </div>
       </div>
 
@@ -419,15 +419,15 @@ export default function MarketsCityPage() {
         {Object.entries(DISTRICT_NAMES).map(([key, name]) => (
           <div key={key} className="flex items-center gap-2 mb-1">
             <span className="w-3 h-3" style={{ backgroundColor: SOURCE_COLORS[key] }} />
-            <span className="text-white/60 font-mono text-xs">{name}</span>
+            <span className="text-secondary font-mono text-xs">{name}</span>
           </div>
         ))}
       </div>
 
       {/* Center title */}
       <div className="absolute bottom-32 left-0 right-0 text-center pointer-events-none z-10">
-        <div className="text-white/20 font-mono text-xs tracking-[0.5em]">FINANCIAL METROPOLIS</div>
-        <div className="text-6xl md:text-8xl font-bold text-white/10 font-mono">
+        <div className="text-primary/20 font-mono text-xs tracking-[0.5em]">FINANCIAL METROPOLIS</div>
+        <div className="text-6xl md:text-8xl font-semibold text-primary/10 font-mono">
           {totalCount.toLocaleString()}
         </div>
       </div>
@@ -436,25 +436,25 @@ export default function MarketsCityPage() {
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 z-20">
         <button
           onClick={() => setIsRotating(!isRotating)}
-          className="bg-white/10 hover:bg-white/20 text-white font-mono px-4 py-2 transition-colors"
+          className="bg-hover hover:bg-hover text-primary font-mono px-4 py-2 transition-colors"
         >
           {isRotating ? '⏸ STOP' : '▶ ROTATE'}
         </button>
         <button
           onClick={() => setCameraAngle(prev => prev - 0.5)}
-          className="bg-white/10 hover:bg-white/20 text-white font-mono px-4 py-2 transition-colors"
+          className="bg-hover hover:bg-hover text-primary font-mono px-4 py-2 transition-colors"
         >
           ← ROTATE
         </button>
         <button
           onClick={() => setCameraAngle(prev => prev + 0.5)}
-          className="bg-white/10 hover:bg-white/20 text-white font-mono px-4 py-2 transition-colors"
+          className="bg-hover hover:bg-hover text-primary font-mono px-4 py-2 transition-colors"
         >
           ROTATE →
         </button>
         <Link
           href="/markets"
-          className="bg-accent hover:bg-accent/80 text-white font-mono font-bold px-6 py-2 transition-colors"
+          className="bg-accent hover:bg-accent/80 text-primary font-mono font-bold px-6 py-2 transition-colors"
         >
           EXPLORE →
         </Link>
@@ -463,7 +463,7 @@ export default function MarketsCityPage() {
       {/* Hover tooltip */}
       {hoveredBuilding && (
         <div
-          className="fixed z-50 bg-black/95 border-2 p-4 rounded-lg shadow-2xl min-w-[220px]"
+          className="fixed z-50 bg-primary/95 border-2 p-4 rounded-lg shadow-2xl min-w-[220px]"
           style={{
             left: Math.min(mouseRef.current.x + 20, window.innerWidth - 250),
             top: mouseRef.current.y - 20,
@@ -472,25 +472,25 @@ export default function MarketsCityPage() {
         >
           <div className="flex items-center gap-2 mb-2">
             <span className="w-3 h-3" style={{ backgroundColor: hoveredBuilding.color }} />
-            <span className="text-white/60 font-mono text-xs uppercase">
+            <span className="text-secondary font-mono text-xs uppercase">
               {DISTRICT_NAMES[hoveredBuilding.source]}
             </span>
           </div>
-          <div className="text-xl font-bold text-white font-mono">{hoveredBuilding.symbol}</div>
-          <div className="text-white/60 font-mono text-sm mb-3">{hoveredBuilding.name}</div>
+          <div className="text-xl font-semibold text-primary">{hoveredBuilding.symbol}</div>
+          <div className="text-secondary font-mono text-sm mb-3">{hoveredBuilding.name}</div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <div className="text-white/40 font-mono text-xs">PRICE</div>
-              <div className="text-white font-mono font-bold">
+              <div className="text-muted font-mono text-xs">PRICE</div>
+              <div className="text-primary font-mono font-bold">
                 {formatValue(hoveredBuilding.value, hoveredBuilding.source)}
               </div>
             </div>
             <div>
-              <div className="text-white/40 font-mono text-xs">24H</div>
+              <div className="text-muted font-mono text-xs">24H</div>
               <div className={`font-mono font-bold ${
                 hoveredBuilding.changePct !== null && hoveredBuilding.changePct >= 0
-                  ? 'text-green-400'
-                  : 'text-red-400'
+                  ? 'text-green'
+                  : 'text-red-loss'
               }`}>
                 {hoveredBuilding.changePct !== null
                   ? `${hoveredBuilding.changePct >= 0 ? '+' : ''}${hoveredBuilding.changePct.toFixed(2)}%`
@@ -499,12 +499,12 @@ export default function MarketsCityPage() {
               </div>
             </div>
             <div>
-              <div className="text-white/40 font-mono text-xs">MCAP</div>
-              <div className="text-white font-mono">{formatValue(hoveredBuilding.marketCap, 'crypto')}</div>
+              <div className="text-muted font-mono text-xs">MCAP</div>
+              <div className="text-primary font-mono">{formatValue(hoveredBuilding.marketCap, 'crypto')}</div>
             </div>
             <div>
-              <div className="text-white/40 font-mono text-xs">HEIGHT</div>
-              <div className="text-white font-mono">{Math.round(hoveredBuilding.targetHeight)}m</div>
+              <div className="text-muted font-mono text-xs">HEIGHT</div>
+              <div className="text-primary font-mono">{Math.round(hoveredBuilding.targetHeight)}m</div>
             </div>
           </div>
         </div>

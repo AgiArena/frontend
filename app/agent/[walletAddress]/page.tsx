@@ -42,7 +42,7 @@ function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return <span className="text-3xl" aria-label="First place">🥇</span>
   if (rank === 2) return <span className="text-3xl" aria-label="Second place">🥈</span>
   if (rank === 3) return <span className="text-3xl" aria-label="Third place">🥉</span>
-  return <span className="text-3xl font-mono text-white/60">#{rank}</span>
+  return <span className="text-3xl font-bold text-secondary">#{rank}</span>
 }
 
 /**
@@ -51,9 +51,9 @@ function RankBadge({ rank }: { rank: number }) {
  */
 function StatCard({ label, value, className = '' }: { label: string; value: string; className?: string }) {
   return (
-    <div className="bg-terminal border border-white/20 p-4 card-interactive">
-      <p className="text-white/60 text-xs font-mono mb-1 uppercase tracking-wider">{label}</p>
-      <p className={`text-xl font-bold font-mono ${className}`}>{value}</p>
+    <div className="bg-surface border rounded-xl p-5 hover:border-hover transition-colors duration-150">
+      <p className="text-muted text-xs uppercase tracking-wide mb-1">{label}</p>
+      <p className={`text-xl font-semibold font-data ${className}`}>{value}</p>
     </div>
   )
 }
@@ -67,13 +67,13 @@ function WinRateProgressBar({ winRate }: { winRate: number }) {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-4">
-        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-hover rounded-full overflow-hidden">
           <div
             className="h-full bg-accent transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <span className="text-white/60 text-sm font-mono min-w-[80px] text-right">
+        <span className="text-secondary text-sm font-data min-w-[80px] text-right">
           {percentage}% Win Rate
         </span>
       </div>
@@ -86,18 +86,21 @@ function WinRateProgressBar({ winRate }: { winRate: number }) {
  */
 function AgentDetailSkeleton() {
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
+    <main className="min-h-screen bg-primary flex flex-col">
       <Header />
       <div className="flex-1">
         <div className="max-w-4xl mx-auto p-6">
           <div className="h-8 w-64 skeleton rounded mb-8" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-terminal border border-white/20 p-4">
+              <div key={i} className="bg-surface border rounded-xl p-5">
                 <div className="h-4 w-16 skeleton rounded mb-2" />
                 <div className="h-6 w-24 skeleton rounded" />
               </div>
             ))}
+          </div>
+          <div className="hidden md:block mb-6">
+            <div className="h-2 skeleton rounded-full" />
           </div>
           <div className="h-[400px] skeleton rounded" />
         </div>
@@ -112,17 +115,17 @@ function AgentDetailSkeleton() {
  */
 function AgentNotFound({ walletAddress }: { walletAddress: string }) {
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
+    <main className="min-h-screen bg-primary flex flex-col">
       <Header />
       <div className="flex-1">
         <div className="max-w-4xl mx-auto p-6 text-center py-16">
           <AgentBetsEmptyState />
-          <p className="text-white/40 font-mono text-sm break-all mt-4 mb-8">
+          <p className="text-muted font-mono text-sm break-all mt-4 mb-8">
             Address: {walletAddress}
           </p>
           <Link
             href="/"
-            className="inline-block px-4 py-2 border border-white/20 text-white hover:bg-white/10 font-mono btn-interactive"
+            className="inline-block px-4 py-2.5 border rounded-lg text-primary hover:bg-hover transition-colors duration-150"
           >
             Return to Leaderboard
           </Link>
@@ -165,13 +168,13 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
     return <AgentNotFound walletAddress={walletAddress} />
   }
 
-  const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
-  const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-white/60'
-  const bestBetColor = 'text-green-400'
-  const worstBetColor = 'text-white/60'
+  const pnlColor = agent.pnl >= 0 ? 'text-green' : 'text-red-loss'
+  const roiColor = agent.roi >= 0 ? 'text-green' : 'text-red-loss'
+  const bestBetColor = 'text-green'
+  const worstBetColor = 'text-red-loss'
 
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
+    <main className="min-h-screen bg-primary flex flex-col">
       {/* Header (Story 11-1) */}
       <Header />
 
@@ -179,10 +182,10 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         <div className="max-w-4xl mx-auto p-6">
           {/* Back link and last active */}
           <div className="flex justify-between items-center mb-6">
-            <Link href="/" className="text-white/60 hover:text-white font-mono text-sm btn-interactive inline-block">
+            <Link href="/" className="text-secondary hover:text-primary text-sm transition-colors duration-150 inline-block">
               ← Back to Leaderboard
             </Link>
-            <p className="text-xs text-white/40 font-mono">
+            <p className="text-xs text-muted font-mono">
               Last active {formatRelativeTime(agent.lastActiveAt)}
             </p>
           </div>
@@ -193,7 +196,7 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
             <div className="flex-1 min-w-0">
               {/* Full wallet address with copy button (AC1) */}
               <div className="flex items-center gap-2">
-                <p className="text-white/80 text-sm font-mono break-all">
+                <p className="text-secondary text-sm font-mono break-all">
                   {agent.walletAddress}
                 </p>
                 <CopyButton text={agent.walletAddress} />
@@ -206,8 +209,8 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
           </div>
           {/* Large prominent P&L (AC1) */}
           <div className="text-right">
-            <p className="text-white/60 text-sm font-mono mb-1">Total P&L</p>
-            <p className={`text-3xl font-bold font-mono ${pnlColor}`}>
+            <p className="text-muted text-xs uppercase tracking-wide mb-1">Total P&L</p>
+            <p className={`text-3xl font-semibold font-data ${pnlColor}`}>
               {formatPnL(agent.pnl)}
             </p>
           </div>
@@ -215,29 +218,29 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
 
         {/* Betting Statistics Section (AC2) */}
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-white font-mono mb-4 border-b border-white/20 pb-2">
+          <h2 className="text-lg font-semibold text-primary mb-4 border-b border pb-2">
             Betting Statistics
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
               label="Total Bets"
               value={(agent.totalBets ?? 0).toLocaleString()}
-              className="text-white"
+              className="text-primary"
             />
             <StatCard
               label="Wins"
               value={(agent.wins ?? 0).toLocaleString()}
-              className="text-green-400"
+              className="text-green"
             />
             <StatCard
               label="Losses"
               value={(agent.losses ?? 0).toLocaleString()}
-              className="text-white/60"
+              className="text-secondary"
             />
             <StatCard
               label="Settled"
               value={(agent.settledBets ?? 0).toLocaleString()}
-              className="text-white"
+              className="text-primary"
             />
             <StatCard
               label="Active"
@@ -247,21 +250,21 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
             <StatCard
               label="Avg Bet Size"
               value={formatAverageBetSize(agent.volume, agent.totalBets)}
-              className="text-white/80"
+              className="text-secondary"
             />
           </div>
         </div>
 
         {/* Performance Metrics Section (AC3) */}
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-white font-mono mb-4 border-b border-white/20 pb-2">
+          <h2 className="text-lg font-semibold text-primary mb-4 border-b border pb-2">
             Performance Metrics
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
               label="Win Rate"
               value={formatWinRate(agent.winRate)}
-              className="text-white"
+              className="text-primary"
             />
             <StatCard
               label="ROI"
@@ -271,12 +274,12 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
             <StatCard
               label="Total Volume"
               value={formatVolume(agent.volume)}
-              className="text-white/80"
+              className="text-secondary"
             />
             <StatCard
               label="Average Bet Size"
               value={formatAverageBetSize(agent.volume, agent.totalBets)}
-              className="text-white/80"
+              className="text-secondary"
             />
             <StatCard
               label="Best Bet"
@@ -297,9 +300,9 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         </div>
 
         {/* Performance Graph Section (AC4) */}
-        <div className="border border-white/20 bg-terminal mb-8">
-          <div className="flex justify-between items-center p-4 border-b border-white/20">
-            <h2 className="text-lg font-bold text-white font-mono">
+        <div className="border rounded-xl bg-surface mb-8 overflow-hidden">
+          <div className="flex justify-between items-center p-4 border-b border">
+            <h2 className="text-lg font-semibold text-primary">
               Performance History
             </h2>
             <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
@@ -316,14 +319,14 @@ export default function AgentDetailPage({ params }: AgentDetailPageProps) {
         </div>
 
         {/* Recent Portfolio Bets Table (Story 11-1, AC4 - collapsible) */}
-        <div className="border border-white/20 bg-terminal mb-8">
+        <div className="border rounded-xl bg-surface mb-8 overflow-hidden">
           <button
             type="button"
-            className="w-full flex justify-between items-center p-4 border-b border-white/20 hover:bg-white/5 transition-colors"
+            className="w-full flex justify-between items-center p-4 border-b border hover:bg-hover transition-colors"
             onClick={() => setBetsExpanded(!betsExpanded)}
             aria-expanded={betsExpanded}
           >
-            <h2 className="text-lg font-bold text-white font-mono">
+            <h2 className="text-lg font-semibold text-primary">
               {betsExpanded ? '▾' : '▸'} View {agent.totalBets ?? 0} Bets
             </h2>
             <div className="flex items-center gap-4">

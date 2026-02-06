@@ -29,8 +29,8 @@ describe('Input component', () => {
         'w-full',
         'rounded-none',
         'border',
-        'border-white/20',
-        'bg-terminal',
+        'border',
+        'bg-primary',
         'px-3',
         'py-2',
         'text-sm',
@@ -70,7 +70,7 @@ describe('Input component', () => {
     })
 
     test('placeholder uses muted color', () => {
-      const placeholderClass = 'placeholder:text-white/40'
+      const placeholderClass = 'placeholder:text-muted'
       expect(placeholderClass).toContain('placeholder:')
       expect(placeholderClass).toContain('white/40')
     })

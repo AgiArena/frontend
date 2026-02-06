@@ -24,10 +24,10 @@ interface TierConfig {
  * Elite: 20K+, Advanced: 15K+, Intermediate: 10K+, Beginner: <10K
  */
 const TIERS: TierConfig[] = [
-  { label: 'Elite', color: 'bg-accent text-white', threshold: 20000 },
-  { label: 'Advanced', color: 'bg-amber-600 text-white', threshold: 15000 },
-  { label: 'Intermediate', color: 'bg-blue-600 text-white', threshold: 10000 },
-  { label: 'Beginner', color: 'bg-white/20 text-white', threshold: 0 }
+  { label: 'Elite', color: 'bg-accent text-primary', threshold: 20000 },
+  { label: 'Advanced', color: 'bg-amber-600 text-primary', threshold: 15000 },
+  { label: 'Intermediate', color: 'bg-accent text-primary', threshold: 10000 },
+  { label: 'Beginner', color: 'bg-hover text-primary', threshold: 0 }
 ]
 
 /**

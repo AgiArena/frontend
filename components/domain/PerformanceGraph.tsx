@@ -48,13 +48,13 @@ function PerformanceTooltip({
   const data = payload[0].payload as PerformanceDataPoint
 
   return (
-    <div className="bg-terminal border border-white/20 p-3 font-mono text-sm shadow-lg">
-      <p className="text-white font-bold mb-2">Portfolio Bet #{data.betNumber}</p>
-      <div className="space-y-1 text-white/80">
+    <div className="bg-primary border border p-3 font-mono text-sm shadow-lg">
+      <p className="text-primary font-bold mb-2">Portfolio Bet #{data.betNumber}</p>
+      <div className="space-y-1 text-secondary">
         <p>Date: {formatDate(data.timestamp)}</p>
         <p>Markets: {(data.portfolioSize ?? 0).toLocaleString()}</p>
         <p>Amount: ${(data.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-        <p className={data.result >= 0 ? 'text-green-400' : 'text-white/60'}>
+        <p className={data.result >= 0 ? 'text-green' : 'text-secondary'}>
           Result: {formatResultWithPercent(data.result, data.resultPercent)}
         </p>
       </div>
@@ -68,17 +68,17 @@ function PerformanceTooltip({
 function PerformanceGraphSkeleton({ height }: { height: number }) {
   return (
     <div
-      className="bg-terminal border border-white/20 animate-pulse"
+      className="bg-primary border border animate-pulse"
       style={{ height }}
     >
       <div className="h-full flex items-center justify-center">
-        <div className="w-full h-3/4 mx-8 bg-white/5 rounded">
+        <div className="w-full h-3/4 mx-8 bg-surface rounded">
           {/* Simulate chart area */}
           <div className="w-full h-full flex items-end justify-around px-4 pb-4">
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className="w-2 bg-white/10 rounded-t"
+                className="w-2 bg-hover rounded-t"
                 style={{ height: `${20 + Math.random() * 60}%` }}
               />
             ))}
@@ -95,12 +95,12 @@ function PerformanceGraphSkeleton({ height }: { height: number }) {
 function EmptyState({ height }: { height: number }) {
   return (
     <div
-      className="bg-terminal border border-white/20 flex items-center justify-center"
+      className="bg-primary border border flex items-center justify-center"
       style={{ height }}
     >
       <div className="text-center">
-        <p className="text-white/60 font-mono">No performance data</p>
-        <p className="text-white/40 text-sm mt-1">
+        <p className="text-secondary font-mono">No performance data</p>
+        <p className="text-muted text-sm mt-1">
           Data will appear once the agent has settled bets
         </p>
       </div>
@@ -140,12 +140,12 @@ export function PerformanceGraph({
   if (isError) {
     return (
       <div
-        className="bg-terminal border border-accent/50 flex items-center justify-center"
+        className="bg-primary border border-accent/50 flex items-center justify-center"
         style={{ height }}
       >
         <div className="text-center">
           <p className="text-accent font-mono">Error loading performance data</p>
-          <p className="text-white/40 text-sm mt-1">{error?.message}</p>
+          <p className="text-muted text-sm mt-1">{error?.message}</p>
         </div>
       </div>
     )
@@ -158,7 +158,7 @@ export function PerformanceGraph({
 
   return (
     <div
-      className="bg-terminal border border-white/20"
+      className="bg-primary border border"
       role="img"
       aria-label={`Performance graph showing ${data.dataPoints.length} data points with cumulative P&L of $${data.summary.endingPnL.toLocaleString()}`}
     >

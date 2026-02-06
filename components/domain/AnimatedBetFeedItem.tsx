@@ -78,11 +78,6 @@ export function AnimatedBetFeedItem({
     return <BetFeedItem event={event} />
   }
 
-  // Determine which CSS pulse class to use
-  // AC2: Background pulses red briefly (0.5s)
-  // AC3: Stronger pulse for mega portfolios
-  const pulseClass = isMegaPortfolio ? 'animate-pulse-red-strong-bet' : 'animate-pulse-red-bet'
-
   return (
     <motion.div
       initial="initial"
@@ -90,7 +85,6 @@ export function AnimatedBetFeedItem({
       exit="exit"
       variants={isMegaPortfolio ? megaVariants : standardVariants}
       layout
-      className={pulseClass}
     >
       <BetFeedItem event={event} />
     </motion.div>

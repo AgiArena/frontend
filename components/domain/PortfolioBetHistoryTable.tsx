@@ -28,15 +28,15 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle }: BetRowProps) 
     <>
       <tr
         onClick={onToggle}
-        className="cursor-pointer hover:bg-white/5 border-b border-white/10 transition-colors"
+        className="cursor-pointer hover:bg-surface border-b border transition-colors"
       >
         {/* Bet ID */}
-        <td className="px-4 py-3 font-mono font-bold text-white">
+        <td className="px-4 py-3 font-mono font-semibold text-primary">
           #{bet.betId}
         </td>
 
         {/* Amount */}
-        <td className="px-4 py-3 font-mono text-white">
+        <td className="px-4 py-3 font-mono text-primary">
           {formatUSD(amount)}
         </td>
 
@@ -46,7 +46,7 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle }: BetRowProps) 
         </td>
 
         {/* Created */}
-        <td className="px-4 py-3 text-white/60 text-sm">
+        <td className="px-4 py-3 text-secondary text-sm">
           {formatRelativeTime(bet.createdAt)}
         </td>
 
@@ -57,18 +57,18 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle }: BetRowProps) 
               href={getTxUrl(bet.txHash)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/60 hover:text-white text-sm font-mono transition-colors"
+              className="text-secondary hover:text-primary text-sm font-mono transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               {bet.txHash.slice(0, 8)}...
             </a>
           ) : (
-            <span className="text-white/40 text-sm font-mono">-</span>
+            <span className="text-muted text-sm font-mono">-</span>
           )}
         </td>
 
         {/* Expand Indicator */}
-        <td className="px-4 py-3 text-white/40">
+        <td className="px-4 py-3 text-muted">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -89,7 +89,7 @@ const BetRow = memo(function BetRow({ bet, isExpanded, onToggle }: BetRowProps) 
       {/* Expanded Details */}
       {isExpanded && (
         <tr>
-          <td colSpan={6} className="bg-white/5 px-4 py-4 border-b border-white/10">
+          <td colSpan={6} className="bg-surface px-4 py-4 border-b border">
             <BetDetailsExpanded bet={bet} />
           </td>
         </tr>
@@ -105,24 +105,24 @@ function LoadingSkeleton() {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
-        <tr key={i} className="border-b border-white/10">
+        <tr key={i} className="border-b border">
           <td className="px-4 py-3">
-            <div className="h-4 w-24 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-24 bg-hover animate-pulse rounded" />
           </td>
           <td className="px-4 py-3">
-            <div className="h-4 w-20 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-20 bg-hover animate-pulse rounded" />
           </td>
           <td className="px-4 py-3">
-            <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-16 bg-hover animate-pulse rounded" />
           </td>
           <td className="px-4 py-3">
-            <div className="h-4 w-16 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-16 bg-hover animate-pulse rounded" />
           </td>
           <td className="px-4 py-3">
-            <div className="h-4 w-20 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-20 bg-hover animate-pulse rounded" />
           </td>
           <td className="px-4 py-3">
-            <div className="h-4 w-4 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-4 bg-hover animate-pulse rounded" />
           </td>
         </tr>
       ))}
@@ -137,8 +137,8 @@ function EmptyState() {
   return (
     <tr>
       <td colSpan={6} className="px-4 py-12 text-center">
-        <p className="text-white/60 font-mono">No bets found</p>
-        <p className="text-white/40 text-sm mt-1">
+        <p className="text-secondary font-mono">No bets found</p>
+        <p className="text-muted text-sm mt-1">
           Place your first bet to see it here
         </p>
       </td>
@@ -160,21 +160,21 @@ function Pagination({ currentPage, totalPages, onPrev, onNext }: PaginationProps
   if (totalPages <= 1) return null
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+    <div className="flex items-center justify-between px-4 py-3 border-t border">
       <button
         onClick={onPrev}
         disabled={currentPage === 1}
-        className="px-3 py-1 border border-white/30 text-white/60 text-sm font-mono hover:text-white hover:border-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1 border border text-secondary text-sm font-mono hover:text-primary hover:border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
         Previous
       </button>
-      <span className="text-white/60 text-sm font-mono">
+      <span className="text-secondary text-sm font-mono">
         Page {currentPage} of {totalPages}
       </span>
       <button
         onClick={onNext}
         disabled={currentPage === totalPages}
-        className="px-3 py-1 border border-white/30 text-white/60 text-sm font-mono hover:text-white hover:border-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1 border border text-secondary text-sm font-mono hover:text-primary hover:border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
         Next
       </button>
@@ -222,8 +222,8 @@ export function PortfolioBetHistoryTable() {
   // Not connected state
   if (!isConnected) {
     return (
-      <div className="border border-white/20 p-6 text-center">
-        <p className="text-white/60 font-mono">Connect your wallet to view bet history</p>
+      <div className="border border p-6 text-center">
+        <p className="text-secondary font-mono">Connect your wallet to view bet history</p>
       </div>
     )
   }
@@ -233,17 +233,17 @@ export function PortfolioBetHistoryTable() {
     return (
       <div className="border border-accent/50 p-6 text-center">
         <p className="text-accent font-mono">Error loading bet history</p>
-        <p className="text-white/40 text-sm mt-1">{error?.message}</p>
+        <p className="text-muted text-sm mt-1">{error?.message}</p>
       </div>
     )
   }
 
   return (
-    <div className="border border-white/20">
+    <div className="border border">
       {/* Table Header */}
-      <div className="bg-black px-4 py-3 border-b border-white/20">
-        <h3 className="text-lg font-bold text-white font-mono">Bet History</h3>
-        <p className="text-sm text-white/60 font-mono">
+      <div className="bg-primary px-4 py-3 border-b border">
+        <h3 className="text-lg font-semibold text-primary">Bet History</h3>
+        <p className="text-sm text-secondary font-mono">
           {isLoading ? 'Loading...' : `${formatNumber(bets.length)} total bets`}
         </p>
       </div>
@@ -252,7 +252,7 @@ export function PortfolioBetHistoryTable() {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-black text-white/60 text-xs font-mono uppercase border-b border-white/20">
+            <tr className="bg-primary text-secondary text-xs font-mono uppercase border-b border">
               <th className="px-4 py-2 text-left">Bet</th>
               <th className="px-4 py-2 text-left">Amount</th>
               <th className="px-4 py-2 text-left">Status</th>

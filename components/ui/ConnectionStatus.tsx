@@ -23,8 +23,8 @@ export interface ConnectionStatusProps {
  */
 export function ConnectionStatus({ isConnected, isPolling }: ConnectionStatusProps) {
   const statusText = isConnected ? 'Live' : (isPolling ? 'Polling' : 'Offline')
-  const statusColor = isConnected ? 'text-green-400' : (isPolling ? 'text-yellow-400' : 'text-white/40')
-  const dotColor = isConnected ? 'bg-green-400' : (isPolling ? 'bg-yellow-400' : 'bg-white/40')
+  const statusColor = isConnected ? 'text-green' : (isPolling ? 'text-yellow' : 'text-muted')
+  const dotColor = isConnected ? 'bg-green' : (isPolling ? 'bg-yellow' : 'bg-hover')
 
   return (
     <div className="flex items-center gap-2 text-xs font-mono" role="status" aria-live="polite">

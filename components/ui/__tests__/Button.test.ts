@@ -39,17 +39,17 @@ describe('Button component', () => {
     })
 
     test('outline variant uses border', () => {
-      const outlineClasses = 'border border-white/20 bg-transparent text-white hover:bg-white/10'
+      const outlineClasses = 'border border bg-transparent text-white hover:bg-hover'
 
       expect(outlineClasses).toContain('border')
       expect(outlineClasses).toContain('bg-transparent')
     })
 
     test('ghost variant is transparent', () => {
-      const ghostClasses = 'bg-transparent text-white hover:bg-white/10'
+      const ghostClasses = 'bg-transparent text-white hover:bg-hover'
 
       expect(ghostClasses).toContain('bg-transparent')
-      expect(ghostClasses).toContain('hover:bg-white/10')
+      expect(ghostClasses).toContain('hover:bg-hover')
     })
   })
 

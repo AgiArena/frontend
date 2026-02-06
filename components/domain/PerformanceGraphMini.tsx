@@ -22,7 +22,7 @@ export interface PerformanceGraphMiniProps {
 function MiniSkeleton({ height }: { height: number }) {
   return (
     <div
-      className="bg-white/5 animate-pulse rounded"
+      className="bg-surface animate-pulse rounded"
       style={{ height, width: '100%' }}
     />
   )
@@ -63,7 +63,7 @@ export function PerformanceGraphMini({
         className="flex items-center justify-center"
         style={{ height }}
       >
-        <div className="w-full h-px bg-white/20" />
+        <div className="w-full h-px bg-hover" />
       </div>
     )
   }

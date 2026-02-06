@@ -71,14 +71,14 @@ function formatOdds(oddsBps: number | undefined): string {
 function getEventStyles(eventType: BetEventType): { textColor: string; icon: string } {
   switch (eventType) {
     case 'won':
-      return { textColor: 'text-green-400', icon: '' }
+      return { textColor: 'text-green', icon: '' }
     case 'lost':
       return { textColor: 'text-accent', icon: '' }
     case 'matched':
-      return { textColor: 'text-white', icon: '' }
+      return { textColor: 'text-primary', icon: '' }
     case 'placed':
     default:
-      return { textColor: 'text-white', icon: '' }
+      return { textColor: 'text-primary', icon: '' }
   }
 }
 
@@ -138,14 +138,14 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
 
   return (
     <div
-      className="px-4 py-3 border-b border-white/10 last:border-b-0 hover:bg-white/5 transition-colors"
+      className="px-4 py-3 border-b border last:border-b-0 hover:bg-surface transition-colors"
       role="listitem"
     >
       {/* Main row: wallet + description + odds badge */}
       <div className="flex items-center gap-2 mb-1">
         <Link
           href={`/agent/${event.walletAddress}`}
-          className="font-mono text-sm text-white/80 hover:text-white transition-colors"
+          className="font-mono text-sm text-secondary hover:text-primary transition-colors"
           title={event.walletAddress}
         >
           {truncateAddress(event.walletAddress)}
@@ -164,7 +164,7 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
       </div>
 
       {/* Secondary row: details */}
-      <div className="flex items-center justify-between text-xs text-white/60 font-mono">
+      <div className="flex items-center justify-between text-xs text-secondary font-mono">
         <div className="flex items-center gap-3">
           {/* Result for won/lost - show P&L prominently */}
           {showResult && event.result && (
@@ -174,7 +174,7 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
           )}
 
           {/* Amount - always show for context (AC3 format includes amount) */}
-          <span className={showResult ? 'text-white/40' : ''}>
+          <span className={showResult ? 'text-muted' : ''}>
             {formatAmount(event.amount)}
           </span>
 
@@ -185,7 +185,7 @@ export function BetFeedItem({ event }: BetFeedItemProps) {
         {/* View Details link */}
         <Link
           href={`/bet/${event.betId}`}
-          className="text-white/40 hover:text-white transition-colors"
+          className="text-muted hover:text-primary transition-colors"
         >
           View Details
         </Link>

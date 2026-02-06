@@ -42,22 +42,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full border border-red-500/50 bg-red-500/10 p-6 text-center error-state">
-            <h2 className="text-xl font-bold text-red-400 font-mono mb-2">
+        <div className="min-h-screen bg-primary flex items-center justify-center p-4">
+          <div className="max-w-md w-full border border-red-loss/50 bg-red-loss-muted rounded-xl p-6 text-center error-state">
+            <h2 className="text-xl font-semibold text-red-loss mb-2">
               Something went wrong
             </h2>
-            <p className="text-white/60 font-mono text-sm mb-4">
+            <p className="text-secondary font-mono text-sm mb-4">
               An unexpected error occurred. Please try again.
             </p>
             {this.state.error && (
-              <p className="text-white/40 font-mono text-xs mb-4 break-words">
+              <p className="text-muted font-mono text-xs mb-4 break-words">
                 {this.state.error.message}
               </p>
             )}
             <button
               onClick={this.handleRetry}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-mono text-sm transition-colors"
+              className="px-4 py-2.5 bg-surface hover:bg-hover border rounded-lg text-primary text-sm transition-colors"
             >
               Try Again
             </button>

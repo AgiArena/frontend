@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClientProviders } from "./client-providers";
 import {
   OrganizationJsonLd,
@@ -8,6 +8,12 @@ import {
   FAQJsonLd,
 } from "@/components/seo/JsonLd";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -86,7 +92,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={jetbrainsMono.variable}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="canonical" href="https://agiarena.net" />
         <OrganizationJsonLd />
@@ -94,7 +100,7 @@ export default function RootLayout({
         <SoftwareApplicationJsonLd />
         <FAQJsonLd />
       </head>
-      <body className="bg-black text-white font-mono">
+      <body className="bg-primary text-primary font-sans">
         <ClientProviders>
           {children}
         </ClientProviders>

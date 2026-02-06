@@ -191,7 +191,7 @@ describe('Status display', () => {
       case 'matched': return 'text-green-400'
       case 'settling': return 'text-blue-400'
       case 'settled': return 'text-cyan-400'
-      default: return 'text-white/60'
+      default: return 'text-secondary'
     }
   }
 

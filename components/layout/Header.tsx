@@ -100,9 +100,9 @@ export function Header() {
   }, [])
 
   const statusColors: Record<NetworkStatus, string> = {
-    connected: 'bg-green-400',
-    connecting: 'bg-yellow-400 animate-pulse',
-    error: 'bg-red-400'
+    connected: 'bg-green',
+    connecting: 'bg-yellow animate-pulse',
+    error: 'bg-red-loss'
   }
 
   const statusLabels: Record<NetworkStatus, string> = {
@@ -112,9 +112,9 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-white/10 bg-black sticky top-0 z-50">
+    <header className="border-b border bg-primary sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14">
           {/* Logo with Product Switcher */}
           <div className="relative" ref={productMenuRef}>
             <button
@@ -124,13 +124,13 @@ export function Header() {
               aria-expanded={productMenuOpen}
               aria-haspopup="true"
             >
-              <span className="text-xl font-bold text-white font-mono">AGIARENA</span>
+              <span className="text-xl font-semibold text-primary tracking-tight">AGIARENA</span>
               <svg
                 width="12"
                 height="12"
                 viewBox="0 0 12 12"
                 fill="none"
-                className={`text-white/60 transition-transform ${productMenuOpen ? 'rotate-180' : ''}`}
+                className={`text-secondary transition-transform ${productMenuOpen ? 'rotate-180' : ''}`}
               >
                 <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -138,7 +138,7 @@ export function Header() {
 
             {/* Product Dropdown */}
             {productMenuOpen && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-900 border border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-surface border rounded-xl shadow-xl overflow-hidden z-50">
                 <div className="p-2">
                   {PRODUCTS.map((product) => (
                     product.isInternal ? (
@@ -148,8 +148,8 @@ export function Header() {
                         onClick={() => setProductMenuOpen(false)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
                           product.isCurrent
-                            ? 'bg-white/10 text-white'
-                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                            ? 'bg-hover text-primary'
+                            : 'text-secondary hover:bg-surface hover:text-primary'
                         }`}
                       >
                         <Image
@@ -161,10 +161,10 @@ export function Header() {
                         />
                         <div className="flex-1">
                           <div className="font-mono text-sm font-medium">{product.name}</div>
-                          <div className="text-xs text-white/50">{product.description}</div>
+                          <div className="text-xs text-muted">{product.description}</div>
                         </div>
                         {product.isCurrent && (
-                          <span className="text-xs text-green-400 font-mono">CURRENT</span>
+                          <span className="text-xs text-green font-mono">CURRENT</span>
                         )}
                       </Link>
                     ) : (
@@ -174,7 +174,7 @@ export function Header() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setProductMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-md text-secondary hover:bg-surface hover:text-primary transition-colors"
                       >
                         <Image
                           src={product.logo}
@@ -185,17 +185,17 @@ export function Header() {
                         />
                         <div className="flex-1">
                           <div className="font-mono text-sm font-medium">{product.name}</div>
-                          <div className="text-xs text-white/50">{product.description}</div>
+                          <div className="text-xs text-muted">{product.description}</div>
                         </div>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-white/40">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-muted">
                           <path d="M3.5 8.5L8.5 3.5M8.5 3.5H4.5M8.5 3.5V7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </a>
                     )
                   ))}
                 </div>
-                <div className="border-t border-white/10 px-3 py-2">
-                  <span className="text-xs text-white/30 font-mono">Product Suite</span>
+                <div className="border-t border px-3 py-2">
+                  <span className="text-xs text-muted font-mono">Product Suite</span>
                 </div>
               </div>
             )}
@@ -205,25 +205,25 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-8">
             <Link
               href="/"
-              className="text-white/80 hover:text-white transition-colors text-sm font-mono"
+              className="text-secondary hover:text-primary transition-colors text-sm"
             >
               Leaderboard
             </Link>
             <Link
               href="/markets"
-              className="text-white/60 hover:text-white transition-colors text-sm font-mono"
+              className="text-secondary hover:text-primary transition-colors text-sm"
             >
               Markets
             </Link>
             <Link
               href="/referral"
-              className="text-white/60 hover:text-white transition-colors text-sm font-mono"
+              className="text-secondary hover:text-primary transition-colors text-sm"
             >
               Referrals
             </Link>
             <a
               href="/docs"
-              className="text-white/60 hover:text-white transition-colors text-sm font-mono"
+              className="text-secondary hover:text-primary transition-colors text-sm"
             >
               Docs
             </a>
@@ -232,22 +232,22 @@ export function Header() {
           {/* Right side: Network status + Wallet */}
           <div className="flex items-center gap-4">
             {/* WIND token price - static for MVP (Story 11-1, AC1) */}
-            <div className="hidden lg:flex items-center gap-1 text-sm font-mono">
-              <span className="text-white/40">WIND</span>
-              <span className="text-white">$0.001</span>
+            <div className="hidden lg:flex items-center gap-1.5 bg-surface rounded-full px-3 py-1 text-xs">
+              <span className="text-secondary">WIND</span>
+              <span className="text-primary font-data">$0.001</span>
             </div>
 
             {/* Network status - hidden on mobile */}
-            <div className="hidden sm:flex items-center gap-2 text-sm font-mono">
-              <span className="text-white/40">Index L3</span>
+            <div className="hidden sm:flex items-center gap-2 text-sm">
+              <span className="text-muted">Index L3</span>
               <span className={`w-2 h-2 rounded-full ${statusColors[networkStatus]}`} />
-              <span className="text-white/60 text-xs">{statusLabels[networkStatus]}</span>
+              <span className="text-secondary text-xs">{statusLabels[networkStatus]}</span>
             </div>
 
             {/* Mobile Menu Button */}
             <button
               type="button"
-              className="md:hidden p-2 text-white/60 hover:text-white transition-colors"
+              className="md:hidden p-2 text-secondary hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
@@ -270,40 +270,40 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-white/10 py-4">
+          <nav className="md:hidden border-t border py-4">
             <Link
               href="/"
-              className="block py-2 text-white/80 hover:text-white transition-colors text-sm font-mono"
+              className="block py-2 text-secondary hover:text-primary transition-colors text-sm"
               onClick={() => setMobileMenuOpen(false)}
             >
               Leaderboard
             </Link>
             <Link
               href="/markets"
-              className="block py-2 text-white/60 hover:text-white transition-colors text-sm font-mono"
+              className="block py-2 text-secondary hover:text-primary transition-colors text-sm"
               onClick={() => setMobileMenuOpen(false)}
             >
               Markets
             </Link>
             <Link
               href="/referral"
-              className="block py-2 text-white/60 hover:text-white transition-colors text-sm font-mono"
+              className="block py-2 text-secondary hover:text-primary transition-colors text-sm"
               onClick={() => setMobileMenuOpen(false)}
             >
               Referrals
             </Link>
             <a
               href="/docs"
-              className="block py-2 text-white/60 hover:text-white transition-colors text-sm font-mono"
+              className="block py-2 text-secondary hover:text-primary transition-colors text-sm"
               onClick={() => setMobileMenuOpen(false)}
             >
               Docs
             </a>
             {/* Network status on mobile menu */}
-            <div className="flex items-center gap-2 text-sm font-mono pt-4 border-t border-white/10 mt-4">
-              <span className="text-white/40">Index L3</span>
+            <div className="flex items-center gap-2 text-sm pt-4 border-t border mt-4">
+              <span className="text-muted">Index L3</span>
               <span className={`w-2 h-2 rounded-full ${statusColors[networkStatus]}`} />
-              <span className="text-white/60 text-xs">{statusLabels[networkStatus]}</span>
+              <span className="text-secondary text-xs">{statusLabels[networkStatus]}</span>
             </div>
           </nav>
         )}

@@ -61,8 +61,8 @@ export function AnimatedLeaderboardRow({
   prefersReducedMotion,
   isMobile
 }: AnimatedLeaderboardRowProps) {
-  const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
-  const roiColor = agent.roi >= 0 ? 'text-green-400' : 'text-white/60'
+  const pnlColor = agent.pnl >= 0 ? 'text-green' : 'text-red-loss'
+  const roiColor = agent.roi >= 0 ? 'text-green' : 'text-red-loss'
 
   // Track rank change animations for this agent
   const { isAnimating, isPositive } = useRankChangeAnimation(agent.walletAddress)
@@ -75,8 +75,8 @@ export function AnimatedLeaderboardRow({
     ? 'shadow-[0_0_15px_rgba(196,0,0,0.5)] bg-accent/10'
     : ''
 
-  // Animation class for rank change (2s duration per AC4)
-  const rankChangeClass = isAnimating ? 'animate-pulse-red' : ''
+  // Rank change: keep Framer Motion reorder, no more red pulse
+  const rankChangeClass = ''
 
   return (
     <motion.tr
@@ -97,7 +97,7 @@ export function AnimatedLeaderboardRow({
       role="button"
       tabIndex={0}
       aria-label={`View details for agent ${formatWalletAddress(agent.walletAddress)}, ranked ${agent.rank}, P&L ${formatPnL(agent.pnl)}`}
-      className={`cursor-pointer hover:shadow-[0_0_10px_rgba(196,0,0,0.3)] focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors duration-300 ${highlightClass} ${rankChangeClass}`}
+      className={`cursor-pointer hover:bg-hover focus:outline-none focus:ring-2 focus:ring-accent/50 transition-colors duration-150 ${highlightClass} ${rankChangeClass}`}
       style={{ willChange: shouldAnimate ? 'transform' : 'auto' }}
     >
       {/* Rank - AnimatedNumber for ranks > 3, emoji badges for top 3 */}
@@ -110,13 +110,13 @@ export function AnimatedLeaderboardRow({
             decimals={0}
             duration={500}
             disabled={!shouldAnimate}
-            className="font-mono text-white/60"
+            className="font-mono text-secondary"
           />
         )}
       </TableCell>
 
       {/* Agent (wallet address) - no animation */}
-      <TableCell className="font-mono text-white">
+      <TableCell className="font-mono text-primary">
         {formatWalletAddress(agent.walletAddress)}
       </TableCell>
 
@@ -145,12 +145,12 @@ export function AnimatedLeaderboardRow({
       </TableCell>
 
       {/* Bets - hidden on mobile */}
-      <TableCell className="font-mono text-white hidden md:table-cell">
+      <TableCell className="font-mono text-primary hidden md:table-cell">
         {(agent.totalBets ?? 0).toLocaleString()}
       </TableCell>
 
       {/* Win Rate - hidden on mobile */}
-      <TableCell className="font-mono text-white hidden md:table-cell">
+      <TableCell className="font-mono text-primary hidden md:table-cell">
         {formatWinRate(agent.winRate)}
       </TableCell>
 
@@ -160,12 +160,12 @@ export function AnimatedLeaderboardRow({
       </TableCell>
 
       {/* Volume - hidden on mobile */}
-      <TableCell className="font-mono text-white/60 hidden md:table-cell">
+      <TableCell className="font-mono text-secondary hidden md:table-cell">
         {formatVolume(agent.volume)}
       </TableCell>
 
       {/* Last Active - hidden on mobile */}
-      <TableCell className="text-white/40 text-sm hidden md:table-cell">
+      <TableCell className="text-muted text-sm hidden md:table-cell">
         {formatRelativeTime(agent.lastActiveAt ?? '')}
       </TableCell>
 

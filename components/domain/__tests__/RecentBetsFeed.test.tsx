@@ -238,8 +238,8 @@ describe('FeedSkeleton', () => {
   })
 
   it('uses consistent skeleton colors', () => {
-    const skeletonBgClass = 'bg-white/10'
-    expect(skeletonBgClass).toBe('bg-white/10')
+    const skeletonBgClass = 'bg-hover'
+    expect(skeletonBgClass).toBe('bg-hover')
   })
 })
 

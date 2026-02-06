@@ -106,21 +106,21 @@ function SourceCard({
             </div>
           </div>
           <div className="text-right">
-            <div className="text-4xl md:text-5xl font-bold text-white font-mono">
+            <div className="text-4xl md:text-5xl font-semibold text-primary">
               {data.total.toLocaleString()}
             </div>
-            <div className="text-white/40 font-mono text-xs">markets</div>
+            <div className="text-muted font-mono text-xs">markets</div>
           </div>
         </div>
 
         {/* Description */}
-        <div className="text-white/60 font-mono text-sm mb-4">
+        <div className="text-secondary font-mono text-sm mb-4">
           {data.description}
         </div>
 
         {/* Sample tickers - scrolling */}
         <div className="flex-1 overflow-hidden">
-          <div className="text-white/30 font-mono text-[10px] mb-2">SAMPLE COVERAGE</div>
+          <div className="text-primary/30 font-mono text-[10px] mb-2">SAMPLE COVERAGE</div>
           <div className="flex flex-wrap gap-1">
             {visibleSamples.map((symbol, i) => (
               <span
@@ -135,7 +135,7 @@ function SourceCard({
               </span>
             ))}
             {data.total > 8 && (
-              <span className="px-2 py-0.5 text-xs font-mono text-white/30">
+              <span className="px-2 py-0.5 text-xs font-mono text-primary/30">
                 +{(data.total - 8).toLocaleString()} more
               </span>
             )}
@@ -144,11 +144,11 @@ function SourceCard({
 
         {/* Coverage bar */}
         <div className="mt-4">
-          <div className="flex justify-between text-[10px] font-mono text-white/40 mb-1">
+          <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
             <span>AI COVERAGE</span>
             <span>100%</span>
           </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-2 bg-hover rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-1000"
               style={{
@@ -204,11 +204,11 @@ export default function AiCoveragePage() {
   }, [sourcesData])
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-primary text-primary">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur border-b border-white/10">
+      <div className="sticky top-0 z-50 bg-primary/95 backdrop-blur border-b border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="text-white/60 hover:text-white font-mono text-sm">
+          <Link href="/" className="text-secondary hover:text-primary font-mono text-sm">
             ← Back
           </Link>
           <div className="text-center">
@@ -218,7 +218,7 @@ export default function AiCoveragePage() {
           </div>
           <Link
             href="/markets"
-            className="bg-accent hover:bg-accent/80 text-white font-mono text-sm px-4 py-2"
+            className="bg-accent hover:bg-accent/80 text-primary font-mono text-sm px-4 py-2"
           >
             EXPLORE →
           </Link>
@@ -228,11 +228,11 @@ export default function AiCoveragePage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Hero stat */}
         <div className="text-center mb-12">
-          <div className="text-white/40 font-mono text-sm mb-2">TOTAL MARKET COVERAGE</div>
-          <div className="text-7xl md:text-9xl font-bold text-white font-mono">
+          <div className="text-muted font-mono text-sm mb-2">TOTAL MARKET COVERAGE</div>
+          <div className="text-7xl md:text-9xl font-semibold text-primary">
             {totalMarkets.toLocaleString()}
           </div>
-          <div className="text-white/40 font-mono mt-2">
+          <div className="text-muted font-mono mt-2">
             markets tracked by a single AI agent
           </div>
         </div>
@@ -240,7 +240,7 @@ export default function AiCoveragePage() {
         {/* Source grid */}
         {isLoading ? (
           <div className="text-center py-20">
-            <div className="text-white/40 font-mono animate-pulse">Loading coverage data...</div>
+            <div className="text-muted font-mono animate-pulse">Loading coverage data...</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
@@ -259,45 +259,45 @@ export default function AiCoveragePage() {
         )}
 
         {/* The impossible comparison */}
-        <div className="border border-white/20 bg-white/5 p-8 mb-12">
+        <div className="border border bg-surface p-8 mb-12">
           <div className="text-center mb-8">
-            <div className="text-white/40 font-mono text-sm mb-2">THE IMPOSSIBLE COMPARISON</div>
-            <div className="text-2xl font-bold font-mono text-white">
+            <div className="text-muted font-mono text-sm mb-2">THE IMPOSSIBLE COMPARISON</div>
+            <div className="text-2xl font-bold font-mono text-primary">
               What would it take for a human to track {totalMarkets.toLocaleString()} markets?
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6 border border-white/10">
+            <div className="text-center p-6 border border">
               <div className="text-5xl mb-4">⏰</div>
-              <div className="text-3xl font-bold text-white font-mono mb-2">
+              <div className="text-3xl font-semibold text-primary mb-2">
                 {Math.round(totalMarkets * 0.5).toLocaleString()}
               </div>
-              <div className="text-white/60 font-mono text-sm">
+              <div className="text-secondary font-mono text-sm">
                 hours to review each market once<br />
-                <span className="text-white/30">(30 sec per market)</span>
+                <span className="text-primary/30">(30 sec per market)</span>
               </div>
             </div>
 
-            <div className="text-center p-6 border border-white/10">
+            <div className="text-center p-6 border border">
               <div className="text-5xl mb-4">📊</div>
-              <div className="text-3xl font-bold text-white font-mono mb-2">
+              <div className="text-3xl font-semibold text-primary mb-2">
                 {Math.round(totalMarkets / 8 / 365).toLocaleString()}
               </div>
-              <div className="text-white/60 font-mono text-sm">
+              <div className="text-secondary font-mono text-sm">
                 years working 8h/day<br />
-                <span className="text-white/30">(just to see each once)</span>
+                <span className="text-primary/30">(just to see each once)</span>
               </div>
             </div>
 
-            <div className="text-center p-6 border border-white/10">
+            <div className="text-center p-6 border border">
               <div className="text-5xl mb-4">🧠</div>
-              <div className="text-3xl font-bold text-white font-mono mb-2">
+              <div className="text-3xl font-semibold text-primary mb-2">
                 IMPOSSIBLE
               </div>
-              <div className="text-white/60 font-mono text-sm">
+              <div className="text-secondary font-mono text-sm">
                 for humans to hold in memory<br />
-                <span className="text-white/30">(working memory: ~7 items)</span>
+                <span className="text-primary/30">(working memory: ~7 items)</span>
               </div>
             </div>
           </div>
@@ -312,12 +312,12 @@ export default function AiCoveragePage() {
         </div>
 
         {/* Live feed simulation */}
-        <div className="border border-white/20 p-6">
+        <div className="border border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-white/40 font-mono text-sm">LIVE AI PROCESSING FEED</div>
+            <div className="text-muted font-mono text-sm">LIVE AI PROCESSING FEED</div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-green-400 font-mono text-xs">ACTIVE</span>
+              <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
+              <span className="text-green font-mono text-xs">ACTIVE</span>
             </div>
           </div>
 
@@ -329,13 +329,13 @@ export default function AiCoveragePage() {
             }))).map((item, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 text-white/60 animate-pulse"
+                className="flex items-center gap-2 text-secondary animate-pulse"
                 style={{ animationDelay: `${i * 200}ms` }}
               >
-                <span className="text-white/30">{new Date().toLocaleTimeString()}</span>
+                <span className="text-primary/30">{new Date().toLocaleTimeString()}</span>
                 <span style={{ color: item.color }}>[{item.source.toUpperCase()}]</span>
                 <span>Analyzing {item.symbol}...</span>
-                <span className="text-green-400">✓</span>
+                <span className="text-green">✓</span>
               </div>
             ))}
           </div>

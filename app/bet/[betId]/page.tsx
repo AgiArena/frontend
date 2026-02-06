@@ -31,20 +31,20 @@ interface BetDetailPageProps {
  */
 function BetDetailSkeleton() {
   return (
-    <main className="min-h-screen bg-terminal">
-      <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <div className="h-6 w-32 bg-white/10 animate-pulse rounded" />
-        <div className="h-8 w-40 bg-white/10 animate-pulse rounded" />
+    <main className="min-h-screen bg-primary">
+      <header className="flex justify-between items-center p-6 border-b border">
+        <div className="h-6 w-32 bg-hover animate-pulse rounded" />
+        <div className="h-8 w-40 bg-hover animate-pulse rounded" />
         <div className="w-20" />
       </header>
       <div className="max-w-3xl mx-auto p-6 space-y-6">
-        <div className="bg-white/5 p-6 rounded animate-pulse">
-          <div className="h-6 w-32 bg-white/10 rounded mb-4" />
+        <div className="bg-surface p-6 rounded animate-pulse">
+          <div className="h-6 w-32 bg-hover rounded mb-4" />
           <div className="grid grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
               <div key={i}>
-                <div className="h-4 w-20 bg-white/10 rounded mb-2" />
-                <div className="h-6 w-24 bg-white/10 rounded" />
+                <div className="h-4 w-20 bg-hover rounded mb-2" />
+                <div className="h-6 w-24 bg-hover rounded" />
               </div>
             ))}
           </div>
@@ -59,20 +59,20 @@ function BetDetailSkeleton() {
  */
 function BetNotFound({ betId }: { betId: string }) {
   return (
-    <main className="min-h-screen bg-terminal">
-      <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <Link href="/" className="text-white/60 hover:text-white font-mono">
+    <main className="min-h-screen bg-primary">
+      <header className="flex justify-between items-center p-6 border-b border">
+        <Link href="/" className="text-secondary hover:text-primary font-mono">
           ← Back to Home
         </Link>
       </header>
       <div className="max-w-3xl mx-auto p-6 text-center">
-        <h1 className="text-2xl font-bold text-white mb-4">Bet Not Found</h1>
-        <p className="text-white/60 font-mono mb-2">
+        <h1 className="text-2xl font-semibold text-primary mb-4">Bet Not Found</h1>
+        <p className="text-secondary font-mono mb-2">
           No bet found with ID: {betId}
         </p>
         <Link
           href="/"
-          className="inline-block mt-8 px-4 py-2 border border-white/20 text-white hover:bg-white/10 font-mono"
+          className="inline-block mt-8 px-4 py-2 border border text-primary hover:bg-hover font-mono"
         >
           Return to Home
         </Link>
@@ -246,20 +246,20 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
   const isMatched = !!bet.fillerAddress
 
   return (
-    <main className="min-h-screen bg-terminal">
+    <main className="min-h-screen bg-primary">
       {/* Header */}
-      <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <Link href="/" className="text-white/60 hover:text-white transition-colors font-mono text-sm">
+      <header className="flex justify-between items-center p-6 border-b border">
+        <Link href="/" className="text-secondary hover:text-primary transition-colors font-mono text-sm">
           ← Back to Home
         </Link>
-        <h1 className="text-xl font-bold text-white font-mono">Bet Details</h1>
+        <h1 className="text-xl font-semibold text-primary">Bet Details</h1>
         <div className="w-20" />
       </header>
 
       {/* Content */}
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         {/* Main Info Card */}
-        <Card className="border-white/20">
+        <Card className="border">
           <CardHeader>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -278,16 +278,16 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
             {/* Stake Info (AC2) — Story 14-1: single-filler model */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Creator Staked</p>
-                <p className="text-white font-mono text-lg">{formatAmount(bet.amount)}</p>
+                <p className="text-muted font-mono text-xs uppercase">Creator Staked</p>
+                <p className="text-primary font-mono text-lg">{formatAmount(bet.amount)}</p>
               </div>
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Filler Stake</p>
-                <p className="text-white font-mono text-lg">{odds.requiredMatch}</p>
+                <p className="text-muted font-mono text-xs uppercase">Filler Stake</p>
+                <p className="text-primary font-mono text-lg">{odds.requiredMatch}</p>
               </div>
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Status</p>
-                <p className={`font-mono text-lg ${isMatched ? 'text-green-400' : 'text-yellow-400'}`}>
+                <p className="text-muted font-mono text-xs uppercase">Status</p>
+                <p className={`font-mono text-lg ${isMatched ? 'text-green' : 'text-yellow'}`}>
                   {isMatched ? 'Matched' : 'Awaiting Match'}
                 </p>
               </div>
@@ -295,53 +295,53 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
             {/* Creator */}
             <div>
-              <p className="text-white/40 font-mono text-xs uppercase">Creator</p>
+              <p className="text-muted font-mono text-xs uppercase">Creator</p>
               <Link
                 href={`/agent/${bet.creatorAddress}`}
-                className="text-cyan-400 hover:text-cyan-300 font-mono text-sm"
+                className="text-accent hover:text-accent font-mono text-sm"
               >
                 {formatAddress(bet.creatorAddress)}
               </Link>
             </div>
 
             {/* Payout Info (AC4) */}
-            <div className="bg-white/5 p-4 rounded border border-white/10">
-              <p className="text-white/40 font-mono text-xs uppercase mb-3">Payout Info</p>
+            <div className="bg-surface p-4 rounded border border">
+              <p className="text-muted font-mono text-xs uppercase mb-3">Payout Info</p>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-white/40 font-mono text-xs">Total Pot</p>
-                  <p className="text-white font-mono">{odds.totalPot}</p>
+                  <p className="text-muted font-mono text-xs">Total Pot</p>
+                  <p className="text-primary font-mono">{odds.totalPot}</p>
                 </div>
                 <div>
-                  <p className="text-white/40 font-mono text-xs">Creator Return</p>
-                  <p className="text-green-400 font-mono">{odds.creatorReturn}</p>
+                  <p className="text-muted font-mono text-xs">Creator Return</p>
+                  <p className="text-green font-mono">{odds.creatorReturn}</p>
                 </div>
                 <div>
-                  <p className="text-white/40 font-mono text-xs">Matcher Return</p>
-                  <p className="text-green-400 font-mono">{odds.matcherReturn}</p>
+                  <p className="text-muted font-mono text-xs">Matcher Return</p>
+                  <p className="text-green font-mono">{odds.matcherReturn}</p>
                 </div>
               </div>
             </div>
 
             {/* Implied Probability (AC5) */}
-            <div className="bg-white/5 p-3 rounded border border-white/10">
+            <div className="bg-surface p-3 rounded border border">
               <div className="flex justify-between items-center">
-                <span className="text-white/40 font-mono text-xs">Creator implied probability:</span>
-                <span className="text-white font-mono text-sm">{odds.impliedProbability}</span>
+                <span className="text-muted font-mono text-xs">Creator implied probability:</span>
+                <span className="text-primary font-mono text-sm">{odds.impliedProbability}</span>
               </div>
             </div>
 
             {/* Timestamps */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Created</p>
-                <p className="text-white/80 font-mono">
+                <p className="text-muted font-mono text-xs uppercase">Created</p>
+                <p className="text-secondary font-mono">
                   {new Date(bet.createdAt).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Resolution Date</p>
-                <p className="text-white/80 font-mono">
+                <p className="text-muted font-mono text-xs uppercase">Resolution Date</p>
+                <p className="text-secondary font-mono">
                   {bet.resolutionDeadline
                     ? new Date(bet.resolutionDeadline).toLocaleString()
                     : 'Not set'}
@@ -351,19 +351,19 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
             {/* Filler (Story 14-1: single-filler model) */}
             {bet.fillerAddress && (
-              <div className="bg-white/5 p-4 rounded border border-white/10">
-                <p className="text-white/40 font-mono text-xs uppercase mb-3">
+              <div className="bg-surface p-4 rounded border border">
+                <p className="text-muted font-mono text-xs uppercase mb-3">
                   Filler
                 </p>
-                <div className="flex justify-between items-center p-2 bg-white/5 rounded">
+                <div className="flex justify-between items-center p-2 bg-surface rounded">
                   <Link
                     href={`/agent/${bet.fillerAddress}`}
-                    className="text-cyan-400 hover:text-cyan-300 font-mono text-sm"
+                    className="text-accent hover:text-accent font-mono text-sm"
                   >
                     {formatAddress(bet.fillerAddress)}
                   </Link>
                   {bet.fillerStake && (
-                    <span className="text-white font-mono text-sm">
+                    <span className="text-primary font-mono text-sm">
                       {formatAmount(bet.fillerStake)}
                     </span>
                   )}
@@ -372,7 +372,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
             )}
 
             {/* Read-only notice (AC6) */}
-            <p className="text-[11px] text-white/30 italic text-center pt-2 border-t border-white/10">
+            <p className="text-[11px] text-primary/30 italic text-center pt-2 border-t border">
               Bets are placed by AI agents, not via this UI
             </p>
           </CardContent>
@@ -380,20 +380,20 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
 
         {/* Trades Card */}
         {((bet.tradeCount ?? 0) > 0 || portfolioPositions.length > 0) && (
-          <Card className="border-white/20">
+          <Card className="border">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="font-mono text-lg">
                   Trades ({bet.tradeCount ?? portfolioPositions.length})
                 </CardTitle>
                 {isLoadingPositions && (
-                  <span className="text-white/40 font-mono text-xs animate-pulse">Loading...</span>
+                  <span className="text-muted font-mono text-xs animate-pulse">Loading...</span>
                 )}
               </div>
             </CardHeader>
             <CardContent>
               {/* Column headers - simplified */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-white/20 text-xs text-white/40 font-mono mb-2">
+              <div className="flex items-center justify-between px-3 py-2 border-b border text-xs text-muted font-mono mb-2">
                 <span className="flex-1">Ticker</span>
                 <span className="w-20 text-right">Position</span>
               </div>
@@ -401,10 +401,10 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 {/* Loading skeleton */}
                 {isLoadingPositions && portfolioPositions.length === 0 && (
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-white/5 rounded animate-pulse">
-                      <div className="w-16 h-4 bg-white/10 rounded" />
-                      <div className="w-12 h-4 bg-white/10 rounded" />
-                      <div className="w-20 h-4 bg-white/10 rounded" />
+                    <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-surface rounded animate-pulse">
+                      <div className="w-16 h-4 bg-hover rounded" />
+                      <div className="w-12 h-4 bg-hover rounded" />
+                      <div className="w-20 h-4 bg-hover rounded" />
                     </div>
                   ))
                 )}
@@ -413,13 +413,13 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                   portfolioPositions.map((pos, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-sm"
+                      className="flex items-center justify-between px-3 py-1 bg-surface hover:bg-hover rounded text-sm"
                     >
-                      <span className="flex-1 text-white font-mono font-bold">
+                      <span className="flex-1 text-primary font-mono font-bold">
                         {pos.marketId}
                       </span>
                       <span className={`w-20 text-right font-mono font-bold ${
-                        pos.position === 'YES' ? 'text-green-400' : 'text-red-400'
+                        pos.position === 'YES' ? 'text-green' : 'text-red-loss'
                       }`}>
                         {pos.position === 'YES' ? 'LONG' : 'SHORT'}
                       </span>
@@ -435,22 +435,22 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                     return (
                       <div
                         key={index}
-                        className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                        className="flex justify-between items-center p-3 bg-surface rounded border border"
                       >
                         <div className="flex-1 min-w-0 pr-4">
-                          <p className="text-white font-mono text-sm truncate" title={marketName}>
+                          <p className="text-primary font-mono text-sm truncate" title={marketName}>
                             {marketName}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0 text-right">
                           <span className={`font-mono text-sm font-bold w-14 ${
-                            positionStr === 'YES' ? 'text-green-400' : 'text-red-400'
+                            positionStr === 'YES' ? 'text-green' : 'text-red-loss'
                           }`}>
                             {positionStr}
                           </span>
-                          <span className="text-white/40 font-mono text-sm w-16">—</span>
-                          <span className="text-white/40 font-mono text-sm w-16">—</span>
-                          <span className="text-white/40 font-mono text-sm w-16">—</span>
+                          <span className="text-muted font-mono text-sm w-16">—</span>
+                          <span className="text-muted font-mono text-sm w-16">—</span>
+                          <span className="text-muted font-mono text-sm w-16">—</span>
                         </div>
                       </div>
                     )
@@ -458,8 +458,8 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                 )}
                 {/* Show error message if trades failed to load */}
                 {tradesError && (
-                  <div className="text-center py-4 text-red-400 font-mono text-sm">
-                    Failed to load {bet.tradeCount ?? 0} trades. <button onClick={() => window.location.reload()} className="underline hover:text-white">Retry</button>
+                  <div className="text-center py-4 text-red-loss font-mono text-sm">
+                    Failed to load {bet.tradeCount ?? 0} trades. <button onClick={() => window.location.reload()} className="underline hover:text-primary">Retry</button>
                   </div>
                 )}
                 {/* Fallback to 'markets' format for backwards compatibility */}
@@ -468,24 +468,24 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                   return (
                     <div
                       key={index}
-                      className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/10"
+                      className="flex justify-between items-center p-3 bg-surface rounded border border"
                     >
                       <div className="flex-1 min-w-0 pr-4">
-                        <p className="text-white font-mono text-sm truncate" title={marketName}>
+                        <p className="text-primary font-mono text-sm truncate" title={marketName}>
                           {marketName}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 text-right">
                         <span className={`font-mono text-sm font-bold w-14 ${
                           market.position.toUpperCase() === 'YES'
-                            ? 'text-green-400'
-                            : 'text-red-400'
+                            ? 'text-green'
+                            : 'text-red-loss'
                         }`}>
                           {market.position.toUpperCase()}
                         </span>
-                        <span className="text-white/40 font-mono text-sm w-16">—</span>
-                        <span className="text-white/40 font-mono text-sm w-16">—</span>
-                        <span className="text-white/40 font-mono text-sm w-16">—</span>
+                        <span className="text-muted font-mono text-sm w-16">—</span>
+                        <span className="text-muted font-mono text-sm w-16">—</span>
+                        <span className="text-muted font-mono text-sm w-16">—</span>
                       </div>
                     </div>
                   )
@@ -500,7 +500,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
                   </button>
                 )}
                 {loadingMore && (
-                  <div className="w-full py-2 mt-2 text-center text-white/40 font-mono text-sm animate-pulse">
+                  <div className="w-full py-2 mt-2 text-center text-muted font-mono text-sm animate-pulse">
                     Loading more...
                   </div>
                 )}
@@ -510,34 +510,34 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
         )}
 
         {/* Transaction Info Card */}
-        <Card className="border-white/20">
+        <Card className="border">
           <CardHeader>
             <CardTitle className="font-mono text-lg">Transaction Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-white/40 font-mono text-xs uppercase">Bet Hash</p>
-              <p className="text-white/80 font-mono text-xs break-all">{bet.betHash}</p>
+              <p className="text-muted font-mono text-xs uppercase">Bet Hash</p>
+              <p className="text-secondary font-mono text-xs break-all">{bet.betHash}</p>
             </div>
             <div>
-              <p className="text-white/40 font-mono text-xs uppercase">Transaction</p>
+              <p className="text-muted font-mono text-xs uppercase">Transaction</p>
               <a
                 href={`https://basescan.org/tx/${bet.txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-cyan-400 hover:text-cyan-300 font-mono text-xs break-all"
+                className="text-accent hover:text-accent font-mono text-xs break-all"
               >
                 {bet.txHash}
               </a>
             </div>
             {bet.blockNumber && (
               <div>
-                <p className="text-white/40 font-mono text-xs uppercase">Block</p>
+                <p className="text-muted font-mono text-xs uppercase">Block</p>
                 <a
                   href={`https://basescan.org/block/${bet.blockNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 font-mono text-sm"
+                  className="text-accent hover:text-accent font-mono text-sm"
                 >
                   {bet.blockNumber.toLocaleString()}
                 </a>
@@ -550,7 +550,7 @@ export default function BetDetailPage({ params }: BetDetailPageProps) {
         <div className="text-center">
           <Link
             href="/"
-            className="inline-block px-6 py-2 border border-white/20 text-white/80 hover:text-white hover:border-white/40 transition-colors font-mono text-sm rounded"
+            className="inline-block px-6 py-2 border border text-secondary hover:text-primary hover:border-hover transition-colors font-mono text-sm rounded"
           >
             Return to Homepage
           </Link>

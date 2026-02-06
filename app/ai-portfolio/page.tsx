@@ -275,60 +275,60 @@ export default function AiPortfolioPage() {
   }, [])
 
   return (
-    <main className="relative w-screen h-screen bg-black overflow-hidden">
+    <main className="relative w-screen h-screen bg-primary overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0" />
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
-        <Link href="/" className="text-white/60 hover:text-white font-mono text-sm">
+        <Link href="/" className="text-secondary hover:text-primary font-mono text-sm">
           ← Back
         </Link>
         <div className="text-right">
           <div className="text-accent font-mono font-bold text-xl">AI AGENT PORTFOLIO</div>
-          <div className="text-white/40 font-mono text-xs">Live • {stats.totalPositions.toLocaleString()} positions</div>
+          <div className="text-muted font-mono text-xs">Live • {stats.totalPositions.toLocaleString()} positions</div>
         </div>
       </div>
 
       {/* Stats panel */}
-      <div className="absolute top-24 left-6 z-20 bg-black/80 border border-white/20 p-4 min-w-[280px]">
-        <div className="text-white/40 font-mono text-xs mb-3">PORTFOLIO OVERVIEW</div>
+      <div className="absolute top-24 left-6 z-20 bg-primary/80 border border p-4 min-w-[280px]">
+        <div className="text-muted font-mono text-xs mb-3">PORTFOLIO OVERVIEW</div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <div className="text-white/40 font-mono text-[10px]">POSITIONS</div>
-            <div className="text-white font-mono font-bold text-2xl">
+            <div className="text-muted font-mono text-[10px]">POSITIONS</div>
+            <div className="text-primary font-mono font-bold text-2xl">
               {stats.totalPositions.toLocaleString()}
             </div>
           </div>
           <div>
-            <div className="text-white/40 font-mono text-[10px]">TOTAL P&L</div>
-            <div className={`font-mono font-bold text-2xl ${stats.totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className="text-muted font-mono text-[10px]">TOTAL P&L</div>
+            <div className={`font-mono font-bold text-2xl ${stats.totalPnl >= 0 ? 'text-green' : 'text-red-loss'}`}>
               {formatPnl(stats.totalPnl)}
             </div>
           </div>
           <div>
-            <div className="text-white/40 font-mono text-[10px]">WIN RATE</div>
-            <div className="text-white font-mono font-bold text-2xl">
+            <div className="text-muted font-mono text-[10px]">WIN RATE</div>
+            <div className="text-primary font-mono font-bold text-2xl">
               {stats.winRate.toFixed(1)}%
             </div>
           </div>
           <div>
-            <div className="text-white/40 font-mono text-[10px]">SOURCES</div>
-            <div className="text-white font-mono font-bold text-2xl">
+            <div className="text-muted font-mono text-[10px]">SOURCES</div>
+            <div className="text-primary font-mono font-bold text-2xl">
               {Object.keys(stats.sources).length}
             </div>
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-3">
-          <div className="text-white/40 font-mono text-[10px] mb-2">COVERAGE BY SOURCE</div>
+        <div className="border-t border pt-3">
+          <div className="text-muted font-mono text-[10px] mb-2">COVERAGE BY SOURCE</div>
           {Object.entries(stats.sources).map(([source, count]) => (
             <div key={source} className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2" style={{ backgroundColor: SOURCE_COLORS[source] }} />
-                <span className="text-white/60 font-mono text-xs">{SOURCE_NAMES[source]}</span>
+                <span className="text-secondary font-mono text-xs">{SOURCE_NAMES[source]}</span>
               </div>
-              <span className="text-white font-mono text-xs">{count.toLocaleString()}</span>
+              <span className="text-primary font-mono text-xs">{count.toLocaleString()}</span>
             </div>
           ))}
         </div>
@@ -337,11 +337,11 @@ export default function AiPortfolioPage() {
       {/* Center message */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div className="text-center mt-40">
-          <div className="text-white/10 font-mono text-sm tracking-widest">ONE AGENT</div>
-          <div className="text-6xl md:text-8xl font-bold text-white/5 font-mono">
+          <div className="text-primary/10 font-mono text-sm tracking-widest">ONE AGENT</div>
+          <div className="text-6xl md:text-8xl font-semibold text-primary/5 font-mono">
             {stats.totalPositions.toLocaleString()}
           </div>
-          <div className="text-white/10 font-mono text-sm tracking-widest">SIMULTANEOUS POSITIONS</div>
+          <div className="text-primary/10 font-mono text-sm tracking-widest">SIMULTANEOUS POSITIONS</div>
         </div>
       </div>
 
@@ -349,7 +349,7 @@ export default function AiPortfolioPage() {
       <div className="absolute bottom-6 right-6 z-20">
         <Link
           href="/markets"
-          className="bg-accent hover:bg-accent/80 text-white font-mono font-bold px-6 py-3 transition-colors"
+          className="bg-accent hover:bg-accent/80 text-primary font-mono font-bold px-6 py-3 transition-colors"
         >
           EXPLORE ALL MARKETS →
         </Link>
@@ -358,7 +358,7 @@ export default function AiPortfolioPage() {
       {/* Hover tooltip */}
       {hoveredPosition && (
         <div
-          className="fixed z-50 bg-black/95 border p-4 rounded-lg shadow-2xl min-w-[200px]"
+          className="fixed z-50 bg-primary/95 border p-4 rounded-lg shadow-2xl min-w-[200px]"
           style={{
             left: Math.min(mouseRef.current.x + 20, window.innerWidth - 230),
             top: mouseRef.current.y - 20,
@@ -367,30 +367,30 @@ export default function AiPortfolioPage() {
         >
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2" style={{ backgroundColor: SOURCE_COLORS[hoveredPosition.source] }} />
-            <span className="text-white/60 font-mono text-xs">{SOURCE_NAMES[hoveredPosition.source]}</span>
+            <span className="text-secondary font-mono text-xs">{SOURCE_NAMES[hoveredPosition.source]}</span>
           </div>
-          <div className="text-lg font-bold text-white font-mono">{hoveredPosition.symbol}</div>
-          <div className="text-white/60 font-mono text-sm mb-2">{hoveredPosition.name}</div>
+          <div className="text-lg font-semibold text-primary">{hoveredPosition.symbol}</div>
+          <div className="text-secondary font-mono text-sm mb-2">{hoveredPosition.name}</div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <div className="text-white/40 font-mono text-[10px]">POSITION</div>
-              <div className={`font-mono font-bold ${hoveredPosition.position === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
+              <div className="text-muted font-mono text-[10px]">POSITION</div>
+              <div className={`font-mono font-bold ${hoveredPosition.position === 'LONG' ? 'text-green' : 'text-red-loss'}`}>
                 {hoveredPosition.position}
               </div>
             </div>
             <div>
-              <div className="text-white/40 font-mono text-[10px]">SIZE</div>
-              <div className="text-white font-mono">${hoveredPosition.size.toFixed(0)}</div>
+              <div className="text-muted font-mono text-[10px]">SIZE</div>
+              <div className="text-primary font-mono">${hoveredPosition.size.toFixed(0)}</div>
             </div>
             <div>
-              <div className="text-white/40 font-mono text-[10px]">CHANGE</div>
-              <div className={`font-mono ${hoveredPosition.changePct !== null && hoveredPosition.changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className="text-muted font-mono text-[10px]">CHANGE</div>
+              <div className={`font-mono ${hoveredPosition.changePct !== null && hoveredPosition.changePct >= 0 ? 'text-green' : 'text-red-loss'}`}>
                 {hoveredPosition.changePct !== null ? `${hoveredPosition.changePct >= 0 ? '+' : ''}${hoveredPosition.changePct.toFixed(2)}%` : 'N/A'}
               </div>
             </div>
             <div>
-              <div className="text-white/40 font-mono text-[10px]">P&L</div>
-              <div className={`font-mono font-bold ${hoveredPosition.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className="text-muted font-mono text-[10px]">P&L</div>
+              <div className={`font-mono font-bold ${hoveredPosition.pnl >= 0 ? 'text-green' : 'text-red-loss'}`}>
                 {formatPnl(hoveredPosition.pnl)}
               </div>
             </div>

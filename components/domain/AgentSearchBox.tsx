@@ -63,7 +63,7 @@ export function AgentSearchBox({ onSearch, isNotFound, onDismissNotFound }: Agen
       {isNotFound && (
         <div className="mt-2 p-3 border border-accent/50 bg-accent/10" role="alert">
           <p className="text-accent font-mono text-sm">Agent not found.</p>
-          <p className="text-white/60 text-xs mt-1">
+          <p className="text-secondary text-xs mt-1">
             Have you placed any portfolio bets?{' '}
             <a href="/deploy" className="text-accent hover:underline">
               Deploy an agent
@@ -72,7 +72,7 @@ export function AgentSearchBox({ onSearch, isNotFound, onDismissNotFound }: Agen
           <button
             type="button"
             onClick={onDismissNotFound}
-            className="text-white/40 text-xs mt-2 hover:text-white"
+            className="text-muted text-xs mt-2 hover:text-primary"
           >
             Dismiss
           </button>

@@ -22,7 +22,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', children, interactive = false, ...props }, ref) => (
     <div
       ref={ref}
-      className={`rounded-lg border bg-black text-white ${interactive ? 'card-interactive cursor-pointer' : ''} ${className}`}
+      className={`rounded-xl border bg-surface text-primary ${interactive ? 'hover:border-hover transition-colors duration-150 cursor-pointer' : ''} ${className}`}
       {...props}
     >
       {children}
@@ -62,7 +62,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className = '', children, ...props }, ref) => (
     <h3
       ref={ref}
-      className={`text-xs uppercase tracking-wider text-white/60 ${className}`}
+      className={`text-xs uppercase tracking-wider text-secondary ${className}`}
       {...props}
     >
       {children}

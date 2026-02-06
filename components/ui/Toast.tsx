@@ -42,28 +42,28 @@ export function Toast({ toast, onDismiss }: ToastProps) {
   }
 
   const borderColor = {
-    success: 'border-green-500',
+    success: 'border-green',
     error: 'border-accent',
-    info: 'border-white'
+    info: 'border'
   }[toast.type]
 
   const iconColor = {
-    success: 'text-green-500',
+    success: 'text-green',
     error: 'text-accent',
-    info: 'text-white'
+    info: 'text-primary'
   }[toast.type]
 
   return (
     <div
       className={`
-        bg-black border ${borderColor} text-white p-4 rounded font-mono
+        bg-primary border ${borderColor} text-primary p-4 rounded font-mono
         transition-all duration-300 ease-in-out
         ${isExiting ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}
       `}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className={toast.type === 'error' ? 'text-accent' : 'text-white'}>
+          <p className={toast.type === 'error' ? 'text-accent' : 'text-primary'}>
             {toast.message}
           </p>
           {toast.link && (
@@ -79,7 +79,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         </div>
         <button
           onClick={handleDismiss}
-          className="text-white/60 hover:text-white transition-colors"
+          className="text-secondary hover:text-primary transition-colors"
           aria-label="Dismiss"
         >
           <svg

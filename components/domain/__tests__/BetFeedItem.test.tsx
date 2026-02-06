@@ -345,7 +345,7 @@ describe('Accessibility', () => {
 
 describe('Layout', () => {
   it('has border between items', () => {
-    const borderClass = 'border-b border-white/10'
+    const borderClass = 'border-b border'
     expect(borderClass).toContain('border-b')
     expect(borderClass).toContain('white/10')
   })
@@ -356,8 +356,8 @@ describe('Layout', () => {
   })
 
   it('has hover state for interactivity', () => {
-    const hoverClass = 'hover:bg-white/5'
-    expect(hoverClass).toBe('hover:bg-white/5')
+    const hoverClass = 'hover:bg-surface'
+    expect(hoverClass).toBe('hover:bg-surface')
   })
 
   it('has transition for smooth hover effect', () => {

@@ -98,15 +98,15 @@ export function formatAmount(amount: string): string {
 export function getStatusColor(status: string): string {
   switch (status) {
     case 'pending':
-      return 'text-yellow-400'
+      return 'text-yellow'
     case 'matched':
-      return 'text-green-400'
+      return 'text-green'
     case 'settling':
-      return 'text-blue-400'
+      return 'text-accent'
     case 'settled':
-      return 'text-cyan-400'
+      return 'text-accent'
     default:
-      return 'text-white/60'
+      return 'text-secondary'
   }
 }
 
@@ -163,10 +163,10 @@ export function getOddsInfo(bet: BetData): OddsInfo {
 export function getOddsBadgeColor(favorability: 'favorable' | 'even' | 'unfavorable'): string {
   switch (favorability) {
     case 'favorable':
-      return 'bg-green-900/80 text-green-300 border-green-700'
+      return 'bg-green-muted text-green border-green/20'
     case 'even':
-      return 'bg-yellow-900/80 text-yellow-300 border-yellow-700'
+      return 'bg-accent-muted text-accent border-accent-border'
     case 'unfavorable':
-      return 'bg-red-900/80 text-red-300 border-red-700'
+      return 'bg-red-loss-muted text-red-loss border-red-loss/20'
   }
 }

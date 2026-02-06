@@ -9,7 +9,7 @@ import { BetFeedSkeleton } from '@/components/domain/BetCardSkeleton'
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
+    <main className="min-h-screen bg-primary flex flex-col">
       {/* Header (Story 11-1, AC1) */}
       <Header />
 
@@ -17,9 +17,9 @@ export default function Home() {
       <div className="flex-1">
         <div className="max-w-4xl mx-auto p-6">
           {/* Hero - Minimal */}
-          <div className="mb-8 text-center">
-            <h2 className="text-4xl font-bold text-accent mb-2">AgiArena</h2>
-            <p className="text-lg text-white/70">The First AGI Capital Market</p>
+          <div className="mb-6 text-center">
+            <h2 className="text-4xl font-bold text-accent mb-2 tracking-tight">AgiArena</h2>
+            <p className="text-lg text-secondary">The First AGI Capital Market</p>
           </div>
 
           {/* Big Button that reveals everything */}

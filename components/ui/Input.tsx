@@ -5,19 +5,15 @@ import { cn } from '@/lib/utils/cn'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-/**
- * Input component following Shadcn/ui pattern
- * Dev Arena themed: black background, white/red borders
- */
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
-          'flex h-10 w-full rounded-none border border-white/20 bg-terminal px-3 py-2',
-          'text-sm text-white font-mono placeholder:text-white/40',
-          'focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent',
+          'flex h-10 w-full rounded-lg border bg-input px-4 py-2',
+          'text-sm text-primary placeholder:text-muted',
+          'focus:outline-none focus:ring-1 focus:ring-accent/10 focus:border-accent-border',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}

@@ -153,7 +153,7 @@ export default function AiBrainPage() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-[#050508] text-white font-mono overflow-hidden">
+    <main className="min-h-screen bg-[#050508] text-primary font-mono overflow-hidden">
       {/* Scanlines effect */}
       <div className="fixed inset-0 pointer-events-none z-50 opacity-10">
         <div className="w-full h-full" style={{
@@ -163,19 +163,19 @@ export default function AiBrainPage() {
 
       <div className="relative z-10 h-screen flex flex-col">
         {/* Header */}
-        <div className="border-b border-white/10 bg-black/50 backdrop-blur">
+        <div className="border-b border bg-surface backdrop-blur">
           <div className="max-w-[1800px] mx-auto px-4 py-3 flex justify-between items-center">
-            <Link href="/" className="text-white/60 hover:text-white text-sm">
+            <Link href="/" className="text-secondary hover:text-primary text-sm">
               ← EXIT
             </Link>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-green-400 text-xs">ONLINE</span>
+                <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
+                <span className="text-green text-xs">ONLINE</span>
               </div>
               <div className="text-accent font-bold">AGIARENA AI CORE</div>
             </div>
-            <div className="text-white/40 text-xs">
+            <div className="text-muted text-xs">
               {new Date().toLocaleTimeString()}
             </div>
           </div>
@@ -184,48 +184,48 @@ export default function AiBrainPage() {
         {/* Main content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left panel - Stats */}
-          <div className="w-80 border-r border-white/10 p-4 flex flex-col">
-            <div className="text-white/40 text-xs mb-4">SYSTEM STATUS</div>
+          <div className="w-80 border-r border p-4 flex flex-col">
+            <div className="text-muted text-xs mb-4">SYSTEM STATUS</div>
 
             <div className="space-y-4 mb-6">
-              <div className="bg-white/5 border border-white/10 p-4">
-                <div className="text-white/40 text-[10px]">MARKETS WATCHING</div>
+              <div className="bg-surface border border p-4">
+                <div className="text-muted text-[10px]">MARKETS WATCHING</div>
                 <div className="text-3xl font-bold text-accent">
                   {stats.marketsWatching.toLocaleString()}
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 p-4">
-                <div className="text-white/40 text-[10px]">ANALYSES THIS SESSION</div>
-                <div className="text-3xl font-bold text-white">
+              <div className="bg-surface border border p-4">
+                <div className="text-muted text-[10px]">ANALYSES THIS SESSION</div>
+                <div className="text-3xl font-semibold text-primary">
                   {stats.processed.toLocaleString()}
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 p-4">
-                <div className="text-white/40 text-[10px]">DECISIONS MADE</div>
-                <div className="text-3xl font-bold text-green-400">
+              <div className="bg-surface border border p-4">
+                <div className="text-muted text-[10px]">DECISIONS MADE</div>
+                <div className="text-3xl font-bold text-green">
                   {stats.decisions.toLocaleString()}
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 p-4">
-                <div className="text-white/40 text-[10px]">THROUGHPUT</div>
-                <div className="text-3xl font-bold text-cyan-400">
+              <div className="bg-surface border border p-4">
+                <div className="text-muted text-[10px]">THROUGHPUT</div>
+                <div className="text-3xl font-bold text-accent">
                   {stats.throughput}/s
                 </div>
               </div>
             </div>
 
-            <div className="text-white/40 text-xs mb-2">SOURCE DISTRIBUTION</div>
+            <div className="text-muted text-xs mb-2">SOURCE DISTRIBUTION</div>
             <div className="space-y-2 flex-1">
               {Object.entries(sourceCounts).map(([source, count]) => (
                 <div key={source}>
                   <div className="flex justify-between text-xs mb-1">
                     <span style={{ color: SOURCE_COLORS[source] }}>{source.toUpperCase()}</span>
-                    <span className="text-white/40">{count.toLocaleString()}</span>
+                    <span className="text-muted">{count.toLocaleString()}</span>
                   </div>
-                  <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-1 bg-hover rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -240,7 +240,7 @@ export default function AiBrainPage() {
 
             <Link
               href="/markets"
-              className="mt-4 block text-center bg-accent hover:bg-accent/80 text-white py-3 transition-colors"
+              className="mt-4 block text-center bg-accent hover:bg-accent/80 text-primary py-3 transition-colors"
             >
               VIEW ALL MARKETS →
             </Link>
@@ -272,7 +272,7 @@ export default function AiBrainPage() {
                 <div className="w-48 h-48 rounded-full bg-gradient-to-br from-accent to-red-900 flex items-center justify-center shadow-2xl shadow-accent/30">
                   <div className="text-center">
                     <div className="text-5xl font-bold">AI</div>
-                    <div className="text-xs text-white/60">PROCESSING</div>
+                    <div className="text-xs text-secondary">PROCESSING</div>
                   </div>
                 </div>
               </div>
@@ -303,7 +303,7 @@ export default function AiBrainPage() {
             </div>
 
             {/* Ticker tape */}
-            <div className="h-8 bg-black/50 border-t border-white/10 flex items-center overflow-hidden">
+            <div className="h-8 bg-surface border-t border flex items-center overflow-hidden">
               <div className="animate-marquee whitespace-nowrap flex gap-8">
                 {processingQueue.slice(0, 30).map(item => (
                   <span
@@ -319,11 +319,11 @@ export default function AiBrainPage() {
           </div>
 
           {/* Right panel - Live feed */}
-          <div className="w-96 border-l border-white/10 flex flex-col">
-            <div className="p-4 border-b border-white/10">
+          <div className="w-96 border-l border flex flex-col">
+            <div className="p-4 border-b border">
               <div className="flex items-center justify-between">
-                <div className="text-white/40 text-xs">LIVE PROCESSING FEED</div>
-                <div className="text-green-400 text-xs">{processingQueue.length} in queue</div>
+                <div className="text-muted text-xs">LIVE PROCESSING FEED</div>
+                <div className="text-green text-xs">{processingQueue.length} in queue</div>
               </div>
             </div>
 
@@ -334,9 +334,9 @@ export default function AiBrainPage() {
                     key={item.id}
                     className={`
                       p-2 text-xs border-l-2 transition-all duration-300
-                      ${item.status === 'decision' ? 'bg-green-500/10 border-green-500' :
-                        item.status === 'complete' ? 'bg-white/5 border-white/20 opacity-50' :
-                        'bg-white/5 border-white/10'}
+                      ${item.status === 'decision' ? 'bg-green/10 border-green' :
+                        item.status === 'complete' ? 'bg-surface border opacity-50' :
+                        'bg-surface border'}
                     `}
                   >
                     <div className="flex items-center justify-between">
@@ -349,11 +349,11 @@ export default function AiBrainPage() {
                           {item.symbol}
                         </span>
                       </div>
-                      <span className="text-white/30 text-[10px]">
+                      <span className="text-primary/30 text-[10px]">
                         {new Date(item.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <div className={`mt-1 ${item.status === 'decision' ? 'text-green-400 font-bold' : 'text-white/60'}`}>
+                    <div className={`mt-1 ${item.status === 'decision' ? 'text-green font-bold' : 'text-secondary'}`}>
                       {item.status === 'processing' && '⏳ '}
                       {item.status === 'complete' && '✓ '}
                       {item.status === 'decision' && '🎯 '}

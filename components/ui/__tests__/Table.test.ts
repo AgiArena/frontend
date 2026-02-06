@@ -33,24 +33,24 @@ describe('Table components', () => {
 
   describe('TableRow', () => {
     test('has hover and transition effects', () => {
-      const rowClasses = 'border-b border-white/10 transition-colors hover:bg-white/5'
-      expect(rowClasses).toContain('hover:bg-white/5')
+      const rowClasses = 'border-b border transition-colors hover:bg-surface'
+      expect(rowClasses).toContain('hover:bg-surface')
       expect(rowClasses).toContain('transition-colors')
-      expect(rowClasses).toContain('border-white/10')
+      expect(rowClasses).toContain('border')
     })
 
     test('supports selected state', () => {
-      const rowClasses = 'data-[state=selected]:bg-white/10'
+      const rowClasses = 'data-[state=selected]:bg-hover'
       expect(rowClasses).toContain('data-[state=selected]')
     })
   })
 
   describe('TableHead', () => {
     test('has correct Dev Arena styling', () => {
-      const headClasses = 'h-10 px-4 text-left align-middle font-mono text-xs uppercase text-white/60'
+      const headClasses = 'h-10 px-4 text-left align-middle font-mono text-xs uppercase text-secondary'
       expect(headClasses).toContain('font-mono')
       expect(headClasses).toContain('uppercase')
-      expect(headClasses).toContain('text-white/60')
+      expect(headClasses).toContain('text-secondary')
       expect(headClasses).toContain('text-xs')
     })
   })

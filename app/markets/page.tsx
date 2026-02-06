@@ -412,10 +412,10 @@ function getExternalLink(price: SnapshotPrice): string | null {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  healthy: 'bg-green-500',
-  stale: 'bg-yellow-500',
-  pending: 'bg-blue-500',
-  disabled: 'bg-white/30',
+  healthy: 'bg-green',
+  stale: 'bg-yellow',
+  pending: 'bg-accent',
+  disabled: 'bg-hover',
 }
 
 function useColumnCount() {
@@ -462,7 +462,7 @@ function CryptoLogo({ assetId, symbol, size = 16 }: { assetId: string; symbol: s
   if (hasError) {
     return (
       <div
-        className="rounded-full bg-white/10 flex items-center justify-center text-white/60 font-bold"
+        className="rounded-full bg-hover flex items-center justify-center text-secondary font-bold"
         style={{ width: size, height: size, fontSize: size * 0.5 }}
       >
         {symbol.charAt(0).toUpperCase()}
@@ -486,27 +486,27 @@ function SourceCard({ source, assetCount, tick }: { source: SourceSchedule; asse
   void tick // used to force re-render for live timestamps
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
-    <div className="border border-white/15 bg-white/5 p-3 min-w-[180px] flex-shrink-0 transition-all duration-300 hover:border-white/30 hover:bg-white/[0.08] hover:-translate-y-0.5">
+    <div className="border bg-surface rounded-xl p-3 min-w-[180px] flex-shrink-0 transition-colors duration-150 hover:border-hover">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
-        <span className="font-mono text-sm font-bold text-white">{displayName}</span>
+        <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-hover'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
+        <span className="font-mono text-sm font-bold text-primary">{displayName}</span>
       </div>
-      <div className="space-y-1 font-mono text-xs text-white/50">
+      <div className="space-y-1 font-mono text-xs text-muted">
         <div className="flex justify-between">
           <span>Assets</span>
-          <span className="text-white/80">{assetCount.toLocaleString()}</span>
+          <span className="text-secondary">{assetCount.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span>Last sync</span>
-          <span className="text-white/80 tabular-nums">{relativeTime(source.lastSync)}</span>
+          <span className="text-secondary tabular-nums">{relativeTime(source.lastSync)}</span>
         </div>
         <div className="flex justify-between">
           <span>Next</span>
-          <span className="text-white/80 tabular-nums">{relativeTime(source.estimatedNextUpdate)}</span>
+          <span className="text-secondary tabular-nums">{relativeTime(source.estimatedNextUpdate)}</span>
         </div>
         <div className="flex justify-between">
           <span>Interval</span>
-          <span className="text-white/80">{source.syncIntervalSecs < 60 ? 'rolling' : `every ${humanInterval(source.syncIntervalSecs)}`}</span>
+          <span className="text-secondary">{source.syncIntervalSecs < 60 ? 'rolling' : `every ${humanInterval(source.syncIntervalSecs)}`}</span>
         </div>
       </div>
     </div>
@@ -548,29 +548,29 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   return (
     <Wrapper
       {...wrapperProps}
-      className={`p-2 border relative group transition-all duration-200 ${link ? 'cursor-pointer' : 'cursor-default'} hover:scale-[1.03] hover:z-10 hover:shadow-lg hover:shadow-black/30 ${
+      className={`p-2 rounded-lg border relative group transition-colors duration-150 ${link ? 'cursor-pointer' : 'cursor-default'} ${
         isUp
-          ? 'border-green-500/30 bg-green-500/5 hover:border-green-500/50 hover:bg-green-500/10'
+          ? 'border-green/25 bg-green-muted hover:border-hover'
           : isDown
-            ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50 hover:bg-red-500/10'
-            : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10'
+            ? 'border-red-loss/25 bg-red-loss-muted hover:border-hover'
+            : 'border bg-surface hover:border-hover'
       }`}
       title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}${link ? `\n${link}` : ''}`}
     >
       <div className="flex items-center gap-1.5">
         {hasCryptoLogo && <CryptoLogo assetId={price.assetId} symbol={price.symbol} size={16} />}
-        <div className="font-mono text-xs font-bold text-white truncate">{displaySymbol}</div>
+        <div className="font-mono text-xs font-bold text-primary truncate">{displaySymbol}</div>
         {link && (
-          <svg className="w-2.5 h-2.5 text-white/30 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white/60" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="w-2.5 h-2.5 text-muted flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group- group-hover:text-secondary" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 1h7v7M11 1L4 8" />
           </svg>
         )}
       </div>
-      <div className="font-mono text-[10px] text-white/60 truncate">
+      <div className="font-mono text-[10px] text-secondary truncate">
         {formatValue(value, price.source, price.assetId)}
       </div>
       {changePct !== null && (
-        <div className={`font-mono text-[10px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+        <div className={`font-mono text-[10px] ${isUp ? 'text-green' : 'text-red-loss'}`}>
           {isUp ? '\u2191' : '\u2193'}{Math.abs(changePct).toFixed(1)}%
         </div>
       )}
@@ -582,11 +582,11 @@ function SectionHeader({ source, count, tick }: { source: SourceSchedule; count:
   void tick
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
-    <div className="flex items-center gap-3 px-3 py-2 bg-black border-b border-white/10">
-      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
-      <span className="font-mono text-sm font-bold text-white">{displayName}</span>
-      <span className="font-mono text-xs text-white/40">{count.toLocaleString()} assets</span>
-      <span className="font-mono text-xs text-white/30 tabular-nums">
+    <div className="flex items-center gap-3 px-3 py-2 bg-surface border-b border">
+      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-hover'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
+      <span className="text-sm font-semibold text-primary">{displayName}</span>
+      <span className="font-data text-xs text-muted">{count.toLocaleString()} assets</span>
+      <span className="font-data text-xs text-muted tabular-nums">
         synced {relativeTime(source.lastSync)} &middot; every {humanInterval(source.syncIntervalSecs)}
       </span>
     </div>
@@ -595,9 +595,9 @@ function SectionHeader({ source, count, tick }: { source: SourceSchedule; count:
 
 function SubSectionHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 bg-black/90 border-b border-white/5">
-      <span className="font-mono text-xs text-white/60">{label}</span>
-      <span className="font-mono text-[10px] text-white/30">{count.toLocaleString()}</span>
+    <div className="flex items-center gap-2 px-4 py-1.5 bg-surface border-b border">
+      <span className="text-xs text-secondary">{label}</span>
+      <span className="font-data text-[10px] text-muted">{count.toLocaleString()}</span>
     </div>
   )
 }
@@ -887,27 +887,27 @@ export default function MarketPage() {
     : '-'
 
   return (
-    <main className="min-h-screen bg-black flex flex-col">
+    <main className="min-h-screen bg-primary flex flex-col">
       <Header />
 
-      <div className="flex-1 overflow-hidden bg-black" style={{ backgroundColor: '#000' }}>
-        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col bg-black" style={{ backgroundColor: '#000' }}>
+      <div className="flex-1 overflow-hidden bg-primary" >
+        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col bg-primary" >
           {/* Page header */}
           <div className="mb-3 flex-shrink-0">
-            <Link href="/" className="text-white/60 hover:text-white font-mono text-sm mb-1 inline-block">
+            <Link href="/" className="text-secondary hover:text-primary text-sm mb-1 inline-block">
               &larr; Back
             </Link>
             <div className="flex items-baseline gap-4">
-              <h1 className="text-2xl font-bold text-white font-mono">Market Data</h1>
+              <h1 className="text-2xl font-semibold text-primary tracking-tight">Market Data</h1>
               {totalAssetsGlobal > 0 && (
-                <span className="text-white/40 font-mono text-sm tabular-nums flex items-center gap-1.5">
+                <span className="text-muted font-mono text-sm tabular-nums flex items-center gap-1.5">
                   {totalAssetsGlobal.toLocaleString()} assets
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
                   updated {generatedAt}
                 </span>
               )}
               {metaLoading && (
-                <span className="text-white/40 font-mono text-sm animate-pulse">
+                <span className="text-muted font-mono text-sm animate-pulse">
                   Connecting...
                 </span>
               )}
@@ -916,7 +916,7 @@ export default function MarketPage() {
 
           {/* Source schedule cards — show from meta (instant) or full data, filtered by category */}
           {(selectedCategory ? sourcesInCategory : enabledSources).length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide bg-black" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', backgroundColor: '#000' }}>
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide bg-primary" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {(selectedCategory ? sourcesInCategory : enabledSources).map((source) => (
                 <SourceCard
                   key={source.sourceId}
@@ -937,23 +937,23 @@ export default function MarketPage() {
                 placeholder="Search symbol or name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-56 flex-shrink-0"
+                className="bg-input border rounded-lg text-primary text-sm px-4 py-2 focus:outline-none focus:ring-1 focus:ring-accent/10 focus:border-accent-border placeholder:text-muted w-56 flex-shrink-0"
               />
-              <div className="flex flex-wrap gap-1 border-b border-white/20 min-w-0">
+              <div className="flex flex-wrap gap-1.5 min-w-0">
                 {categoryGroupsWithCounts.map((group) => (
                   <button
                     key={group.id}
                     type="button"
                     onClick={() => { setSelectedCategory(group.id); setSelectedSource(null); setSelectedSubcategory(null) }}
-                    className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex items-center gap-1.5 transition-colors duration-150 ${
                       selectedCategory === group.id
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-white/60 hover:text-white'
+                        ? 'bg-accent-muted text-accent border border-accent-border'
+                        : 'text-secondary rounded-full hover:bg-hover hover:text-primary'
                     }`}
                   >
                     <span>{group.icon}</span>
                     {group.name}
-                    <span className="text-xs text-white/40">
+                    <span className="text-xs text-muted">
                       ({group.totalAssets.toLocaleString()})
                     </span>
                   </button>
@@ -967,10 +967,10 @@ export default function MarketPage() {
                 <button
                   type="button"
                   onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
-                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
+                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
                     selectedSource === null
-                      ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
-                      : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                      ? 'bg-accent-muted text-accent border border-accent-border'
+                      : 'bg-surface text-muted border border hover:text-primary hover:border'
                   }`}
                 >
                   All Sources
@@ -980,15 +980,15 @@ export default function MarketPage() {
                     key={s.sourceId}
                     type="button"
                     onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
-                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
+                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
                       selectedSource === s.sourceId
-                        ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm shadow-accent/10'
-                        : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                        ? 'bg-accent-muted text-accent border border-accent-border'
+                        : 'bg-surface text-muted border border hover:text-primary hover:border'
                     }`}
                     style={{ animationDelay: `${i * 30}ms` }}
                   >
                     {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
-                    <span className="ml-1 text-white/30">({(assetCountBySource[s.sourceId] || 0).toLocaleString()})</span>
+                    <span className="ml-1 text-muted">({(assetCountBySource[s.sourceId] || 0).toLocaleString()})</span>
                   </button>
                 ))}
               </div>
@@ -1000,10 +1000,10 @@ export default function MarketPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedSubcategory(null)}
-                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
+                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
                     selectedSubcategory === null
-                      ? 'bg-white/15 text-white border border-white/30'
-                      : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                      ? 'bg-hover text-primary border border-hover'
+                      : 'bg-surface text-muted border border hover:text-primary hover:border'
                   }`}
                 >
                   All Types
@@ -1013,15 +1013,15 @@ export default function MarketPage() {
                     key={key}
                     type="button"
                     onClick={() => setSelectedSubcategory(key)}
-                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200 hover:scale-105 ${
+                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
                       selectedSubcategory === key
-                        ? 'bg-white/15 text-white border border-white/30'
-                        : 'bg-white/5 text-white/50 border border-white/10 hover:text-white hover:border-white/20'
+                        ? 'bg-hover text-primary border border-hover'
+                        : 'bg-surface text-muted border border hover:text-primary hover:border'
                     }`}
                     style={{ animationDelay: `${i * 30}ms` }}
                   >
                     {FEED_TYPE_DISPLAY_NAMES[key] || key}
-                    <span className="ml-1 text-white/30">({count.toLocaleString()})</span>
+                    <span className="ml-1 text-muted">({count.toLocaleString()})</span>
                   </button>
                 ))}
               </div>
@@ -1029,24 +1029,24 @@ export default function MarketPage() {
           </div>
 
           {/* Virtualized grid */}
-          <div className="flex-1 border border-white/20 bg-black overflow-hidden min-h-0">
+          <div className="flex-1 border rounded-xl bg-surface overflow-hidden min-h-0">
             {isError ? (
-              <div className="py-20 text-center text-red-400/80 font-mono bg-black">
+              <div className="py-20 text-center text-red-loss/80 font-mono bg-primary">
                 <p className="text-lg mb-2">Failed to load</p>
-                <p className="text-sm text-white/40">{error?.message}</p>
+                <p className="text-sm text-muted">{error?.message}</p>
               </div>
             ) : !pricesLoaded ? (
-              <div className="flex flex-col items-center justify-center h-full gap-6 bg-black">
+              <div className="flex flex-col items-center justify-center h-full gap-6 bg-primary">
                 {/* Animated loading indicator */}
                 <div className="relative">
-                  <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
+                  <div className="w-16 h-16 border-2 border rounded-full" />
                   <div className="absolute inset-0 w-16 h-16 border-2 border-transparent border-t-accent rounded-full animate-spin" />
                 </div>
                 <div className="text-center font-mono">
-                  <p className="text-lg text-white/80 mb-1">
+                  <p className="text-lg text-secondary mb-1">
                     Loading {totalAssetsGlobal > 0 ? totalAssetsGlobal.toLocaleString() : '50,000+'} markets
                   </p>
-                  <p className="text-sm text-white/40">
+                  <p className="text-sm text-muted">
                     {enabledSources.length > 0
                       ? `${enabledSources.length} sources across stocks, crypto, DeFi, weather, and more`
                       : 'Fetching market data from data node...'}
@@ -1058,7 +1058,7 @@ export default function MarketPage() {
                     {enabledSources.map((s) => {
                       const count = assetCountBySource[s.sourceId] || 0
                       return (
-                        <span key={s.sourceId} className="px-2 py-1 bg-white/5 border border-white/10 font-mono text-xs text-white/50">
+                        <span key={s.sourceId} className="px-2 py-1 bg-surface border border font-mono text-xs text-muted">
                           {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}: {count.toLocaleString()}
                         </span>
                       )
@@ -1067,13 +1067,13 @@ export default function MarketPage() {
                 )}
               </div>
             ) : virtualRows.length > 0 ? (
-              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin bg-black" style={{ backgroundColor: '#000' }}>
+              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin bg-primary" >
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
                     width: '100%',
                     position: 'relative',
-                    backgroundColor: '#000',
+                    
                     // Hide until virtualizer has calculated positions (prevents stacking flash)
                     visibility: virtualizer.getTotalSize() > 0 ? 'visible' : 'hidden',
                   }}
@@ -1142,7 +1142,7 @@ export default function MarketPage() {
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center text-white/40 font-mono">
+              <div className="py-20 text-center text-muted font-mono">
                 <p className="text-lg mb-2">No data found</p>
                 <p className="text-sm">
                   {search ? 'Try a different search term' : 'Data sync may be in progress'}
@@ -1152,7 +1152,7 @@ export default function MarketPage() {
           </div>
 
           {/* Footer stats */}
-          <div className="flex justify-between items-center mt-2 text-xs font-mono text-white/40 flex-shrink-0">
+          <div className="flex justify-between items-center mt-2 text-xs font-mono text-muted flex-shrink-0">
             <span>
               {pricesLoaded
                 ? <>

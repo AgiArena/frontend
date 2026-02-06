@@ -16,12 +16,12 @@ interface ConnectionStatusIndicatorProps {
  * Connection status configuration per state
  */
 const stateConfig: Record<SSEState, { color: string; text: string | ((attempt: number) => string) }> = {
-  connected: { color: 'bg-green-400', text: 'Live' },
-  connecting: { color: 'bg-yellow-400 animate-pulse', text: (attempt) => attempt > 0 ? `Reconnecting (${attempt})...` : 'Connecting...' },
-  error: { color: 'bg-yellow-400 animate-pulse', text: (attempt) => `Reconnecting (${attempt})...` },
-  disconnected: { color: 'bg-red-400', text: 'Offline' },
-  disabled: { color: 'bg-white/40', text: 'Disabled' },
-  polling: { color: 'bg-yellow-400', text: 'Polling' }
+  connected: { color: 'bg-green', text: 'Live' },
+  connecting: { color: 'bg-yellow animate-pulse', text: (attempt) => attempt > 0 ? `Reconnecting (${attempt})...` : 'Connecting...' },
+  error: { color: 'bg-yellow animate-pulse', text: (attempt) => `Reconnecting (${attempt})...` },
+  disconnected: { color: 'bg-red-loss', text: 'Offline' },
+  disabled: { color: 'bg-hover', text: 'Disabled' },
+  polling: { color: 'bg-yellow', text: 'Polling' }
 }
 
 /**
@@ -47,7 +47,7 @@ export function ConnectionStatusIndicator({
         className={`w-2 h-2 rounded-full ${config.color}`}
         aria-hidden="true"
       />
-      <span className="text-xs text-white/60 font-mono">{text}</span>
+      <span className="text-xs text-secondary font-mono">{text}</span>
     </div>
   )
 }

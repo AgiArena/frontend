@@ -75,19 +75,19 @@ describe('AnimatedLeaderboardRow', () => {
   describe('P&L color logic', () => {
     test('positive P&L uses green color', () => {
       const agent = createTestAgent({ pnl: 1234.56 })
-      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
+      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-secondary'
       expect(pnlColor).toBe('text-green-400')
     })
 
     test('negative P&L uses grey color', () => {
       const agent = createTestAgent({ pnl: -567.89 })
-      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
-      expect(pnlColor).toBe('text-white/60')
+      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-secondary'
+      expect(pnlColor).toBe('text-secondary')
     })
 
     test('zero P&L uses green color', () => {
       const agent = createTestAgent({ pnl: 0 })
-      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-white/60'
+      const pnlColor = agent.pnl >= 0 ? 'text-green-400' : 'text-secondary'
       expect(pnlColor).toBe('text-green-400')
     })
   })

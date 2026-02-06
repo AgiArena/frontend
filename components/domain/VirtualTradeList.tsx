@@ -45,15 +45,15 @@ function TradeRowSkeleton({ style }: { style: CSSProperties }) {
   return (
     <div
       style={style}
-      className="flex items-center justify-between px-3 py-2 border-b border-white/5"
+      className="flex items-center justify-between px-3 py-2 border-b border"
     >
-      <div className="w-10 h-4 bg-white/10 animate-pulse rounded" />
-      <div className="w-24 h-4 bg-white/10 animate-pulse rounded" />
-      <div className="w-16 h-4 bg-white/10 animate-pulse rounded" />
-      <div className="w-12 h-4 bg-white/10 animate-pulse rounded" />
-      <div className="w-16 h-4 bg-white/10 animate-pulse rounded" />
-      <div className="w-16 h-4 bg-white/10 animate-pulse rounded" />
-      <div className="w-10 h-4 bg-white/10 animate-pulse rounded" />
+      <div className="w-10 h-4 bg-hover animate-pulse rounded" />
+      <div className="w-24 h-4 bg-hover animate-pulse rounded" />
+      <div className="w-16 h-4 bg-hover animate-pulse rounded" />
+      <div className="w-12 h-4 bg-hover animate-pulse rounded" />
+      <div className="w-16 h-4 bg-hover animate-pulse rounded" />
+      <div className="w-16 h-4 bg-hover animate-pulse rounded" />
+      <div className="w-10 h-4 bg-hover animate-pulse rounded" />
     </div>
   )
 }
@@ -92,38 +92,38 @@ const TradeRow = memo(function TradeRow({
   return (
     <div
       style={style}
-      className={`flex items-center justify-between px-3 py-2 border-b border-white/5 text-sm font-mono ${
+      className={`flex items-center justify-between px-3 py-2 border-b border text-sm font-mono ${
         trade.cancelled ? 'opacity-40' : ''
       }`}
     >
       {/* Rank */}
-      <span className="w-10 text-white/40 text-xs">{trade.rank}</span>
+      <span className="w-10 text-muted text-xs">{trade.rank}</span>
 
       {/* Ticker */}
-      <span className="w-28 text-white truncate" title={trade.ticker}>
+      <span className="w-28 text-primary truncate" title={trade.ticker}>
         {trade.ticker}
       </span>
 
       {/* Source */}
-      <span className="w-16 text-white/50 text-xs">{trade.source}</span>
+      <span className="w-16 text-primary/50 text-xs">{trade.source}</span>
 
       {/* Position */}
       <span
         className={`w-14 text-center font-bold ${
-          isLongOrYes ? 'text-green-400' : 'text-red-400'
+          isLongOrYes ? 'text-green' : 'text-red-loss'
         }`}
       >
         {displayPosition}
       </span>
 
       {/* Entry Price */}
-      <span className="w-20 text-right text-white/60">
+      <span className="w-20 text-right text-secondary">
         {formatPrice(trade.entryPrice)}
       </span>
 
       {/* Exit Price - only for settled bets */}
       {isSettled && (
-        <span className="w-20 text-right text-white">
+        <span className="w-20 text-right text-primary">
           {formatPrice(trade.exitPrice)}
         </span>
       )}
@@ -133,12 +133,12 @@ const TradeRow = memo(function TradeRow({
         <span
           className={`w-12 text-center font-bold ${
             trade.cancelled
-              ? 'text-white/30'
+              ? 'text-primary/30'
               : trade.won === true
-                ? 'text-green-400'
+                ? 'text-green'
                 : trade.won === false
-                  ? 'text-red-400'
-                  : 'text-white/30'
+                  ? 'text-red-loss'
+                  : 'text-primary/30'
           }`}
         >
           {trade.cancelled ? 'X' : trade.won === true ? 'W' : trade.won === false ? 'L' : '—'}
@@ -297,8 +297,8 @@ export function VirtualTradeList({ betId, height = 400, isSettled = false }: Vir
   if (error) {
     return (
       <div className="p-4 text-center">
-        <p className="text-red-400 font-mono text-sm">Failed to load trades</p>
-        <p className="text-white/40 font-mono text-xs mt-1">{error.message}</p>
+        <p className="text-red-loss font-mono text-sm">Failed to load trades</p>
+        <p className="text-muted font-mono text-xs mt-1">{error.message}</p>
       </div>
     )
   }
@@ -307,7 +307,7 @@ export function VirtualTradeList({ betId, height = 400, isSettled = false }: Vir
   if (total === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-white/40 font-mono text-sm">No trades found</p>
+        <p className="text-muted font-mono text-sm">No trades found</p>
       </div>
     )
   }
@@ -322,7 +322,7 @@ export function VirtualTradeList({ betId, height = 400, isSettled = false }: Vir
   return (
     <div className="relative">
       {/* Column headers */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-white/20 text-xs text-white/40 font-mono sticky top-0 bg-terminal z-10">
+      <div className="flex items-center justify-between px-3 py-2 border-b border text-xs text-muted font-mono sticky top-0 bg-primary z-10">
         <span className="w-10">#</span>
         <span className="w-28">Ticker</span>
         <span className="w-16">Source</span>
@@ -333,10 +333,10 @@ export function VirtualTradeList({ betId, height = 400, isSettled = false }: Vir
       </div>
 
       {/* Total count */}
-      <div className="px-3 py-1 text-xs text-white/30 font-mono border-b border-white/10">
+      <div className="px-3 py-1 text-xs text-primary/30 font-mono border-b border">
         Total: {total.toLocaleString()} trades
         {loadingPages.size > 0 && (
-          <span className="ml-2 text-cyan-400 animate-pulse">
+          <span className="ml-2 text-accent animate-pulse">
             (loading...)
           </span>
         )}

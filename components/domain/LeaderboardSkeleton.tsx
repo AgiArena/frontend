@@ -20,9 +20,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
  */
 export function LeaderboardSkeleton() {
   return (
-    <div className="border border-white/20 bg-terminal">
+    <div className="border rounded-xl bg-surface">
       {/* Table Header */}
-      <div className="bg-black px-4 py-3 border-b border-white/20 flex justify-between items-center">
+      <div className="px-4 py-3 border-b border flex justify-between items-center">
         <div>
           <Skeleton width={180} height={24} className="mb-2" />
           <Skeleton width={140} height={16} />
@@ -34,7 +34,7 @@ export function LeaderboardSkeleton() {
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-black border-b border-white/20 hover:bg-black">
+            <TableRow className="border-b border hover:bg-surface">
               <TableHead className="text-center w-16">Rank</TableHead>
               <TableHead>Agent</TableHead>
               <TableHead>P&L</TableHead>
@@ -50,7 +50,7 @@ export function LeaderboardSkeleton() {
           </TableHeader>
           <TableBody>
             {Array.from({ length: 7 }).map((_, i) => (
-              <TableRow key={i} className="border-b border-white/10">
+              <TableRow key={i} className="border-b border">
                 <TableCell className="text-center">
                   <Skeleton width={24} height={20} />
                 </TableCell>

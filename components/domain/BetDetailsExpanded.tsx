@@ -75,29 +75,29 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
     <div className="space-y-4">
       {/* Epic 8: Category and List Size */}
       {(category || bet.listSize || bet.snapshotId || bet.horizon) && (
-        <div className="flex flex-wrap gap-3 pb-2 border-b border-white/10">
+        <div className="flex flex-wrap gap-3 pb-2 border-b border">
           {category && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">Category:</span>
-              <span className="px-2 py-1 bg-gray-800 rounded text-xs font-mono text-white/80">
+              <span className="text-xs text-secondary font-mono">Category:</span>
+              <span className="px-2 py-1 bg-hover rounded text-xs font-mono text-secondary">
                 {formatCategoryDisplay(category)}
               </span>
             </div>
           )}
           {bet.listSize && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">List Size:</span>
-              <span className="text-xs font-mono text-white">{bet.listSize}</span>
+              <span className="text-xs text-secondary font-mono">List Size:</span>
+              <span className="text-xs font-mono text-primary">{bet.listSize}</span>
             </div>
           )}
           {/* Epic 9: Trade Horizon */}
           {bet.horizon && bet.horizon !== 'short' && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">Horizon:</span>
+              <span className="text-xs text-secondary font-mono">Horizon:</span>
               <span className={`px-2 py-1 rounded text-xs font-mono ${
                 bet.horizon === 'monthly' || bet.horizon === 'quarterly'
-                  ? 'bg-orange-800/30 text-orange-300'
-                  : 'bg-gray-800 text-white/80'
+                  ? 'bg-accent-muted text-accent'
+                  : 'bg-hover text-secondary'
               }`}>
                 {bet.horizon.charAt(0).toUpperCase() + bet.horizon.slice(1)}
               </span>
@@ -105,8 +105,8 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
           )}
           {bet.snapshotId && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 font-mono">Snapshot:</span>
-              <span className="text-xs font-mono text-white/70">{bet.snapshotId}</span>
+              <span className="text-xs text-secondary font-mono">Snapshot:</span>
+              <span className="text-xs font-mono text-secondary">{bet.snapshotId}</span>
             </div>
           )}
         </div>
@@ -115,8 +115,8 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
       {/* Bet Hash */}
       {bet.betHash && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/60 font-mono">Bet Hash:</span>
-          <span className="text-xs font-mono text-white">
+          <span className="text-xs text-secondary font-mono">Bet Hash:</span>
+          <span className="text-xs font-mono text-primary">
             {bet.betHash.slice(0, 10)}...{bet.betHash.slice(-8)}
           </span>
           <CopyButton text={bet.betHash} />
@@ -127,20 +127,20 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
       {bet.fillerAddress && (
         <div className="flex gap-6">
           <div>
-            <span className="text-xs text-white/60 font-mono block">Filler:</span>
+            <span className="text-xs text-secondary font-mono block">Filler:</span>
             <a
               href={getAddressUrl(bet.fillerAddress)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-mono text-white hover:text-accent transition-colors"
+              className="text-xs font-mono text-primary hover:text-accent transition-colors"
             >
               {truncateAddress(bet.fillerAddress)}
             </a>
           </div>
           {bet.fillerStake && (
             <div>
-              <span className="text-xs text-white/60 font-mono block">Filler Stake:</span>
-              <span className="text-sm font-mono text-white">{formatUSD(toBaseUnits(bet.fillerStake))}</span>
+              <span className="text-xs text-secondary font-mono block">Filler Stake:</span>
+              <span className="text-sm font-mono text-primary">{formatUSD(toBaseUnits(bet.fillerStake))}</span>
             </div>
           )}
         </div>
@@ -148,22 +148,22 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
 
       {/* Story 14-1: Early Exit Display */}
       {bet.earlyExit && (
-        <div className="border border-cyan-500/30 bg-cyan-950/20 rounded p-3">
+        <div className="border border-accent-border bg-accent-muted rounded p-3">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-cyan-400 text-sm font-mono font-bold">⊗ Early Exit Executed</span>
+            <span className="text-accent text-sm font-mono font-bold">⊗ Early Exit Executed</span>
           </div>
-          <div className="text-xs text-white/80 font-mono">
+          <div className="text-xs text-secondary font-mono">
             Both parties agreed to settle early via mutual EIP-712 signed agreement.
           </div>
           {bet.creatorStake && bet.fillerStake && (
-            <div className="mt-2 pt-2 border-t border-cyan-500/20 flex gap-4">
+            <div className="mt-2 pt-2 border-t border-accent-border flex gap-4">
               <div>
-                <span className="text-xs text-white/60 block">Creator received:</span>
-                <span className="text-sm font-mono text-cyan-300">{formatUSD(toBaseUnits(bet.creatorStake))}</span>
+                <span className="text-xs text-secondary block">Creator received:</span>
+                <span className="text-sm font-mono text-accent">{formatUSD(toBaseUnits(bet.creatorStake))}</span>
               </div>
               <div>
-                <span className="text-xs text-white/60 block">Filler received:</span>
-                <span className="text-sm font-mono text-cyan-300">{formatUSD(toBaseUnits(bet.fillerStake))}</span>
+                <span className="text-xs text-secondary block">Filler received:</span>
+                <span className="text-sm font-mono text-accent">{formatUSD(toBaseUnits(bet.fillerStake))}</span>
               </div>
             </div>
           )}
@@ -172,14 +172,14 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
 
       {/* Portfolio Summary - click to view full list */}
       {portfolioPositions.length > 0 && (
-        <div className="border border-white/10 rounded p-3 bg-white/5">
+        <div className="border border rounded p-3 bg-surface">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-white/60 font-mono">Portfolio:</span>
-            <span className="text-sm font-mono text-white font-bold">
+            <span className="text-xs text-secondary font-mono">Portfolio:</span>
+            <span className="text-sm font-mono text-primary font-bold">
               {portfolioPositions.length.toLocaleString()} positions
             </span>
           </div>
-          <p className="text-xs text-white/40 font-mono">
+          <p className="text-xs text-muted font-mono">
             Click "View Full Portfolio" below to see all trades with virtual scroll.
           </p>
         </div>
@@ -190,7 +190,7 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
         {portfolioPositions.length > 0 && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-3 py-1.5 border border-white text-white text-sm font-mono hover:bg-white hover:text-black transition-colors"
+            className="px-3 py-1.5 border border text-primary text-sm font-mono hover:bg-hover transition-colors"
           >
             View Full Portfolio
           </button>
@@ -201,7 +201,7 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
           href={getTxUrl(bet.txHash)}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-1.5 border border-white/30 text-white/60 text-sm font-mono hover:text-white hover:border-white transition-colors"
+          className="px-3 py-1.5 border border text-secondary text-sm font-mono hover:text-primary hover:border transition-colors"
         >
           View on BaseScan
         </a>
@@ -217,8 +217,8 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
 
       {/* Story 14.3: Signature collection progress for matched/settling bets */}
       {showSignatures && (
-        <div className="pt-4 border-t border-white/10">
-          <h3 className="text-sm font-bold text-white font-mono mb-3">Signature Collection</h3>
+        <div className="pt-4 border-t border">
+          <h3 className="text-sm font-semibold text-primary mb-3">Signature Collection</h3>
           <SignatureProgress
             betId={parseInt(bet.betId, 10)}
             compact={false}
@@ -234,8 +234,8 @@ export function BetDetailsExpanded({ bet }: BetDetailsExpandedProps) {
 
       {/* Resolution Section - shown for matched/settling/settled bets */}
       {shouldShowResolution(bet.status) && (
-        <div className="pt-4 border-t border-white/10">
-          <h3 className="text-sm font-bold text-white font-mono mb-3">Resolution</h3>
+        <div className="pt-4 border-t border">
+          <h3 className="text-sm font-semibold text-primary mb-3">Resolution</h3>
           <PortfolioResolution betId={bet.betId} bet={bet} />
         </div>
       )}

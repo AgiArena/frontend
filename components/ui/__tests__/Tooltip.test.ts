@@ -59,8 +59,8 @@ describe('Tooltip', () => {
   describe('Styling requirements', () => {
     test('has Dev Arena theme classes', () => {
       const expectedClasses = [
-        'bg-black',
-        'border-white/20',
+        'bg-primary',
+        'border',
         'text-white',
         'font-mono'
       ]

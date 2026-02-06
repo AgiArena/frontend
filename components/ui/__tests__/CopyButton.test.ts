@@ -62,8 +62,8 @@ describe('CopyButton', () => {
 
   describe('Visual feedback states', () => {
     test('default state uses white/gray styling', () => {
-      const defaultClasses = 'text-white/60 hover:text-white'
-      expect(defaultClasses).toContain('text-white/60')
+      const defaultClasses = 'text-secondary hover:text-white'
+      expect(defaultClasses).toContain('text-secondary')
       expect(defaultClasses).toContain('hover:text-white')
     })
 
@@ -73,8 +73,8 @@ describe('CopyButton', () => {
     })
 
     test('button has hover background', () => {
-      const hoverClasses = 'hover:bg-white/10'
-      expect(hoverClasses).toContain('hover:bg-white/10')
+      const hoverClasses = 'hover:bg-hover'
+      expect(hoverClasses).toContain('hover:bg-hover')
     })
   })
 

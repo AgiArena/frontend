@@ -26,7 +26,7 @@ export function WalletConnectButton() {
     return (
       <button
         disabled
-        className="px-6 py-3 bg-black border border-white text-white font-mono opacity-50 cursor-not-allowed"
+        className="px-6 py-3 bg-primary border border text-primary font-mono opacity-50 cursor-not-allowed"
       >
         Connect Wallet
       </button>
@@ -44,12 +44,12 @@ export function WalletConnectButton() {
   if (isConnected && address) {
     return (
       <div className="flex items-center gap-3">
-        <span className="px-4 py-2 bg-black border border-accent text-white font-mono">
+        <span className="px-4 py-2 bg-primary border border-accent text-primary font-mono">
           {truncateAddress(address)}
         </span>
         <button
           onClick={() => disconnect()}
-          className="px-4 py-2 bg-black border border-white text-white hover:bg-accent hover:border-accent transition-colors font-mono"
+          className="px-4 py-2 bg-primary border border text-primary hover:bg-accent hover:border-accent transition-colors font-mono"
         >
           Disconnect
         </button>
@@ -66,12 +66,12 @@ export function WalletConnectButton() {
       <button
         onClick={handleConnect}
         disabled={isLoading || noWalletAvailable}
-        className="px-6 py-3 bg-black border border-white text-white hover:bg-accent hover:border-accent transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-6 py-3 bg-primary border border text-primary hover:bg-accent hover:border-accent transition-colors font-mono disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? 'Connecting...' : 'Connect Wallet'}
       </button>
       {noWalletAvailable && (
-        <p className="text-white/60 text-sm font-mono">
+        <p className="text-secondary text-sm font-mono">
           Install MetaMask to connect
         </p>
       )}

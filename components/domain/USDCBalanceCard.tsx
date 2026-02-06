@@ -35,9 +35,9 @@ export function USDCBalanceCard() {
   // SSR placeholder - render consistent skeleton during hydration
   if (!mounted) {
     return (
-      <Card className="border-white/20">
+      <Card className="border">
         <CardContent className="p-6 flex items-center justify-center min-h-[120px]">
-          <p className="text-white/60 text-center">Connect wallet to view balance</p>
+          <p className="text-secondary text-center">Connect wallet to view balance</p>
         </CardContent>
       </Card>
     )
@@ -46,9 +46,9 @@ export function USDCBalanceCard() {
   // Disconnected state
   if (!isConnected) {
     return (
-      <Card className="border-white/20">
+      <Card className="border">
         <CardContent className="p-6 flex items-center justify-center min-h-[120px]">
-          <p className="text-white/60 text-center">Connect wallet to view balance</p>
+          <p className="text-secondary text-center">Connect wallet to view balance</p>
         </CardContent>
       </Card>
     )
@@ -57,14 +57,14 @@ export function USDCBalanceCard() {
   // Loading state with skeleton
   if (isLoading) {
     return (
-      <Card className="border-white/20">
+      <Card className="border">
         <CardHeader>
-          <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+          <div className="h-4 w-24 bg-hover rounded animate-pulse" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="h-8 bg-white/10 rounded animate-pulse" />
-          <div className="h-6 bg-white/10 rounded animate-pulse w-2/3" />
-          <div className="h-6 bg-white/10 rounded animate-pulse w-1/2" />
+          <div className="h-8 bg-hover rounded animate-pulse" />
+          <div className="h-6 bg-hover rounded animate-pulse w-2/3" />
+          <div className="h-6 bg-hover rounded animate-pulse w-1/2" />
         </CardContent>
       </Card>
     )
@@ -73,7 +73,7 @@ export function USDCBalanceCard() {
   // Error state
   if (balanceError) {
     return (
-      <Card className="border-white/20">
+      <Card className="border">
         <CardHeader>
           <CardTitle>{COLLATERAL_SYMBOL} Balance</CardTitle>
         </CardHeader>
@@ -88,23 +88,23 @@ export function USDCBalanceCard() {
   const showDollarPrefix = COLLATERAL_SYMBOL === 'USDC' || COLLATERAL_SYMBOL === 'USDT' || COLLATERAL_SYMBOL === 'DAI'
 
   return (
-    <Card className="border-white/20">
+    <Card className="border">
       <CardHeader>
         <CardTitle>{COLLATERAL_SYMBOL} Balance</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Total Balance - Hero */}
         <div>
-          <p className="text-white/60 text-xs mb-1">Total Balance</p>
-          <p className="text-white text-3xl font-mono font-bold">
+          <p className="text-secondary text-xs mb-1">Total Balance</p>
+          <p className="text-primary text-3xl font-mono font-bold">
             {showDollarPrefix ? '$' : ''}{totalFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
           </p>
         </div>
 
         {/* Available for Betting */}
         <div>
-          <p className="text-white/60 text-xs mb-1">Available for Betting</p>
-          <p className="text-white text-xl font-mono">
+          <p className="text-secondary text-xs mb-1">Available for Betting</p>
+          <p className="text-primary text-xl font-mono">
             {showDollarPrefix ? '$' : ''}{availableFormatted}{!showDollarPrefix ? ` ${COLLATERAL_SYMBOL}` : ''}
           </p>
         </div>
@@ -117,7 +117,7 @@ export function USDCBalanceCard() {
             href={getAddressUrl(address)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white/60 text-xs hover:text-white underline transition-colors"
+            className="text-secondary text-xs hover:text-primary underline transition-colors"
           >
             View on Explorer
           </a>

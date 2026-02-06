@@ -56,20 +56,20 @@ function TelegramVerifyContent() {
   // No code provided
   if (!code) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black p-4">
-        <div className="max-w-md w-full bg-black border border-white/20 rounded-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-primary p-4">
+        <div className="max-w-md w-full bg-primary border border rounded-2xl p-8 text-center">
           <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-2xl font-bold text-white mb-4">
+          <h1 className="text-2xl font-semibold text-primary mb-4">
             Missing Verification Code
           </h1>
-          <p className="text-white/60 mb-6">
+          <p className="text-secondary mb-6">
             Please use the link provided by the Telegram bot to verify your wallet.
           </p>
           <a
             href="https://t.me/AgiArenaBot"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block bg-white hover:bg-white/90 text-black font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="inline-block bg-accent hover:bg-accent-hover text-primary font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Open Telegram Bot
           </a>
@@ -81,20 +81,20 @@ function TelegramVerifyContent() {
   // Invalid code
   if (codeValid === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black p-4">
-        <div className="max-w-md w-full bg-black border border-[#C40000]/50 rounded-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-primary p-4">
+        <div className="max-w-md w-full bg-primary border border-[#C40000]/50 rounded-2xl p-8 text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-[#C40000] mb-4">
             Invalid or Expired Code
           </h1>
-          <p className="text-white/60 mb-6">
+          <p className="text-secondary mb-6">
             This verification code is invalid or has expired. Please request a new one from the Telegram bot.
           </p>
           <a
             href="https://t.me/AgiArenaBot"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block bg-white hover:bg-white/90 text-black font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="inline-block bg-accent hover:bg-accent-hover text-primary font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Get New Code
           </a>
@@ -106,24 +106,24 @@ function TelegramVerifyContent() {
   // Success state
   if (status === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black p-4">
-        <div className="max-w-md w-full bg-black border border-white/20 rounded-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-primary p-4">
+        <div className="max-w-md w-full bg-primary border border rounded-2xl p-8 text-center">
           <div className="text-6xl mb-4">✅</div>
-          <h1 className="text-2xl font-bold text-white mb-4">
+          <h1 className="text-2xl font-semibold text-primary mb-4">
             Wallet Linked!
           </h1>
-          <p className="text-white/60 mb-6">
+          <p className="text-secondary mb-6">
             Your wallet has been successfully linked to your Telegram account.
             You'll now receive notifications for bet matches, settlements, and rank changes.
           </p>
-          <p className="text-sm text-white/40 mb-6 font-mono">
+          <p className="text-sm text-muted mb-6 font-mono">
             Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
           </p>
           <a
             href="https://t.me/AgiArenaBot"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block bg-white hover:bg-white/90 text-black font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="inline-block bg-accent hover:bg-accent-hover text-primary font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Return to Telegram
           </a>
@@ -133,15 +133,15 @@ function TelegramVerifyContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      <div className="max-w-md w-full bg-black border border-white/20 rounded-2xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-primary p-4">
+      <div className="max-w-md w-full bg-primary border border rounded-2xl p-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🔗</div>
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <h1 className="text-2xl font-semibold text-primary mb-2">
             Link Your Wallet
           </h1>
-          <p className="text-white/60">
+          <p className="text-secondary">
             Connect your wallet to receive Telegram notifications for your AgiArena agent.
           </p>
         </div>
@@ -151,12 +151,12 @@ function TelegramVerifyContent() {
           {/* Step 1: Connect Wallet */}
           <div className={`flex items-start gap-3 ${isConnected ? 'opacity-50' : ''}`}>
             <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-black font-bold ${
-              isConnected ? 'bg-white' : 'bg-white/80'
+              isConnected ? 'bg-accent' : 'bg-surface'
             }`}>
               {isConnected ? '✓' : '1'}
             </div>
             <div className="flex-grow">
-              <h3 className="text-white font-medium">Connect Wallet</h3>
+              <h3 className="text-primary font-medium">Connect Wallet</h3>
               {!isConnected ? (
                 <div className="mt-2 space-y-2">
                   {connectors.map((connector) => (
@@ -164,7 +164,7 @@ function TelegramVerifyContent() {
                       key={connector.uid}
                       onClick={() => connect({ connector })}
                       disabled={isConnecting}
-                      className="w-full bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50 border border-white/20"
+                      className="w-full bg-hover hover:bg-hover text-primary py-2 px-4 rounded-lg transition-colors disabled:opacity-50 border border"
                     >
                       {isConnecting ? 'Connecting...' : `Connect ${connector.name}`}
                     </button>
@@ -172,12 +172,12 @@ function TelegramVerifyContent() {
                 </div>
               ) : (
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm text-white font-mono">
+                  <span className="text-sm text-primary font-mono">
                     {address?.slice(0, 6)}...{address?.slice(-4)}
                   </span>
                   <button
                     onClick={() => disconnect()}
-                    className="text-sm text-white/60 hover:text-white transition-colors"
+                    className="text-sm text-secondary hover:text-primary transition-colors"
                   >
                     Disconnect
                   </button>
@@ -188,12 +188,12 @@ function TelegramVerifyContent() {
 
           {/* Step 2: Sign Message */}
           <div className={`flex items-start gap-3 ${!isConnected ? 'opacity-50' : ''}`}>
-            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-black font-bold bg-white/40">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-black font-bold bg-hover">
               2
             </div>
             <div className="flex-grow">
-              <h3 className="text-white font-medium">Sign Verification Message</h3>
-              <p className="text-sm text-white/60 mt-1">
+              <h3 className="text-primary font-medium">Sign Verification Message</h3>
+              <p className="text-sm text-secondary mt-1">
                 Sign a message to prove wallet ownership
               </p>
             </div>
@@ -219,8 +219,8 @@ function TelegramVerifyContent() {
           disabled={!isConnected || status === 'loading' || status === 'signing' || status === 'verifying'}
           className={`w-full py-4 rounded-lg font-semibold transition-all ${
             isConnected && status !== 'loading' && status !== 'signing' && status !== 'verifying'
-              ? 'bg-white hover:bg-white/90 text-black'
-              : 'bg-white/20 text-white/60 cursor-not-allowed'
+              ? 'bg-accent hover:bg-accent-hover text-primary'
+              : 'bg-hover text-secondary cursor-not-allowed'
           }`}
         >
           {status === 'loading' && 'Preparing...'}
@@ -233,14 +233,14 @@ function TelegramVerifyContent() {
 
         {/* Telegram User Info */}
         {telegramUserId && (
-          <p className="mt-4 text-center text-sm text-white/40">
+          <p className="mt-4 text-center text-sm text-muted">
             Linking to Telegram user ID: {telegramUserId}
           </p>
         )}
 
         {/* Code Display */}
-        <p className="mt-4 text-center text-sm text-white/40">
-          Verification code: <code className="bg-white/10 px-2 py-1 rounded font-mono">{code}</code>
+        <p className="mt-4 text-center text-sm text-muted">
+          Verification code: <code className="bg-hover px-2 py-1 rounded font-mono">{code}</code>
         </p>
       </div>
     </div>
@@ -250,8 +250,8 @@ function TelegramVerifyContent() {
 export default function TelegramVerifyPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-primary">
+        <div className="text-primary">Loading...</div>
       </div>
     }>
       <TelegramVerifyContent />
