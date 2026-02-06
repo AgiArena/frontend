@@ -38,3 +38,6 @@ public/logos/
 
 # Sensitive env files
 index-maker/prod/be:~/data-node/.env.vps2
+
+# Production server backups
+index-maker/
