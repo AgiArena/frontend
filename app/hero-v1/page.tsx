@@ -1,306 +1,331 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE GRID" — Massive full-screen grid of market tiles.
-// Click YES (green) / NO (red) on each. Tiles keep loading. You never finish.
-// Progress bar is pathetically small. Then: the punchline.
+// "THE SCALE v1: SCROLL ZOOM" — User scrolls to zoom out through 159K markets.
+// Each zoom level shows a grid with YES/NO. Cards shrink until unclickable.
+// Scroll wheel = zoom. The deeper you scroll, the more absurd the scale.
 // ---------------------------------------------------------------------------
 
-interface MarketTile {
-  id: string
-  symbol: string
-  name: string
-  source: string
-  value: string
-  changePct: number
-}
-
-// Generate deterministic sample markets from real source distribution
-function generateMarkets(assetCounts: Record<string, number>, total: number): MarketTile[] {
-  const SYMBOLS: Record<string, string[]> = {
-    crypto: ['BTC', 'ETH', 'SOL', 'DOGE', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'UNI', 'AAVE', 'MATIC', 'ATOM', 'FTM', 'NEAR', 'APT', 'ARB', 'OP', 'INJ', 'SUI', 'SEI', 'TIA', 'PYTH', 'JUP', 'WIF', 'BONK', 'PEPE', 'SHIB', 'LTC', 'BCH'],
-    stocks: ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN', 'GOOG', 'META', 'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL', 'QCOM', 'AVGO', 'ADBE', 'PYPL', 'SQ', 'SHOP', 'UBER', 'ABNB'],
-    weather: ['NYC:temp', 'LA:temp', 'London:rain', 'Tokyo:wind', 'Paris:temp', 'Berlin:pm25', 'Sydney:temp', 'Dubai:temp', 'Mumbai:rain', 'Seoul:wind', 'Rome:temp', 'Cairo:temp', 'SP:rain', 'Moscow:temp', 'Bangkok:rain'],
-    polymarket: ['BTC $200K?', 'ETH $10K?', 'NBA Finals', 'Fed Rate', 'Trump 2028', 'AI Regulation', 'Mars 2030?', 'Next iPhone', 'Oscar Best', 'UFC 310', 'El Nino?', 'Recession?', 'BTC ETF', 'Rate Cut?', 'Moon Base?'],
-    defi: ['ETH TVL', 'UNI vol', 'AAVE tvl', 'SOL tvl', 'CURVE lp', 'MKR tvl', 'COMP tvl', 'GMX vol', 'DYDX vol', 'SUSHI lp', 'BAL tvl', 'YFI tvl', '1INCH vol', 'PERP vol', 'SNX tvl'],
-    twitch: ['xQc', 'shroud', 'pokimane', 'ludwig', 'hasanabi', 'mizkif', 'nmplol', 'lirik', 'summit1g', 'timthetatman', 'myth', 'ninja', 'tfue', 'valkyrae', 'sykkuno'],
-    npm: ['react', 'next', 'vue', 'svelte', 'express', 'axios', 'lodash', 'moment', 'webpack', 'vite', 'eslint', 'prettier', 'jest', 'mocha', 'typescript'],
-    crates_io: ['serde', 'tokio', 'clap', 'reqwest', 'rand', 'regex', 'chrono', 'anyhow', 'axum', 'diesel', 'warp', 'actix', 'rocket', 'tracing', 'log'],
-    tmdb: ['Dune 3', 'Avatar 4', 'MCU 7', 'Batman 2', 'SW Ep X', 'Bond 26', 'Matrix 5', 'JP World', 'Alien 7', 'F&F 12', 'MI 9', 'Shrek 5', 'Toy St 5', 'Frozen 3', 'Inc 3'],
-    steam: ['CS2', 'Dota2', 'TF2', 'PUBG', 'Apex', 'Rust', 'ARK', 'Elden', 'Palia', 'Valheim', 'Rimworld', 'Factorio', 'Stardew', 'Terraria', 'Hades2'],
-    github: ['linux', 'react', 'vscode', 'flutter', 'rust', 'go', 'swift', 'kotlin', 'deno', 'bun', 'next.js', 'svelte', 'vue', 'angular', 'django'],
-    anilist: ['Naruto', 'OnePiece', 'JJK', 'DmnSlyr', 'AoT', 'MHA', 'HxH', 'Bleach', 'DBZ', 'Chainsaw', 'SpyFam', 'Vinland', 'Mushoku', 'Frieren', 'Solo Lv'],
-    backpacktf: ['Unusual', 'Strange', 'Vintage', 'Genuine', 'Haunted', 'Killstrk', 'Australm', 'Festive', 'Botkilr', 'Cosmetic'],
-    hackernews: ['AI/ML', 'Startup', 'Crypto', 'DevTool', 'Security', 'Cloud', 'Mobile', 'Web3', 'Quantum', 'Robotics'],
-  }
-
-  const markets: MarketTile[] = []
-  let seed = 42
-  function rng() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 }
-
-  const entries = Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number))
-  let generated = 0
-
-  for (const [source, count] of entries) {
-    const syms = SYMBOLS[source] || [`${source.slice(0, 3).toUpperCase()}1`, `${source.slice(0, 3).toUpperCase()}2`, `${source.slice(0, 3).toUpperCase()}3`]
-    // Generate proportional to real count, but cap for perf
-    const toGenerate = Math.min(Math.round((count as number / total) * 2000), 200)
-
-    for (let i = 0; i < toGenerate && generated < 2000; i++) {
-      const sym = syms[i % syms.length]
-      const suffix = i >= syms.length ? ` #${Math.floor(i / syms.length) + 1}` : ''
-      markets.push({
-        id: `${source}:${i}`,
-        symbol: sym,
-        name: `${sym}${suffix}`,
-        source,
-        value: source === 'weather' ? `${(rng() * 40 - 10).toFixed(1)}°` :
-          source === 'polymarket' ? `${(rng() * 100).toFixed(0)}%` :
-            source === 'defi' ? `$${(rng() * 100).toFixed(1)}B` :
-              `$${(rng() * 1000).toFixed(2)}`,
-        changePct: (rng() - 0.5) * 20,
-      })
-      generated++
-    }
-  }
-
-  // Shuffle
-  for (let i = markets.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1))
-    ;[markets[i], markets[j]] = [markets[j], markets[i]]
-  }
-
-  return markets
-}
-
 const SOURCE_COLORS: Record<string, string> = {
-  crypto: '#4ade80', stocks: '#60a5fa', weather: '#22d3ee', polymarket: '#c084fc',
-  defi: '#facc15', twitch: '#a78bfa', npm: '#ef4444', crates_io: '#fb923c',
-  tmdb: '#2dd4bf', steam: '#6366f1', github: '#f472b6', anilist: '#818cf8',
-  backpacktf: '#f59e0b', hackernews: '#ff6600', bchain: '#fbbf24', twse: '#34d399',
+  twitch: '#a78bfa', polymarket: '#c084fc', weather: '#22d3ee', crates_io: '#fb923c',
+  tmdb: '#2dd4bf', npm: '#ef4444', crypto: '#4ade80', defi: '#facc15',
+  hackernews: '#ff6600', twse: '#34d399', anilist: '#818cf8', steam: '#6366f1',
+  github: '#f472b6', stocks: '#60a5fa', backpacktf: '#f59e0b', bchain: '#fbbf24',
 }
+
+const SAMPLE_MARKETS = [
+  { sym: 'BTC', src: 'crypto', val: '$97,340', chg: 2.4 },
+  { sym: 'ETH', src: 'crypto', val: '$3,421', chg: -1.2 },
+  { sym: 'SOL', src: 'crypto', val: '$187.50', chg: 5.1 },
+  { sym: 'AAPL', src: 'stocks', val: '$198.11', chg: 0.8 },
+  { sym: 'TSLA', src: 'stocks', val: '$412.30', chg: -3.2 },
+  { sym: 'NVDA', src: 'stocks', val: '$721.05', chg: 1.7 },
+  { sym: 'paris:temp', src: 'weather', val: '12.3°C', chg: -0.5 },
+  { sym: 'BTC $200K?', src: 'polymarket', val: '42%', chg: 3.1 },
+  { sym: 'ETH TVL', src: 'defi', val: '$62.1B', chg: 0.2 },
+  { sym: 'xQc', src: 'twitch', val: '45.2K', chg: 12.0 },
+  { sym: 'react', src: 'npm', val: '24.1M', chg: 0.1 },
+  { sym: 'serde', src: 'crates_io', val: '198M', chg: 0.5 },
+  { sym: 'DOGE', src: 'crypto', val: '$0.184', chg: -4.1 },
+  { sym: 'MSFT', src: 'stocks', val: '$415.60', chg: 0.3 },
+  { sym: 'CS2', src: 'steam', val: '1.2M', chg: -2.0 },
+  { sym: 'linux', src: 'github', val: '178K', chg: 0.05 },
+]
+
+// Zoom levels
+const LEVELS = [1, 4, 16, 64, 256, 1024, 4096, 16000, 60000, 159240]
+const LEVEL_LABELS = ['Meet the market', 'A few more', 'Getting busy', 'Starting to sweat',
+  "Can't read them anymore", 'Just colored dots now', 'A wall of noise',
+  'Still scrolling?', 'Almost there...', 'All of them']
 
 type Vote = 'yes' | 'no'
 
 export default function HeroV1() {
   const { data: meta } = useMarketSnapshotMeta()
+  const [levelIdx, setLevelIdx] = useState(0)
   const [votes, setVotes] = useState<Map<string, Vote>>(new Map())
   const [showReveal, setShowReveal] = useState(false)
-  const [cols, setCols] = useState(8)
-  const gridRef = useRef<HTMLDivElement>(null)
-  const revealTriggered = useRef(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const wheelAccum = useRef(0)
 
   const totalAssets = meta?.totalAssets ?? 159240
   const assetCounts = meta?.assetCounts ?? {}
-  const markets = useMemo(() => generateMarkets(assetCounts, totalAssets), [assetCounts, totalAssets])
+  const currentLevel = LEVELS[Math.min(levelIdx, LEVELS.length - 1)]
+  const isFullZoom = levelIdx >= LEVELS.length - 1
 
-  // Responsive columns
+  // Scroll to zoom
   useEffect(() => {
-    function update() {
-      const w = window.innerWidth
-      if (w >= 1400) setCols(12)
-      else if (w >= 1200) setCols(10)
-      else if (w >= 1000) setCols(8)
-      else if (w >= 768) setCols(6)
-      else if (w >= 640) setCols(4)
-      else setCols(3)
+    function onWheel(e: WheelEvent) {
+      e.preventDefault()
+      wheelAccum.current += e.deltaY
+      if (wheelAccum.current > 80) {
+        wheelAccum.current = 0
+        setLevelIdx(prev => Math.min(prev + 1, LEVELS.length - 1))
+      } else if (wheelAccum.current < -80) {
+        wheelAccum.current = 0
+        setLevelIdx(prev => Math.max(prev - 1, 0))
+      }
     }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
   }, [])
 
-  // Trigger reveal after enough votes
+  // Show reveal when fully zoomed out
   useEffect(() => {
-    if (votes.size >= 8 && !revealTriggered.current) {
-      revealTriggered.current = true
-      setTimeout(() => setShowReveal(true), 600)
+    if (isFullZoom) {
+      const t = setTimeout(() => setShowReveal(true), 2000)
+      return () => clearTimeout(t)
     }
-  }, [votes.size])
+    setShowReveal(false)
+  }, [isFullZoom])
 
-  const handleVote = useCallback((id: string, type: Vote) => {
+  // Draw canvas dots when level is high enough
+  useEffect(() => {
+    if (currentLevel < 1024) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const dpr = window.devicePixelRatio || 1
+    const w = canvas.offsetWidth
+    const h = canvas.offsetHeight
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    ctx.scale(dpr, dpr)
+
+    let seed = 42
+    function rng() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 }
+
+    const maxDots = Math.min(currentLevel, 8000)
+    const entries = Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number))
+    const scale = totalAssets / maxDots
+
+    ctx.clearRect(0, 0, w, h)
+
+    let drawn = 0
+    for (const [source, count] of entries) {
+      const dotsForSource = Math.max(1, Math.round((count as number) / scale))
+      const color = SOURCE_COLORS[source] || '#555'
+      ctx.fillStyle = color
+      for (let i = 0; i < dotsForSource && drawn < maxDots; i++, drawn++) {
+        const x = rng() * w
+        const y = rng() * h
+        const size = currentLevel > 10000 ? 0.8 + rng() * 0.8 : 1 + rng() * 1.5
+        ctx.globalAlpha = 0.3 + rng() * 0.4
+        ctx.beginPath()
+        ctx.arc(x, y, size, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+    ctx.globalAlpha = 1
+  }, [currentLevel, assetCounts, totalAssets])
+
+  const handleVote = useCallback((key: string, type: Vote) => {
     setVotes(prev => {
       const next = new Map(prev)
-      if (next.get(id) === type) next.delete(id)
-      else next.set(id, type)
+      if (next.get(key) === type) next.delete(key)
+      else next.set(key, type)
       return next
     })
   }, [])
 
-  const yesCount = useMemo(() => {
-    let c = 0; for (const v of votes.values()) if (v === 'yes') c++; return c
-  }, [votes])
+  // Card size based on level
+  const cardSize = currentLevel <= 1 ? 'large' : currentLevel <= 16 ? 'medium' : currentLevel <= 256 ? 'small' : 'dot'
+  const gridCols = currentLevel <= 1 ? 1 : currentLevel <= 4 ? 2 : currentLevel <= 16 ? 4 :
+    currentLevel <= 64 ? 8 : currentLevel <= 256 ? 16 : 32
 
-  const noCount = useMemo(() => {
-    let c = 0; for (const v of votes.values()) if (v === 'no') c++; return c
-  }, [votes])
+  // Generate visible markets
+  const visibleMarkets = useMemo(() => {
+    const count = Math.min(currentLevel, 256)
+    return Array.from({ length: count }, (_, i) => {
+      const base = SAMPLE_MARKETS[i % SAMPLE_MARKETS.length]
+      return { ...base, id: `m${i}` }
+    })
+  }, [currentLevel])
 
-  const totalVotes = yesCount + noCount
-  const pctDone = totalAssets > 0 ? ((totalVotes / totalAssets) * 100) : 0
-  const hoursToFinish = totalVotes > 0 ? Math.ceil((totalAssets - totalVotes) / totalVotes * 3 / 60) : null
+  const yesCount = useMemo(() => { let c = 0; for (const v of votes.values()) if (v === 'yes') c++; return c }, [votes])
+  const noCount = useMemo(() => { let c = 0; for (const v of votes.values()) if (v === 'no') c++; return c }, [votes])
+
+  // Source legend
+  const sourceLegend = useMemo(() =>
+    Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 10),
+    [assetCounts])
 
   return (
-    <main className="min-h-screen bg-terminal flex flex-col relative">
-      {/* Top bar */}
-      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-[1800px] mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">&larr; Back</Link>
-          <div className="flex items-center gap-4 font-mono text-sm">
-            <span className="text-green-400">{yesCount} YES</span>
-            <span className="text-red-400">{noCount} NO</span>
-            <span className="text-white/20">|</span>
-            <span className="text-white/40">{totalVotes} of {totalAssets.toLocaleString()}</span>
-          </div>
-        </div>
-        {/* Progress bar */}
-        <div className="h-[3px] bg-white/5">
-          <div
-            className="h-full bg-accent transition-all duration-300"
-            style={{ width: `${Math.max(0.05, pctDone)}%` }}
-          />
-        </div>
-        {totalVotes > 0 && (
-          <div className="text-center py-1 bg-black/50">
-            <span className="font-mono text-[10px] text-white/20">
-              {pctDone.toFixed(4)}% complete
-              {hoursToFinish !== null && ` · ~${hoursToFinish}h to finish at this rate`}
-            </span>
-          </div>
-        )}
+    <main className="min-h-screen bg-terminal relative overflow-hidden select-none">
+      <div className="fixed top-4 left-4 z-50">
+        <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">&larr; Back</Link>
       </div>
 
-      {/* Reveal overlay */}
-      {showReveal && (
-        <div className="fixed inset-0 z-40 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="text-center space-y-6 max-w-xl">
-            <div className="space-y-2">
-              <p className="text-3xl sm:text-5xl font-bold text-white font-mono">
-                You can&apos;t.
-              </p>
-              <p className="text-sm text-white/30 font-mono">
-                {totalVotes} clicks. {(totalAssets - totalVotes).toLocaleString()} to go.
-                {hoursToFinish !== null && <> At this rate: <span className="text-accent">{hoursToFinish} hours</span>.</>}
-              </p>
-            </div>
+      {/* Level indicator */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-center">
+        <p className="font-mono text-sm text-white/60">{currentLevel.toLocaleString()} markets</p>
+        <p className="font-mono text-xs text-white/25">{LEVEL_LABELS[Math.min(levelIdx, LEVEL_LABELS.length - 1)]}</p>
+      </div>
 
-            <div className="space-y-1">
-              <p className="text-lg sm:text-xl text-white/60 font-mono">
-                But your AI Agent can.
-              </p>
-              <p className="text-sm text-white/40 font-mono">
-                Every market. Every second. Simultaneously.
-              </p>
-              <p className="text-xs text-white/20 font-mono mt-2">
-                {totalAssets.toLocaleString()} markets across {Object.keys(assetCounts).length} sources. 24/7.
-              </p>
-            </div>
+      {/* Scroll indicator */}
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1">
+        {LEVELS.map((_, i) => (
+          <div
+            key={i}
+            className={`w-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+              i === levelIdx ? 'h-4 bg-accent' : i < levelIdx ? 'h-2 bg-white/30' : 'h-2 bg-white/10'
+            }`}
+            onClick={() => setLevelIdx(i)}
+          />
+        ))}
+        <p className="font-mono text-[8px] text-white/20 mt-1 writing-mode-vertical" style={{ writingMode: 'vertical-rl' }}>
+          scroll to zoom
+        </p>
+      </div>
 
-            <button
-              type="button"
-              className="mt-6 px-10 py-4 bg-accent text-white font-mono font-bold text-lg
-                shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
-                hover:bg-red-700 transition-all"
-            >
-              Deploy Your AI Agent &rarr;
-            </button>
+      {/* Stats bar */}
+      {(yesCount + noCount) > 0 && (
+        <div className="fixed top-4 right-16 z-50 font-mono text-xs">
+          <span className="text-green-400">{yesCount}Y</span>
+          <span className="text-white/20 mx-1">/</span>
+          <span className="text-red-400">{noCount}N</span>
+          <span className="text-white/20 mx-1">of</span>
+          <span className="text-white/30">{totalAssets.toLocaleString()}</span>
+        </div>
+      )}
 
-            <div className="flex items-center justify-center gap-4">
-              <p className="text-xs text-white/20 font-mono">npx agiarena init</p>
-              <button
-                type="button"
-                onClick={() => setShowReveal(false)}
-                className="text-xs text-white/30 hover:text-white/50 font-mono underline"
-              >
-                Keep trying (good luck)
-              </button>
-            </div>
+      {/* Canvas for high zoom levels */}
+      {currentLevel >= 1024 && (
+        <canvas ref={canvasRef} className="fixed inset-0 w-full h-full z-0" />
+      )}
+
+      {/* Market cards */}
+      {currentLevel < 1024 && (
+        <div className="flex items-center justify-center min-h-screen px-4 py-20 relative z-10">
+          <div
+            className="grid gap-[1px] mx-auto transition-all duration-500"
+            style={{
+              gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+              maxWidth: cardSize === 'large' ? '400px' : cardSize === 'medium' ? '600px' : '900px',
+            }}
+          >
+            {visibleMarkets.map((m) => {
+              const vote = votes.get(m.id)
+
+              if (cardSize === 'large') {
+                return (
+                  <div key={m.id} className="border-2 border-white/20 bg-white/[0.02] p-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-mono uppercase" style={{ color: SOURCE_COLORS[m.src] || '#666' }}>{m.src}</span>
+                      <span className={`text-sm font-mono ${m.chg >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {m.chg >= 0 ? '+' : ''}{m.chg.toFixed(1)}%
+                      </span>
+                    </div>
+                    <h2 className="text-3xl font-bold text-white font-mono text-center">{m.sym}</h2>
+                    <p className="text-lg text-white/50 font-mono text-center mt-2">{m.val}</p>
+                    <div className="flex gap-3 mt-6">
+                      <button type="button" onClick={() => handleVote(m.id, 'no')}
+                        className={`flex-1 py-3 border-2 font-mono font-bold transition-all ${vote === 'no' ? 'bg-red-500/20 border-red-500/50 text-red-300' : 'border-red-500/30 text-red-400/60 hover:border-red-500/60 hover:text-red-400'}`}>NO</button>
+                      <button type="button" onClick={() => handleVote(m.id, 'yes')}
+                        className={`flex-1 py-3 border-2 font-mono font-bold transition-all ${vote === 'yes' ? 'bg-green-500/20 border-green-500/50 text-green-300' : 'border-green-500/30 text-green-400/60 hover:border-green-500/60 hover:text-green-400'}`}>YES</button>
+                    </div>
+                  </div>
+                )
+              }
+
+              if (cardSize === 'medium') {
+                return (
+                  <div key={m.id} className={`border p-3 font-mono transition-all ${vote === 'yes' ? 'bg-green-500/15 border-green-500/40' : vote === 'no' ? 'bg-red-500/15 border-red-500/40' : 'bg-white/[0.02] border-white/[0.08]'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[9px] uppercase" style={{ color: SOURCE_COLORS[m.src] || '#666' }}>{m.src}</span>
+                      <span className="text-xs font-bold text-white">{m.sym}</span>
+                    </div>
+                    <p className="text-[10px] text-white/40">{m.val}</p>
+                    <div className="flex gap-1 mt-1.5">
+                      <button type="button" onClick={() => handleVote(m.id, 'yes')}
+                        className={`flex-1 py-0.5 text-[8px] font-bold border ${vote === 'yes' ? 'bg-green-500/30 border-green-500/50 text-green-300' : 'border-white/10 text-white/20 hover:text-green-400'}`}>Y</button>
+                      <button type="button" onClick={() => handleVote(m.id, 'no')}
+                        className={`flex-1 py-0.5 text-[8px] font-bold border ${vote === 'no' ? 'bg-red-500/30 border-red-500/50 text-red-300' : 'border-white/10 text-white/20 hover:text-red-400'}`}>N</button>
+                    </div>
+                  </div>
+                )
+              }
+
+              // small: tiny tiles
+              return (
+                <div
+                  key={m.id}
+                  className={`aspect-square flex items-center justify-center cursor-pointer transition-all ${
+                    vote === 'yes' ? 'bg-green-500/30' : vote === 'no' ? 'bg-red-500/30' : 'bg-white/[0.04] hover:bg-white/[0.08]'
+                  }`}
+                  style={{ border: `1px solid ${SOURCE_COLORS[m.src] || '#333'}22` }}
+                  onClick={() => handleVote(m.id, votes.get(m.id) === 'yes' ? 'no' : 'yes')}
+                  title={`${m.sym} (${m.src}) ${m.val}`}
+                >
+                  <span className="font-mono text-[5px] text-white/20 truncate">{m.sym.slice(0, 3)}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto" ref={gridRef}>
-        <div
-          className="grid gap-[1px] p-[1px]"
-          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-        >
-          {markets.map((m) => {
-            const vote = votes.get(m.id)
-            const isUp = m.changePct >= 0
-            return (
-              <div
-                key={m.id}
-                className={`
-                  p-2 border font-mono transition-all duration-100 relative group
-                  ${vote === 'yes'
-                    ? 'bg-green-500/20 border-green-500/40'
-                    : vote === 'no'
-                      ? 'bg-red-500/20 border-red-500/40'
-                      : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]'
-                  }
-                `}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between mb-1">
-                  <span
-                    className="text-[9px] uppercase tracking-wider"
-                    style={{ color: SOURCE_COLORS[m.source] || '#666' }}
-                  >
-                    {m.source.length > 7 ? m.source.slice(0, 6) : m.source}
-                  </span>
-                  <span className={`text-[9px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>
-                    {isUp ? '+' : ''}{m.changePct.toFixed(1)}%
-                  </span>
-                </div>
-
-                {/* Symbol */}
-                <div className="text-xs font-bold text-white truncate">{m.symbol}</div>
-                <div className="text-[10px] text-white/40 truncate">{m.value}</div>
-
-                {/* YES/NO buttons */}
-                <div className="flex gap-[2px] mt-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleVote(m.id, 'yes')}
-                    className={`flex-1 py-1 text-[9px] font-bold border transition-all
-                      ${vote === 'yes'
-                        ? 'bg-green-500/30 border-green-500/50 text-green-300'
-                        : 'border-white/10 text-white/20 hover:border-green-500/30 hover:text-green-400 hover:bg-green-500/10'
-                      }`}
-                  >
-                    YES
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleVote(m.id, 'no')}
-                    className={`flex-1 py-1 text-[9px] font-bold border transition-all
-                      ${vote === 'no'
-                        ? 'bg-red-500/30 border-red-500/50 text-red-300'
-                        : 'border-white/10 text-white/20 hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/10'
-                      }`}
-                  >
-                    NO
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* "More" indicator at bottom */}
-        <div className="py-12 text-center border-t border-white/5">
-          <p className="font-mono text-sm text-white/30">
-            Showing {markets.length.toLocaleString()} of {totalAssets.toLocaleString()} markets
+      {/* Full zoom: count + sources */}
+      {currentLevel >= 1024 && !showReveal && (
+        <div className="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
+          <p className="text-7xl sm:text-[8rem] font-bold text-white/80 font-mono tabular-nums tracking-tighter">
+            {currentLevel.toLocaleString()}
           </p>
-          <p className="font-mono text-xs text-white/15 mt-1">
-            {(totalAssets - markets.length).toLocaleString()} more not shown...
-          </p>
+          <p className="text-sm text-white/30 font-mono mt-2">markets — every dot is one</p>
+          {currentLevel >= 4096 && (
+            <div className="flex flex-wrap justify-center gap-1.5 max-w-md mt-6">
+              {sourceLegend.map(([source, count]) => (
+                <span key={source} className="flex items-center gap-1 px-1.5 py-0.5 font-mono text-[9px]">
+                  <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: SOURCE_COLORS[source] || '#444' }} />
+                  <span className="text-white/25">{source}</span>
+                  <span className="text-white/40">{(count as number).toLocaleString()}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Reveal */}
+      {showReveal && (
+        <div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="text-center space-y-6 max-w-xl bg-black/60 border border-white/10 p-8 sm:p-12">
+            <p className="text-5xl sm:text-7xl font-bold text-white font-mono">You can&apos;t.</p>
+
+            <p className="text-sm text-white/30 font-mono">
+              {(yesCount + noCount)} vote{(yesCount + noCount) !== 1 ? 's' : ''}. {(totalAssets - (yesCount + noCount)).toLocaleString()} to go.
+              {(yesCount + noCount) > 0 && <> At this rate: {Math.round((totalAssets / (yesCount + noCount)) * 3 / 3600)} hours.</>}
+            </p>
+
+            <div className="py-4 border-y border-white/10 space-y-2 font-mono text-sm">
+              <div className="flex justify-between"><span className="text-white/40">Markets</span><span className="text-white font-bold">{totalAssets.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Sources</span><span className="text-white font-bold">{Object.keys(assetCounts).length}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Refresh</span><span className="text-accent font-bold">Every second</span></div>
+            </div>
+
+            <p className="text-3xl sm:text-4xl font-bold text-accent font-mono">But your AI Agent can.</p>
+            <p className="text-lg sm:text-xl text-white/60 font-mono">Every market. Every second. Simultaneously.</p>
+
+            <button type="button" className="px-10 py-4 bg-accent text-white font-mono font-bold text-lg shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)] hover:bg-red-700 transition-all">
+              Deploy Your AI Agent &rarr;
+            </button>
+            <p className="text-xs text-white/20 font-mono">npx agiarena init</p>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom hint */}
+      {!isFullZoom && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 font-mono text-xs text-white/20 animate-bounce">
+          Scroll down to zoom out
+        </div>
+      )}
     </main>
   )
 }

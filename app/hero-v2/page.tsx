@@ -1,295 +1,280 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE FEED" — Bloomberg-terminal style. Markets scroll in continuously.
-// Each row has YES/NO. Markets spawn faster than you can vote.
-// A "pending" queue grows. You fall behind. Then: the punchline.
+// "THE SCALE v2: CASCADE" — Vote on 1 market → 10 appear → vote → 100 appear.
+// Each vote multiplies the visible markets by 10x. Cards shrink per wave.
+// By wave 5 they're dots. You CAUSED the overwhelm. Then: the punchline.
 // ---------------------------------------------------------------------------
 
-interface FeedMarket {
-  id: number
-  symbol: string
-  name: string
-  source: string
-  value: string
-  changePct: number
-  timestamp: number
+const SOURCE_COLORS: Record<string, string> = {
+  crypto: '#4ade80', stocks: '#60a5fa', weather: '#22d3ee', polymarket: '#c084fc',
+  defi: '#facc15', twitch: '#a78bfa', npm: '#ef4444', crates_io: '#fb923c',
+  tmdb: '#2dd4bf', steam: '#6366f1', github: '#f472b6', anilist: '#818cf8',
 }
 
-const FEED_DATA: Array<{ symbol: string; name: string; source: string; value: string }> = [
-  { symbol: 'BTC', name: 'Bitcoin', source: 'crypto', value: '$97,340' },
-  { symbol: 'ETH', name: 'Ethereum', source: 'crypto', value: '$3,421' },
-  { symbol: 'SOL', name: 'Solana', source: 'crypto', value: '$187.50' },
-  { symbol: 'AAPL', name: 'Apple Inc.', source: 'stocks', value: '$198.11' },
-  { symbol: 'TSLA', name: 'Tesla', source: 'stocks', value: '$412.30' },
-  { symbol: 'NVDA', name: 'NVIDIA', source: 'stocks', value: '$721.05' },
-  { symbol: 'paris:temp', name: 'Paris Temp', source: 'weather', value: '12.3°C' },
-  { symbol: 'BTC $200K?', name: 'Bitcoin reaches $200K', source: 'polymarket', value: '42%' },
-  { symbol: 'ETH TVL', name: 'Ethereum TVL', source: 'defi', value: '$62.1B' },
-  { symbol: 'DOGE', name: 'Dogecoin', source: 'crypto', value: '$0.184' },
-  { symbol: 'MSFT', name: 'Microsoft', source: 'stocks', value: '$415.60' },
-  { symbol: 'xQc', name: 'xQc viewers', source: 'twitch', value: '45.2K' },
-  { symbol: 'react', name: 'React downloads', source: 'npm', value: '24.1M' },
-  { symbol: 'NBA Finals', name: 'NBA Finals winner', source: 'polymarket', value: '31%' },
-  { symbol: 'tokyo:rain', name: 'Tokyo Rainfall', source: 'weather', value: '2.1mm' },
-  { symbol: 'serde', name: 'Serde crate', source: 'crates_io', value: '198M' },
-  { symbol: 'AVAX', name: 'Avalanche', source: 'crypto', value: '$38.20' },
-  { symbol: 'UNI', name: 'Uniswap vol', source: 'defi', value: '$2.8B' },
-  { symbol: 'AMZN', name: 'Amazon', source: 'stocks', value: '$185.20' },
-  { symbol: 'Dune 3', name: 'Dune 3 boxoffice', source: 'tmdb', value: '$680M' },
-  { symbol: 'CS2', name: 'Counter-Strike 2', source: 'steam', value: '1.2M' },
-  { symbol: 'linux', name: 'Linux stars', source: 'github', value: '178K' },
-  { symbol: 'JJK', name: 'Jujutsu Kaisen', source: 'anilist', value: '8.6' },
-  { symbol: 'XRP', name: 'Ripple', source: 'crypto', value: '$2.41' },
-  { symbol: 'london:wind', name: 'London Wind', source: 'weather', value: '18km/h' },
-  { symbol: 'Fed Rate', name: 'Next Fed decision', source: 'polymarket', value: '67%' },
-  { symbol: 'GOOG', name: 'Alphabet', source: 'stocks', value: '$171.22' },
-  { symbol: 'ADA', name: 'Cardano', source: 'crypto', value: '$0.642' },
-  { symbol: 'LINK', name: 'Chainlink', source: 'crypto', value: '$18.30' },
-  { symbol: 'DOT', name: 'Polkadot', source: 'crypto', value: '$7.85' },
+const MARKET_POOL = [
+  { sym: 'BTC', src: 'crypto', val: '$97,340' }, { sym: 'ETH', src: 'crypto', val: '$3,421' },
+  { sym: 'SOL', src: 'crypto', val: '$187.50' }, { sym: 'AAPL', src: 'stocks', val: '$198.11' },
+  { sym: 'TSLA', src: 'stocks', val: '$412.30' }, { sym: 'NVDA', src: 'stocks', val: '$721.05' },
+  { sym: 'paris:temp', src: 'weather', val: '12.3°C' }, { sym: 'BTC $200K?', src: 'polymarket', val: '42%' },
+  { sym: 'ETH TVL', src: 'defi', val: '$62.1B' }, { sym: 'xQc', src: 'twitch', val: '45.2K' },
+  { sym: 'react', src: 'npm', val: '24.1M' }, { sym: 'serde', src: 'crates_io', val: '198M' },
+  { sym: 'DOGE', src: 'crypto', val: '$0.184' }, { sym: 'MSFT', src: 'stocks', val: '$415.60' },
+  { sym: 'CS2', src: 'steam', val: '1.2M' }, { sym: 'linux', src: 'github', val: '178K' },
+  { sym: 'JJK', src: 'anilist', val: '8.6' }, { sym: 'XRP', src: 'crypto', val: '$2.41' },
+  { sym: 'Fed Rate', src: 'polymarket', val: '67%' }, { sym: 'UNI', src: 'defi', val: '$2.8B' },
 ]
 
-const SOURCE_COLORS: Record<string, string> = {
-  crypto: 'text-green-400', stocks: 'text-blue-400', weather: 'text-cyan-400',
-  polymarket: 'text-purple-400', defi: 'text-yellow-400', twitch: 'text-violet-400',
-  npm: 'text-red-300', crates_io: 'text-orange-400', tmdb: 'text-teal-400',
-  steam: 'text-indigo-400', github: 'text-pink-400', anilist: 'text-blue-300',
-}
-
 type Vote = 'yes' | 'no'
+type Wave = { count: number; markets: Array<{ id: string; sym: string; src: string; val: string }> }
+
+const WAVE_SIZES = [1, 10, 100, 1000, 10000, 159240]
 
 export default function HeroV2() {
   const { data: meta } = useMarketSnapshotMeta()
-  const [feed, setFeed] = useState<FeedMarket[]>([])
-  const [votes, setVotes] = useState<Map<number, Vote>>(new Map())
+  const [waveIdx, setWaveIdx] = useState(0)
+  const [votes, setVotes] = useState<Map<string, Vote>>(new Map())
   const [showReveal, setShowReveal] = useState(false)
-  const [spawnRate, setSpawnRate] = useState(1500) // ms between spawns — gets faster
-  const nextId = useRef(0)
-  const feedRef = useRef<HTMLDivElement>(null)
-  const spawnTimer = useRef<ReturnType<typeof setInterval>>(undefined)
-  const revealTriggered = useRef(false)
+  const [waveVoteCount, setWaveVoteCount] = useState(0)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const totalAssets = meta?.totalAssets ?? 159240
   const assetCounts = meta?.assetCounts ?? {}
+  const currentWaveSize = WAVE_SIZES[Math.min(waveIdx, WAVE_SIZES.length - 1)]
+  const isLastWave = waveIdx >= WAVE_SIZES.length - 1
 
-  // Spawn markets into the feed — accelerating
-  useEffect(() => {
-    let seed = 7
-    function rng() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 }
+  // Generate markets for current wave
+  const wave: Wave = useMemo(() => {
+    const count = Math.min(currentWaveSize, 500) // Cap rendered items
+    const markets = Array.from({ length: count }, (_, i) => {
+      const base = MARKET_POOL[i % MARKET_POOL.length]
+      return { ...base, id: `w${waveIdx}-${i}` }
+    })
+    return { count: currentWaveSize, markets }
+  }, [waveIdx, currentWaveSize])
 
-    function spawn() {
-      const template = FEED_DATA[nextId.current % FEED_DATA.length]
-      const market: FeedMarket = {
-        id: nextId.current++,
-        ...template,
-        changePct: (rng() - 0.5) * 20,
-        timestamp: Date.now(),
-      }
-      setFeed(prev => [market, ...prev].slice(0, 100))
-    }
-
-    // Initial batch
-    for (let i = 0; i < 5; i++) spawn()
-
-    spawnTimer.current = setInterval(spawn, spawnRate)
-
-    return () => clearInterval(spawnTimer.current)
-  }, [spawnRate])
-
-  // Accelerate spawn rate over time
-  useEffect(() => {
-    const accel = setInterval(() => {
-      setSpawnRate(prev => Math.max(300, prev - 100))
-    }, 5000)
-    return () => clearInterval(accel)
-  }, [])
-
-  // Trigger reveal
-  useEffect(() => {
-    if (votes.size >= 10 && !revealTriggered.current) {
-      revealTriggered.current = true
-      setTimeout(() => setShowReveal(true), 600)
-    }
-  }, [votes.size])
-
-  const handleVote = useCallback((id: number, type: Vote) => {
+  // Advance wave when user votes in current wave
+  const handleVote = useCallback((id: string, type: Vote) => {
     setVotes(prev => {
       const next = new Map(prev)
       next.set(id, type)
       return next
     })
-  }, [])
+    setWaveVoteCount(c => {
+      const newCount = c + 1
+      // After 1 vote per wave, advance
+      if (newCount >= 1 && !isLastWave) {
+        setTimeout(() => {
+          setWaveIdx(prev => prev + 1)
+          setWaveVoteCount(0)
+        }, 400)
+      }
+      return newCount
+    })
+  }, [isLastWave])
 
-  const yesCount = useMemo(() => {
-    let c = 0; for (const v of votes.values()) if (v === 'yes') c++; return c
-  }, [votes])
-  const noCount = useMemo(() => {
-    let c = 0; for (const v of votes.values()) if (v === 'no') c++; return c
-  }, [votes])
-  const totalVotes = yesCount + noCount
-  const pending = feed.length - totalVotes
-  const pctDone = ((totalVotes / totalAssets) * 100)
-  const hoursToFinish = totalVotes > 0 ? Math.ceil((totalAssets - totalVotes) / totalVotes * 5 / 60) : null
+  // Canvas for large waves
+  useEffect(() => {
+    if (currentWaveSize < 1000) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const dpr = window.devicePixelRatio || 1
+    const w = canvas.offsetWidth
+    const h = canvas.offsetHeight
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    ctx.scale(dpr, dpr)
+    ctx.clearRect(0, 0, w, h)
+
+    let seed = waveIdx * 1000 + 42
+    function rng() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 }
+
+    const maxDots = Math.min(currentWaveSize, 8000)
+    const entries = Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number))
+    const scale = totalAssets / maxDots
+
+    let drawn = 0
+    for (const [source, count] of entries) {
+      const n = Math.max(1, Math.round((count as number) / scale))
+      ctx.fillStyle = SOURCE_COLORS[source] || '#555'
+      for (let i = 0; i < n && drawn < maxDots; i++, drawn++) {
+        ctx.globalAlpha = 0.2 + rng() * 0.5
+        ctx.beginPath()
+        ctx.arc(rng() * w, rng() * h, 0.5 + rng() * 1.5, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+    ctx.globalAlpha = 1
+  }, [currentWaveSize, waveIdx, assetCounts, totalAssets])
+
+  // Show reveal on last wave
+  useEffect(() => {
+    if (isLastWave) {
+      const t = setTimeout(() => setShowReveal(true), 2000)
+      return () => clearTimeout(t)
+    }
+  }, [isLastWave])
+
+  const totalVotes = votes.size
+
+  // Card sizing
+  const gridCols = currentWaveSize <= 1 ? 1 : currentWaveSize <= 10 ? 3 : currentWaveSize <= 100 ? 8 : 16
+
+  // Source legend
+  const sourceLegend = useMemo(() =>
+    Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 10),
+    [assetCounts])
 
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
-      {/* Top bar */}
-      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-3xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">&larr; Back</Link>
-            <div className="flex items-center gap-3 font-mono text-sm">
-              <span className="text-green-400">{yesCount} Y</span>
-              <span className="text-red-400">{noCount} N</span>
-              <span className="text-white/20">|</span>
-              <span className="text-white/40">{totalVotes}/{totalAssets.toLocaleString()}</span>
-            </div>
-          </div>
-
-          {/* Pending queue warning */}
-          {pending > 3 && (
-            <div className="flex items-center justify-between bg-accent/10 border border-accent/30 px-3 py-1.5 font-mono text-xs">
-              <span className="text-accent">
-                {pending} markets waiting for your decision
-              </span>
-              <span className="text-white/30">
-                New market every {(spawnRate / 1000).toFixed(1)}s
-              </span>
-            </div>
-          )}
-
-          {/* Progress */}
-          <div className="mt-2 h-[3px] bg-white/5">
-            <div className="h-full bg-accent transition-all" style={{ width: `${Math.max(0.05, pctDone)}%` }} />
-          </div>
-          <p className="text-center font-mono text-[10px] text-white/15 mt-1">
-            {pctDone.toFixed(4)}% of {totalAssets.toLocaleString()} markets
-          </p>
-        </div>
+    <main className="min-h-screen bg-terminal relative overflow-hidden select-none">
+      <div className="fixed top-4 left-4 z-50">
+        <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">&larr; Back</Link>
       </div>
 
-      {/* Reveal overlay */}
-      {showReveal && (
-        <div className="fixed inset-0 z-40 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="text-center space-y-6 max-w-xl">
-            <div className="space-y-2">
-              <p className="text-3xl sm:text-5xl font-bold text-white font-mono">
-                You can&apos;t.
-              </p>
-              <p className="text-sm text-white/30 font-mono">
-                {totalVotes} done. {pending} already piled up. {(totalAssets - totalVotes).toLocaleString()} to go.
-                {hoursToFinish !== null && <> At this rate: <span className="text-accent">{hoursToFinish} hours</span>.</>}
-              </p>
-              <p className="text-xs text-white/20 font-mono">
-                Markets keep coming. You fell behind in {(votes.size * spawnRate / 1000).toFixed(0)}s.
-              </p>
-            </div>
+      {/* Wave indicator */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-center">
+        <div className="flex items-center gap-2 mb-1">
+          {WAVE_SIZES.map((_, i) => (
+            <div key={i} className={`w-8 h-1 rounded-full transition-all ${i <= waveIdx ? 'bg-accent' : 'bg-white/10'}`} />
+          ))}
+        </div>
+        <p className="font-mono text-sm text-white/60 tabular-nums">
+          Wave {waveIdx + 1}: {currentWaveSize.toLocaleString()} markets
+        </p>
+        {waveIdx > 0 && waveIdx < WAVE_SIZES.length - 1 && (
+          <p className="font-mono text-[10px] text-white/25">Vote to trigger next wave</p>
+        )}
+      </div>
 
-            <div className="space-y-1">
-              <p className="text-lg sm:text-xl text-white/60 font-mono">
-                But your AI Agent can.
-              </p>
-              <p className="text-sm text-white/40 font-mono">
-                Every market. Every second. Simultaneously.
-              </p>
-              <p className="text-xs text-white/20 font-mono mt-2">
-                {totalAssets.toLocaleString()} markets across {Object.keys(assetCounts).length} sources. 24/7.
-              </p>
-            </div>
+      {/* Canvas for big waves */}
+      {currentWaveSize >= 1000 && (
+        <canvas ref={canvasRef} className="fixed inset-0 w-full h-full z-0" />
+      )}
 
-            <button
-              type="button"
-              className="mt-6 px-10 py-4 bg-accent text-white font-mono font-bold text-lg
-                shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
-                hover:bg-red-700 transition-all"
-            >
-              Deploy Your AI Agent &rarr;
-            </button>
+      {/* Market grid */}
+      {currentWaveSize < 1000 && (
+        <div className="flex items-center justify-center min-h-screen px-4 py-20 relative z-10">
+          <div
+            className="grid gap-[1px] mx-auto transition-all duration-500"
+            style={{
+              gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+              maxWidth: currentWaveSize <= 1 ? '380px' : currentWaveSize <= 10 ? '550px' : '900px',
+            }}
+          >
+            {wave.markets.map((m) => {
+              const vote = votes.get(m.id)
 
-            <div className="flex items-center justify-center gap-4">
-              <p className="text-xs text-white/20 font-mono">npx agiarena init</p>
-              <button
-                type="button"
-                onClick={() => setShowReveal(false)}
-                className="text-xs text-white/30 hover:text-white/50 font-mono underline"
-              >
-                Keep trying (good luck)
-              </button>
-            </div>
+              // Large card (wave 1)
+              if (currentWaveSize <= 1) {
+                return (
+                  <div key={m.id} className="border-2 border-white/20 bg-white/[0.02] p-8">
+                    <div className="text-center mb-1">
+                      <p className="font-mono text-xs text-white/25 mb-4">1 market. Easy.</p>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-mono uppercase" style={{ color: SOURCE_COLORS[m.src] }}>{m.src}</span>
+                    </div>
+                    <h2 className="text-4xl font-bold text-white font-mono text-center">{m.sym}</h2>
+                    <p className="text-xl text-white/50 font-mono text-center mt-3">{m.val}</p>
+                    <div className="flex gap-3 mt-8">
+                      <button type="button" onClick={() => handleVote(m.id, 'no')}
+                        className={`flex-1 py-3 border-2 font-mono font-bold text-lg transition-all active:scale-95 ${vote === 'no' ? 'bg-red-500/20 border-red-500 text-red-300' : 'border-red-500/30 text-red-400/60 hover:border-red-500 hover:text-red-400'}`}>NO</button>
+                      <button type="button" onClick={() => handleVote(m.id, 'yes')}
+                        className={`flex-1 py-3 border-2 font-mono font-bold text-lg transition-all active:scale-95 ${vote === 'yes' ? 'bg-green-500/20 border-green-500 text-green-300' : 'border-green-500/30 text-green-400/60 hover:border-green-500 hover:text-green-400'}`}>YES</button>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Medium cards (wave 2: 10)
+              if (currentWaveSize <= 10) {
+                return (
+                  <div key={m.id} className={`border p-3 font-mono transition-all ${vote === 'yes' ? 'bg-green-500/15 border-green-500/40' : vote === 'no' ? 'bg-red-500/15 border-red-500/40' : 'bg-white/[0.02] border-white/[0.08]'}`}>
+                    <span className="text-[9px] uppercase" style={{ color: SOURCE_COLORS[m.src] || '#666' }}>{m.src}</span>
+                    <div className="text-sm font-bold text-white mt-0.5">{m.sym}</div>
+                    <div className="text-[10px] text-white/40">{m.val}</div>
+                    <div className="flex gap-1 mt-1.5">
+                      <button type="button" onClick={() => handleVote(m.id, 'yes')}
+                        className={`flex-1 py-0.5 text-[9px] font-bold border ${vote === 'yes' ? 'bg-green-500/30 border-green-500/50 text-green-300' : 'border-white/10 text-white/20 hover:text-green-400'}`}>Y</button>
+                      <button type="button" onClick={() => handleVote(m.id, 'no')}
+                        className={`flex-1 py-0.5 text-[9px] font-bold border ${vote === 'no' ? 'bg-red-500/30 border-red-500/50 text-red-300' : 'border-white/10 text-white/20 hover:text-red-400'}`}>N</button>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Small tiles (wave 3-4)
+              return (
+                <div
+                  key={m.id}
+                  className={`aspect-square flex items-center justify-center cursor-pointer transition-all ${vote === 'yes' ? 'bg-green-500/30' : vote === 'no' ? 'bg-red-500/30' : 'bg-white/[0.04] hover:bg-white/[0.1]'}`}
+                  style={{ border: `1px solid ${SOURCE_COLORS[m.src] || '#333'}33` }}
+                  onClick={() => handleVote(m.id, votes.get(m.id) === 'yes' ? 'no' : 'yes')}
+                  title={`${m.sym} (${m.src})`}
+                >
+                  <span className="font-mono text-[5px] text-white/15">{m.sym.slice(0, 2)}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Feed */}
-      <div className="flex-1 overflow-y-auto" ref={feedRef}>
-        <div className="max-w-3xl mx-auto px-4 py-2 space-y-[1px]">
-          {feed.map((m) => {
-            const vote = votes.get(m.id)
-            const isUp = m.changePct >= 0
-            return (
-              <div
-                key={m.id}
-                className={`
-                  flex items-center border font-mono transition-all duration-150
-                  ${vote === 'yes'
-                    ? 'bg-green-500/10 border-green-500/30'
-                    : vote === 'no'
-                      ? 'bg-red-500/10 border-red-500/30'
-                      : 'bg-white/[0.02] border-white/[0.06]'
-                  }
-                  ${!vote ? 'animate-[pulse-red-bet_0.5s_ease-out]' : ''}
-                `}
-              >
-                {/* YES */}
-                <button
-                  type="button"
-                  onClick={() => handleVote(m.id, 'yes')}
-                  disabled={!!vote}
-                  className={`w-14 h-full flex-shrink-0 flex items-center justify-center border-r text-xs font-bold transition-all
-                    ${vote === 'yes'
-                      ? 'bg-green-500/20 border-green-500/30 text-green-300'
-                      : vote ? 'border-white/5 text-white/10'
-                      : 'border-white/10 text-white/15 hover:bg-green-500/10 hover:text-green-400'
-                    }`}
-                >
-                  Y
-                </button>
-
-                {/* Market info */}
-                <div className="flex-1 flex items-center gap-3 px-3 py-2.5 min-w-0">
-                  <span className={`text-[10px] uppercase w-16 flex-shrink-0 ${SOURCE_COLORS[m.source] || 'text-white/30'}`}>
-                    {m.source.length > 8 ? m.source.slice(0, 7) : m.source}
-                  </span>
-                  <span className="text-xs font-bold text-white truncate flex-1">{m.symbol}</span>
-                  <span className="text-[10px] text-white/40 flex-shrink-0">{m.value}</span>
-                  <span className={`text-[10px] flex-shrink-0 w-14 text-right ${isUp ? 'text-green-400' : 'text-red-400'}`}>
-                    {isUp ? '+' : ''}{m.changePct.toFixed(1)}%
-                  </span>
-                </div>
-
-                {/* NO */}
-                <button
-                  type="button"
-                  onClick={() => handleVote(m.id, 'no')}
-                  disabled={!!vote}
-                  className={`w-14 h-full flex-shrink-0 flex items-center justify-center border-l text-xs font-bold transition-all
-                    ${vote === 'no'
-                      ? 'bg-red-500/20 border-red-500/30 text-red-300'
-                      : vote ? 'border-white/5 text-white/10'
-                      : 'border-white/10 text-white/15 hover:bg-red-500/10 hover:text-red-400'
-                    }`}
-                >
-                  N
-                </button>
-              </div>
-            )
-          })}
+      {/* Big wave overlay text */}
+      {currentWaveSize >= 1000 && !showReveal && (
+        <div className="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
+          <p className="text-7xl sm:text-9xl font-bold text-white/80 font-mono tabular-nums tracking-tighter">
+            {currentWaveSize.toLocaleString()}
+          </p>
+          <p className="text-sm text-white/30 font-mono mt-2">markets and counting</p>
+          {currentWaveSize >= 10000 && (
+            <div className="flex flex-wrap justify-center gap-1.5 max-w-md mt-6">
+              {sourceLegend.map(([source, count]) => (
+                <span key={source} className="flex items-center gap-1 px-1.5 py-0.5 font-mono text-[9px]">
+                  <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: SOURCE_COLORS[source] || '#444' }} />
+                  <span className="text-white/25">{source}</span>
+                  <span className="text-white/40">{(count as number).toLocaleString()}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Reveal */}
+      {showReveal && (
+        <div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="text-center space-y-6 max-w-xl bg-black/60 border border-white/10 p-8 sm:p-12">
+            <p className="text-5xl sm:text-7xl font-bold text-white font-mono">You can&apos;t.</p>
+
+            <p className="text-sm text-white/30 font-mono">
+              {totalVotes} vote{totalVotes !== 1 ? 's' : ''}. {(totalAssets - totalVotes).toLocaleString()} to go.
+              {totalVotes > 0 && <> At this rate: {Math.round((totalAssets / totalVotes) * 3 / 3600)} hours.</>}
+            </p>
+
+            <div className="py-4 border-y border-white/10 space-y-2 font-mono text-sm">
+              <div className="flex justify-between"><span className="text-white/40">Markets</span><span className="text-white font-bold">{totalAssets.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Sources</span><span className="text-white font-bold">{Object.keys(assetCounts).length}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Refresh</span><span className="text-accent font-bold">Every second</span></div>
+            </div>
+
+            <p className="text-3xl sm:text-4xl font-bold text-accent font-mono">But your AI Agent can.</p>
+            <p className="text-lg sm:text-xl text-white/60 font-mono">Every market. Every second. Simultaneously.</p>
+
+            <button type="button" className="px-10 py-4 bg-accent text-white font-mono font-bold text-lg shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)] hover:bg-red-700 transition-all">
+              Deploy Your AI Agent &rarr;
+            </button>
+            <p className="text-xs text-white/20 font-mono">npx agiarena init</p>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
