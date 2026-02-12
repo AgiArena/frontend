@@ -1,365 +1,316 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { useMarketSnapshot, type SnapshotPrice } from '@/hooks/useMarketSnapshot'
+import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE ARENA" — Two AI agents face off. Markets stream between them.
-// Left = YOUR AGENT (YES) | Right = RIVAL AGENT (NO)
-// Users assign markets to sides — building their agent's conviction set
+// "THE CHALLENGE" — 60-second challenge: How many can YOU set?
+// Timer counts down. Markets flash past one by one. User smashes YES/NO.
+// At the end: "You did 47. Our AI agents cover 159,240. Every second."
 // ---------------------------------------------------------------------------
 
-type Side = 'left' | 'right' | null
+const SAMPLE_MARKETS = [
+  { symbol: 'BTC', name: 'Bitcoin', source: 'crypto', value: '$97,340' },
+  { symbol: 'ETH', name: 'Ethereum', source: 'crypto', value: '$3,421' },
+  { symbol: 'SOL', name: 'Solana', source: 'crypto', value: '$187.50' },
+  { symbol: 'AAPL', name: 'Apple Inc.', source: 'stocks', value: '$198.11' },
+  { symbol: 'TSLA', name: 'Tesla Inc.', source: 'stocks', value: '$412.30' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.', source: 'stocks', value: '$721.05' },
+  { symbol: 'paris:temp', name: 'Paris Temperature', source: 'weather', value: '12.3C' },
+  { symbol: 'ETH TVL', name: 'Ethereum Total Value Locked', source: 'defi', value: '$62.1B' },
+  { symbol: 'BTC $200K?', name: 'Will Bitcoin reach $200,000?', source: 'polymarket', value: '42%' },
+  { symbol: 'DOGE', name: 'Dogecoin', source: 'crypto', value: '$0.1842' },
+  { symbol: 'MSFT', name: 'Microsoft', source: 'stocks', value: '$415.60' },
+  { symbol: 'tokyo:rain', name: 'Tokyo Rainfall', source: 'weather', value: '2.1mm' },
+  { symbol: 'react', name: 'React npm downloads', source: 'npm', value: '24.1M' },
+  { symbol: 'xQc', name: 'xQc Twitch viewers', source: 'twitch', value: '45.2K' },
+  { symbol: 'rust:tokio', name: 'Tokio crate downloads', source: 'crates_io', value: '198M' },
+  { symbol: 'NBA Finals', name: 'Who wins NBA Finals 2026?', source: 'polymarket', value: '31%' },
+  { symbol: 'AVAX', name: 'Avalanche', source: 'crypto', value: '$38.20' },
+  { symbol: 'UNI', name: 'Uniswap', source: 'defi', value: '$12.45' },
+  { symbol: 'Fed Rate', name: 'Next Fed rate decision?', source: 'polymarket', value: '67%' },
+  { symbol: 'AMZN', name: 'Amazon', source: 'stocks', value: '$185.20' },
+  { symbol: 'london:wind', name: 'London Wind Speed', source: 'weather', value: '18km/h' },
+  { symbol: 'one_piece', name: 'One Piece rating', source: 'anilist', value: '8.69' },
+  { symbol: 'tf2:unusual', name: 'TF2 Unusual Hat', source: 'backpacktf', value: '$42.50' },
+  { symbol: 'Dune 3', name: 'Dune 3 box office prediction', source: 'tmdb', value: '$680M' },
+  { symbol: 'XRP', name: 'Ripple', source: 'crypto', value: '$2.41' },
+  { symbol: 'GOOG', name: 'Alphabet Inc.', source: 'stocks', value: '$171.22' },
+  { symbol: 'ADA', name: 'Cardano', source: 'crypto', value: '$0.642' },
+  { symbol: 'nyc:pm25', name: 'NYC Air Quality PM2.5', source: 'weather', value: '8.2ug' },
+  { symbol: 'AAVE', name: 'Aave Protocol', source: 'defi', value: '$142.10' },
+  { symbol: 'shroud', name: 'shroud Twitch viewers', source: 'twitch', value: '12.8K' },
+]
 
-interface MarketCardProps {
-  price: SnapshotPrice
-  side: Side
-  onAssign: (key: string, side: Side) => void
-  index: number
-}
+type Phase = 'intro' | 'challenge' | 'result'
 
-function MarketCard({ price, side, onAssign, index }: MarketCardProps) {
-  const key = `${price.source}:${price.assetId}`
-  const changePct = price.changePct ? parseFloat(price.changePct) : 0
-  const value = parseFloat(price.value)
+const CHALLENGE_SECONDS = 30
 
-  function formatVal(v: number, source: string): string {
-    if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
-    if (source === 'weather') return `${v.toFixed(1)}`
-    if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`
-    if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`
-    if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`
-    if (v >= 1) return `$${v.toFixed(2)}`
-    return `$${v.toFixed(4)}`
-  }
-
-  return (
-    <div
-      className={`
-        relative border font-mono transition-all duration-200
-        ${side === 'left'
-          ? 'bg-green-500/10 border-green-500/40 shadow-[inset_-3px_0_0_rgba(34,197,94,0.5)]'
-          : side === 'right'
-            ? 'bg-red-500/10 border-red-500/40 shadow-[inset_3px_0_0_rgba(239,68,68,0.5)]'
-            : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.05]'
-        }
-      `}
-      style={{ animationDelay: `${index * 20}ms` }}
-    >
-      <div className="flex items-center">
-        {/* YES button */}
-        <button
-          type="button"
-          onClick={() => onAssign(key, side === 'left' ? null : 'left')}
-          className={`
-            flex-shrink-0 w-12 h-full flex items-center justify-center border-r transition-all
-            ${side === 'left'
-              ? 'bg-green-500/30 border-green-500/40 text-green-300'
-              : 'border-white/10 text-white/20 hover:bg-green-500/10 hover:text-green-400'
-            }
-          `}
-        >
-          <span className="text-xs font-bold">Y</span>
-        </button>
-
-        {/* Market info */}
-        <div className="flex-1 px-3 py-2 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-white truncate">
-              {price.symbol !== '-' ? price.symbol : price.name.slice(0, 12)}
-            </span>
-            <span className="text-[10px] text-white/30 uppercase">{price.source}</span>
-          </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] text-white/50">{formatVal(value, price.source)}</span>
-            <span className={`text-[10px] ${changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {changePct >= 0 ? '+' : ''}{changePct.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-
-        {/* NO button */}
-        <button
-          type="button"
-          onClick={() => onAssign(key, side === 'right' ? null : 'right')}
-          className={`
-            flex-shrink-0 w-12 h-full flex items-center justify-center border-l transition-all
-            ${side === 'right'
-              ? 'bg-red-500/30 border-red-500/40 text-red-300'
-              : 'border-white/10 text-white/20 hover:bg-red-500/10 hover:text-red-400'
-            }
-          `}
-        >
-          <span className="text-xs font-bold">N</span>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function AgentPanel({
-  side,
-  count,
-  label,
-  sublabel,
-  accentColor,
-}: {
-  side: 'left' | 'right'
-  count: number
-  label: string
-  sublabel: string
-  accentColor: string
-}) {
-  return (
-    <div className={`flex flex-col items-center gap-3 ${side === 'left' ? 'text-left' : 'text-right'}`}>
-      {/* Agent avatar */}
-      <div
-        className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 flex items-center justify-center
-          ${accentColor} relative`}
-      >
-        <span className="text-3xl sm:text-4xl">{side === 'left' ? '🤖' : '🧠'}</span>
-        {count > 0 && (
-          <div className={`absolute -bottom-1 -right-1 px-2 py-0.5 text-[10px] font-mono font-bold rounded-full
-            ${side === 'left' ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}>
-            {count}
-          </div>
-        )}
-      </div>
-      <div className="text-center">
-        <div className="font-mono text-sm font-bold text-white">{label}</div>
-        <div className="font-mono text-xs text-white/40">{sublabel}</div>
-      </div>
-    </div>
-  )
+const SOURCE_COLORS: Record<string, string> = {
+  crypto: 'text-green-400 border-green-500/30',
+  stocks: 'text-blue-400 border-blue-500/30',
+  weather: 'text-cyan-400 border-cyan-500/30',
+  polymarket: 'text-purple-400 border-purple-500/30',
+  defi: 'text-yellow-400 border-yellow-500/30',
+  twitch: 'text-violet-400 border-violet-500/30',
+  npm: 'text-red-300 border-red-500/30',
+  crates_io: 'text-orange-400 border-orange-500/30',
+  anilist: 'text-blue-300 border-blue-500/30',
+  backpacktf: 'text-amber-400 border-amber-500/30',
+  tmdb: 'text-teal-400 border-teal-500/30',
 }
 
 export default function HeroV2() {
-  const { data, isLoading } = useMarketSnapshot()
-  const [assignments, setAssignments] = useState<Map<string, Side>>(new Map())
-  const [visibleCount, setVisibleCount] = useState(50)
-  const [search, setSearch] = useState('')
-  const [selectedSource, setSelectedSource] = useState<string | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const { data: meta } = useMarketSnapshotMeta()
+  const [phase, setPhase] = useState<Phase>('intro')
+  const [timeLeft, setTimeLeft] = useState(CHALLENGE_SECONDS)
+  const [score, setScore] = useState(0)
+  const [currentMarketIdx, setCurrentMarketIdx] = useState(0)
+  const [lastAction, setLastAction] = useState<'yes' | 'no' | null>(null)
+  const [streak, setStreak] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
-  const prices = useMemo(() => data?.prices ?? [], [data?.prices])
+  const totalAssets = meta?.totalAssets ?? 159240
+  const currentMarket = SAMPLE_MARKETS[currentMarketIdx % SAMPLE_MARKETS.length]
 
-  // Source list for filters
-  const sources = useMemo(() => {
-    const set = new Set<string>()
-    for (const p of prices) set.add(p.source)
-    return Array.from(set).sort()
-  }, [prices])
-
-  // Filtered prices
-  const filtered = useMemo(() => {
-    let list = prices
-    if (selectedSource) list = list.filter((p) => p.source === selectedSource)
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
-        (p) => p.symbol.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
-      )
-    }
-    return list
-  }, [prices, selectedSource, search])
-
-  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
-
-  // Infinite scroll
+  // Keyboard controls during challenge
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    function onScroll() {
-      if (!el) return
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200) {
-        setVisibleCount((c) => Math.min(c + 50, filtered.length))
+    if (phase !== 'challenge') return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight' || e.key === 'y' || e.key === 'Y') {
+        handleVote('yes')
+      } else if (e.key === 'ArrowLeft' || e.key === 'n' || e.key === 'N') {
+        handleVote('no')
       }
     }
-    el.addEventListener('scroll', onScroll)
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [filtered.length])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
 
-  // Reset visible count on filter change
-  useEffect(() => {
-    setVisibleCount(50)
-  }, [selectedSource, search])
+  const startChallenge = useCallback(() => {
+    setPhase('challenge')
+    setScore(0)
+    setTimeLeft(CHALLENGE_SECONDS)
+    setCurrentMarketIdx(0)
+    setStreak(0)
 
-  const handleAssign = useCallback((key: string, side: Side) => {
-    setAssignments((prev) => {
-      const next = new Map(prev)
-      if (side === null) next.delete(key)
-      else next.set(key, side)
-      return next
-    })
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current)
+          setPhase('result')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
   }, [])
 
-  const leftCount = useMemo(() => {
-    let c = 0
-    for (const v of assignments.values()) if (v === 'left') c++
-    return c
-  }, [assignments])
+  useEffect(() => {
+    return () => clearInterval(timerRef.current)
+  }, [])
 
-  const rightCount = useMemo(() => {
-    let c = 0
-    for (const v of assignments.values()) if (v === 'right') c++
-    return c
-  }, [assignments])
+  const handleVote = useCallback((type: 'yes' | 'no') => {
+    if (phase !== 'challenge') return
+    setScore(s => s + 1)
+    setLastAction(type)
+    setStreak(s => s + 1)
+    setCurrentMarketIdx(i => i + 1)
+    setTimeout(() => setLastAction(null), 150)
+  }, [phase])
 
-  const totalSet = leftCount + rightCount
+  const ratePerHour = score > 0 ? Math.round(score * (3600 / CHALLENGE_SECONDS)) : 0
+  const hoursToFinish = ratePerHour > 0 ? (totalAssets / ratePerHour).toFixed(1) : '???'
+  const aiAdvantage = score > 0 ? Math.round(totalAssets / score) : totalAssets
 
   return (
-    <main className="min-h-screen bg-terminal flex flex-col">
-      {/* Top bar */}
-      <div className="bg-black/90 border-b border-white/10 px-4 py-3 flex items-center justify-between flex-shrink-0 z-50">
-        <Link href="/" className="text-white/60 hover:text-white font-mono text-sm">
+    <main className="min-h-screen bg-terminal relative overflow-hidden select-none">
+      {/* Back link */}
+      <div className="fixed top-4 left-4 z-50">
+        <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">
           &larr; Back
         </Link>
-        <div className="font-mono text-sm text-white/40">
-          {isLoading ? 'Loading...' : `${prices.length.toLocaleString()} markets available`}
-        </div>
       </div>
 
-      {/* Hero header */}
-      <div className="text-center py-8 sm:py-12 flex-shrink-0 relative overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 bg-gradient-to-b from-accent/5 via-transparent to-transparent" />
-        <div className="absolute left-0 top-0 w-1/3 h-full bg-gradient-to-r from-green-500/5 to-transparent" />
-        <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-red-500/5 to-transparent" />
+      <div className="flex flex-col items-center justify-center min-h-screen px-4">
 
-        <h1 className="text-5xl sm:text-7xl font-bold text-white tracking-tighter relative">
-          THE <span className="text-accent">ARENA</span>
-        </h1>
-        <p className="text-base sm:text-lg text-white/50 mt-3 font-mono relative">
-          Your AI Agent vs The Market &middot; Set positions &middot; Let them battle
-        </p>
+        {/* INTRO PHASE */}
+        {phase === 'intro' && (
+          <div className="text-center space-y-8">
+            <div>
+              <h1 className="text-5xl sm:text-7xl font-bold text-white tracking-tighter font-mono">
+                THE <span className="text-accent">CHALLENGE</span>
+              </h1>
+              <p className="text-lg sm:text-xl text-white/50 font-mono mt-4">
+                {totalAssets.toLocaleString()} markets are live right now.
+              </p>
+              <p className="text-base text-white/30 font-mono mt-2">
+                How many can <span className="text-white/70">you</span> set in {CHALLENGE_SECONDS} seconds?
+              </p>
+            </div>
 
-        {/* Agent panels */}
-        <div className="flex items-center justify-center gap-8 sm:gap-16 mt-8 relative">
-          <AgentPanel
-            side="left"
-            count={leftCount}
-            label="YOUR AGENT"
-            sublabel="Bullish positions"
-            accentColor="border-green-500/50"
-          />
+            <div className="space-y-3">
+              <p className="text-sm text-white/40 font-mono">
+                Smash YES or NO as fast as you can. Arrow keys or Y/N.
+              </p>
+              <button
+                type="button"
+                onClick={startChallenge}
+                className="px-10 py-4 bg-accent text-white font-mono font-bold text-xl
+                  shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_60px_rgba(196,0,0,0.7)]
+                  hover:bg-red-700 transition-all"
+              >
+                START
+              </button>
+            </div>
 
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-3xl sm:text-4xl font-bold text-accent font-mono">VS</span>
-            <span className="text-xs text-white/30 font-mono">{totalSet} positions set</span>
-          </div>
-
-          <AgentPanel
-            side="right"
-            count={rightCount}
-            label="RIVAL AI"
-            sublabel="Bearish positions"
-            accentColor="border-red-500/50"
-          />
-        </div>
-      </div>
-
-      {/* Filter bar */}
-      <div className="px-4 py-3 border-y border-white/10 flex items-center gap-3 flex-shrink-0 bg-black/50">
-        <input
-          type="text"
-          placeholder="Search markets..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 focus:outline-none focus:border-white/40 w-48"
-        />
-        <div className="flex gap-1 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setSelectedSource(null)}
-            className={`px-3 py-1.5 font-mono text-xs whitespace-nowrap border transition-all ${
-              selectedSource === null
-                ? 'border-accent text-accent bg-accent/10'
-                : 'border-white/10 text-white/40 hover:text-white/60'
-            }`}
-          >
-            All ({prices.length.toLocaleString()})
-          </button>
-          {sources.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSelectedSource(s)}
-              className={`px-3 py-1.5 font-mono text-xs whitespace-nowrap border transition-all ${
-                selectedSource === s
-                  ? 'border-accent text-accent bg-accent/10'
-                  : 'border-white/10 text-white/40 hover:text-white/60'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Market card stream */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="text-center font-mono">
-              <div className="relative mb-6 mx-auto w-fit">
-                <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
-                <div className="absolute inset-0 w-16 h-16 border-2 border-transparent border-t-accent rounded-full animate-spin" />
+            {/* Source preview */}
+            <div className="max-w-2xl mx-auto">
+              <p className="text-xs text-white/20 font-mono mb-3">Markets from:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {Object.entries(meta?.assetCounts ?? {})
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .slice(0, 10)
+                  .map(([source, count]) => (
+                    <span key={source} className="px-2 py-1 bg-white/[0.03] border border-white/[0.08] font-mono text-[10px] text-white/30">
+                      {source}: {(count as number).toLocaleString()}
+                    </span>
+                  ))}
               </div>
-              <p className="text-lg text-white/60">Loading arena markets...</p>
             </div>
           </div>
-        ) : (
-          <div className="max-w-2xl mx-auto px-4 py-4">
-            <div className="space-y-[1px]">
-              {visible.map((price, i) => {
-                const key = `${price.source}:${price.assetId}`
-                return (
-                  <MarketCard
-                    key={key}
-                    price={price}
-                    side={assignments.get(key) ?? null}
-                    onAssign={handleAssign}
-                    index={i}
-                  />
-                )
-              })}
+        )}
+
+        {/* CHALLENGE PHASE */}
+        {phase === 'challenge' && (
+          <div className="w-full max-w-lg space-y-6">
+            {/* Timer + Score header */}
+            <div className="flex items-center justify-between font-mono">
+              <div className="text-4xl sm:text-5xl font-bold tabular-nums"
+                style={{ color: timeLeft <= 5 ? '#C40000' : timeLeft <= 10 ? '#facc15' : '#ffffff' }}>
+                {timeLeft}s
+              </div>
+              <div className="text-right">
+                <div className="text-3xl sm:text-4xl font-bold text-white tabular-nums">{score}</div>
+                <div className="text-xs text-white/30">of {totalAssets.toLocaleString()}</div>
+              </div>
             </div>
-            {visibleCount < filtered.length && (
-              <div className="py-6 text-center">
+
+            {/* Progress bar (hilariously tiny) */}
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-200 rounded-full"
+                style={{ width: `${Math.max(0.05, (score / totalAssets) * 100)}%` }}
+              />
+            </div>
+            <p className="text-center text-[10px] text-white/20 font-mono">
+              {((score / totalAssets) * 100).toFixed(4)}% complete
+            </p>
+
+            {/* Current market card */}
+            <div className={`
+              border-2 bg-black/80 p-8 transition-all duration-100
+              ${lastAction === 'yes' ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.3)]'
+                : lastAction === 'no' ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]'
+                : 'border-white/20'
+              }
+            `}>
+              <div className="flex items-center justify-between mb-4">
+                <span className={`px-2 py-1 border font-mono text-xs uppercase ${SOURCE_COLORS[currentMarket.source] || 'text-white/40 border-white/20'}`}>
+                  {currentMarket.source}
+                </span>
+                {streak > 3 && (
+                  <span className="text-accent font-mono text-sm font-bold">{streak}x streak</span>
+                )}
+              </div>
+              <div className="text-center mb-4">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white font-mono">{currentMarket.symbol}</h2>
+                <p className="text-sm text-white/40 font-mono mt-1">{currentMarket.name}</p>
+                <p className="text-lg text-white/60 font-mono mt-2">{currentMarket.value}</p>
+              </div>
+              <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setVisibleCount((c) => Math.min(c + 100, filtered.length))}
-                  className="px-6 py-2 border border-white/20 text-white/50 font-mono text-sm hover:border-white/40 hover:text-white/70 transition-all"
+                  onClick={() => handleVote('no')}
+                  className="flex-1 py-4 border-2 border-red-500/40 text-red-400 font-mono font-bold text-xl
+                    hover:bg-red-500/10 hover:border-red-500 transition-all active:scale-95 active:bg-red-500/20"
                 >
-                  Load more ({(filtered.length - visibleCount).toLocaleString()} remaining)
+                  NO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVote('yes')}
+                  className="flex-1 py-4 border-2 border-green-500/40 text-green-400 font-mono font-bold text-xl
+                    hover:bg-green-500/10 hover:border-green-500 transition-all active:scale-95 active:bg-green-500/20"
+                >
+                  YES
                 </button>
               </div>
-            )}
+            </div>
+
+            <p className="text-center text-xs text-white/20 font-mono">
+              &larr; N = NO &middot; Y &rarr; = YES
+            </p>
+          </div>
+        )}
+
+        {/* RESULT PHASE */}
+        {phase === 'result' && (
+          <div className="text-center space-y-8 max-w-2xl">
+            {/* User's score */}
+            <div className="space-y-2">
+              <p className="text-white/40 font-mono text-sm">In {CHALLENGE_SECONDS} seconds, you set</p>
+              <p className="text-6xl sm:text-8xl font-bold text-white font-mono tabular-nums">{score}</p>
+              <p className="text-white/40 font-mono text-sm">markets</p>
+            </div>
+
+            {/* The punchline */}
+            <div className="py-6 border-y border-white/10 space-y-4">
+              <p className="text-lg text-white/50 font-mono">
+                At this rate: <span className="text-white/70">{ratePerHour.toLocaleString()}/hour</span>
+              </p>
+              <p className="text-lg text-white/50 font-mono">
+                To cover all {totalAssets.toLocaleString()} markets: <span className="text-accent font-bold">{hoursToFinish} hours</span>
+              </p>
+              <p className="text-2xl sm:text-3xl font-bold text-white font-mono mt-4">
+                Our AI agents do it in <span className="text-accent">1 second.</span>
+              </p>
+              <p className="text-sm text-white/30 font-mono">
+                {aiAdvantage}x faster. Across {Object.keys(meta?.assetCounts ?? {}).length} data sources. 24/7.
+              </p>
+            </div>
+
+            {/* CTA */}
+            <div className="space-y-4">
+              <button
+                type="button"
+                className="px-10 py-4 bg-accent text-white font-mono font-bold text-lg
+                  shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
+                  hover:bg-red-700 transition-all"
+              >
+                Deploy Your AI Agent &rarr;
+              </button>
+              <p className="text-xs text-white/20 font-mono">
+                npx agiarena init &middot; Claude Code + WIND tokens
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  revealTriggered.current = false
+                  startChallenge()
+                }}
+                className="text-sm text-white/30 hover:text-white/50 font-mono transition-all"
+              >
+                Try again?
+              </button>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Bottom deploy bar */}
-      {totalSet > 0 && (
-        <div className="border-t border-white/10 bg-black/95 backdrop-blur-sm px-4 py-4 flex items-center justify-between flex-shrink-0 z-40">
-          <div className="font-mono text-sm">
-            <span className="text-green-400">{leftCount} YES</span>
-            <span className="text-white/20 mx-2">/</span>
-            <span className="text-red-400">{rightCount} NO</span>
-            <span className="text-white/20 mx-2">&middot;</span>
-            <span className="text-white/40">{totalSet} total positions</span>
-          </div>
-          <button
-            type="button"
-            className="px-6 py-2.5 bg-accent text-white font-mono font-bold text-sm
-              shadow-[0_0_30px_rgba(196,0,0,0.4)] hover:shadow-[0_0_50px_rgba(196,0,0,0.6)]
-              hover:bg-red-700 transition-all"
-          >
-            Deploy Agent &rarr;
-          </button>
-        </div>
-      )}
     </main>
   )
 }
+
+// Needed for the "Try again" reference (shared with v1 pattern but unused here)
+const revealTriggered = { current: false }

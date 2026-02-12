@@ -1,226 +1,322 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { useMarketSnapshot, type SnapshotPrice } from '@/hooks/useMarketSnapshot'
+import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE WALL" — 10K market micro-tiles as a living background
-// Click each tile to set YES (green) / NO (red) / neutral
+// "THE FLOOD" — Markets rain down like the Matrix. Counter ticks up to 159K.
+// User tries to click YES/NO but markets pile up faster than humanly possible.
+// After a few seconds of futile clicking: "You can't. But your AI Agent can."
 // ---------------------------------------------------------------------------
 
-type Vote = 'yes' | 'no' | null
+// Fake market names from real sources for the rain effect
+const SOURCES = [
+  'crypto', 'stocks', 'weather', 'polymarket', 'defi', 'twitch',
+  'npm', 'steam', 'github', 'anilist', 'tmdb', 'crates_io',
+]
 
-function MicroTile({
-  price,
-  vote,
-  onVote,
-}: {
-  price: SnapshotPrice
-  vote: Vote
-  onVote: (assetKey: string) => void
-}) {
-  const key = `${price.source}:${price.assetId}`
-  const changePct = price.changePct ? parseFloat(price.changePct) : 0
+const SAMPLE_SYMBOLS = [
+  'BTC', 'ETH', 'SOL', 'DOGE', 'AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN', 'GOOG',
+  'paris:temp', 'london:rain', 'tokyo:wind', 'nyc:pm25',
+  'Will BTC hit $200K?', 'NBA Finals winner?', 'Next Fed rate?',
+  'ethereum:tvl', 'uniswap:vol', 'aave:tvl', 'solana:tvl',
+  'xQc', 'shroud', 'pokimane', 'ludwig',
+  'react', 'next', 'vue', 'svelte', 'express',
+  'tf2:unusual', 'cs2:knife', 'dota2:arcana',
+  'naruto', 'one_piece', 'jjk', 'demon_slayer',
+  'Oppenheimer', 'Dune 2', 'Deadpool 3', 'Joker 2',
+  'rust:serde', 'rust:tokio', 'python:flask',
+  'XRP', 'ADA', 'DOT', 'AVAX', 'LINK', 'UNI', 'AAVE',
+  'SPY', 'QQQ', 'DIA', 'IWM', 'VTI',
+  'WIND', 'USDC', 'DAI', 'USDT',
+]
 
-  return (
-    <button
-      type="button"
-      onClick={() => onVote(key)}
-      className={`
-        w-full aspect-square text-[6px] sm:text-[7px] md:text-[8px] font-mono leading-none
-        border transition-all duration-150 cursor-pointer relative overflow-hidden
-        ${vote === 'yes'
-          ? 'bg-green-500/40 border-green-500/60 text-green-200 shadow-[0_0_6px_rgba(34,197,94,0.3)]'
-          : vote === 'no'
-            ? 'bg-red-500/40 border-red-500/60 text-red-200 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
-            : changePct >= 0
-              ? 'bg-green-500/5 border-white/[0.06] text-white/30 hover:bg-green-500/15 hover:border-green-500/30'
-              : 'bg-red-500/5 border-white/[0.06] text-white/30 hover:bg-red-500/15 hover:border-red-500/30'
-        }
-      `}
-      title={`${price.name} — ${price.symbol}\nValue: ${price.value}\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%\n\nClick to cycle: neutral → YES → NO → neutral`}
-    >
-      <span className="truncate block px-[1px]">{price.symbol?.slice(0, 4) || price.name?.slice(0, 3)}</span>
-    </button>
-  )
+interface RainDrop {
+  id: number
+  x: number
+  y: number
+  speed: number
+  symbol: string
+  source: string
+  opacity: number
 }
 
-function StatsBar({
-  total,
-  yesCount,
-  noCount,
-  isLoading,
-}: {
-  total: number
-  yesCount: number
-  noCount: number
-  isLoading: boolean
-}) {
-  const setCount = yesCount + noCount
-  const pct = total > 0 ? ((setCount / total) * 100).toFixed(1) : '0'
+interface ClickBurst {
+  id: number
+  x: number
+  y: number
+  type: 'yes' | 'no'
+}
 
-  return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="text-white/60 hover:text-white font-mono text-sm">
-          &larr; Back
-        </Link>
-        <div className="flex items-center gap-6 font-mono text-sm">
-          <span className="text-white/40">
-            {isLoading ? 'Loading markets...' : `${total.toLocaleString()} markets`}
-          </span>
-          <span className="text-green-400">{yesCount.toLocaleString()} YES</span>
-          <span className="text-red-400">{noCount.toLocaleString()} NO</span>
-          <span className="text-white/60">{pct}% set</span>
-        </div>
-        <button
-          type="button"
-          className={`px-4 py-1.5 font-mono text-sm font-bold transition-all ${
-            setCount > 0
-              ? 'bg-accent text-white hover:bg-red-700 shadow-[0_0_20px_rgba(196,0,0,0.4)]'
-              : 'bg-white/10 text-white/30 cursor-not-allowed'
-          }`}
-          disabled={setCount === 0}
-        >
-          Deploy Agent ({setCount.toLocaleString()})
-        </button>
-      </div>
-      {/* Progress bar */}
-      {total > 0 && (
-        <div className="h-[2px] bg-white/5">
-          <div
-            className="h-full bg-gradient-to-r from-green-500 via-accent to-red-500 transition-all duration-500"
-            style={{ width: `${Math.min(100, (setCount / total) * 100)}%` }}
-          />
-        </div>
-      )}
-    </div>
-  )
+function useRaindrops(isActive: boolean) {
+  const [drops, setDrops] = useState<RainDrop[]>([])
+  const nextId = useRef(0)
+  const frameRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!isActive) return
+
+    // Spawn drops rapidly
+    const spawnInterval = setInterval(() => {
+      const batchSize = Math.floor(3 + Math.random() * 5)
+      const newDrops: RainDrop[] = []
+      for (let i = 0; i < batchSize; i++) {
+        newDrops.push({
+          id: nextId.current++,
+          x: Math.random() * 100,
+          y: -5 - Math.random() * 10,
+          speed: 0.3 + Math.random() * 0.7,
+          symbol: SAMPLE_SYMBOLS[Math.floor(Math.random() * SAMPLE_SYMBOLS.length)],
+          source: SOURCES[Math.floor(Math.random() * SOURCES.length)],
+          opacity: 0.15 + Math.random() * 0.35,
+        })
+      }
+      setDrops(prev => [...prev.slice(-200), ...newDrops])
+    }, 60)
+
+    // Animate
+    let lastTime = performance.now()
+    function animate(now: number) {
+      const dt = (now - lastTime) / 16
+      lastTime = now
+      setDrops(prev =>
+        prev
+          .map(d => ({ ...d, y: d.y + d.speed * dt }))
+          .filter(d => d.y < 110)
+      )
+      frameRef.current = requestAnimationFrame(animate)
+    }
+    frameRef.current = requestAnimationFrame(animate)
+
+    return () => {
+      clearInterval(spawnInterval)
+      cancelAnimationFrame(frameRef.current)
+    }
+  }, [isActive])
+
+  return drops
 }
 
 export default function HeroV1() {
-  const { data, isLoading } = useMarketSnapshot()
-  const [votes, setVotes] = useState<Map<string, Vote>>(new Map())
-  const gridRef = useRef<HTMLDivElement>(null)
-  const [cols, setCols] = useState(50)
+  const { data: meta } = useMarketSnapshotMeta()
+  const [phase, setPhase] = useState<'rain' | 'try' | 'reveal'>('rain')
+  const [displayCount, setDisplayCount] = useState(0)
+  const [userClicks, setUserClicks] = useState(0)
+  const [clickBursts, setClickBursts] = useState<ClickBurst[]>([])
+  const drops = useRaindrops(true)
+  const totalAssets = meta?.totalAssets ?? 159240
+  const revealTriggered = useRef(false)
+  const burstId = useRef(0)
 
-  // Responsive column count for micro-tiles
+  // Count up animation
   useEffect(() => {
-    function update() {
-      const w = window.innerWidth
-      if (w >= 1800) setCols(80)
-      else if (w >= 1400) setCols(65)
-      else if (w >= 1200) setCols(55)
-      else if (w >= 1000) setCols(45)
-      else if (w >= 768) setCols(35)
-      else if (w >= 640) setCols(25)
-      else setCols(18)
+    if (totalAssets <= 0) return
+    const duration = 3000
+    const start = performance.now()
+    function tick(now: number) {
+      const elapsed = now - start
+      const progress = Math.min(elapsed / duration, 1)
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplayCount(Math.floor(eased * totalAssets))
+      if (progress < 1) requestAnimationFrame(tick)
     }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    requestAnimationFrame(tick)
+  }, [totalAssets])
+
+  // Transition to "try" phase after 2s
+  useEffect(() => {
+    const t = setTimeout(() => setPhase('try'), 2500)
+    return () => clearTimeout(t)
   }, [])
 
-  const prices = useMemo(() => data?.prices ?? [], [data?.prices])
+  // Auto-reveal after user clicks a few times, or after 12s
+  useEffect(() => {
+    if (phase === 'try' && userClicks >= 5 && !revealTriggered.current) {
+      revealTriggered.current = true
+      setTimeout(() => setPhase('reveal'), 800)
+    }
+  }, [userClicks, phase])
 
-  const handleVote = useCallback((key: string) => {
-    setVotes((prev) => {
-      const next = new Map(prev)
-      const current = next.get(key) ?? null
-      if (current === null) next.set(key, 'yes')
-      else if (current === 'yes') next.set(key, 'no')
-      else next.delete(key)
-      return next
-    })
-  }, [])
+  useEffect(() => {
+    if (phase !== 'try') return
+    const t = setTimeout(() => {
+      if (!revealTriggered.current) {
+        revealTriggered.current = true
+        setPhase('reveal')
+      }
+    }, 15000)
+    return () => clearTimeout(t)
+  }, [phase])
 
-  const yesCount = useMemo(() => {
-    let c = 0
-    for (const v of votes.values()) if (v === 'yes') c++
-    return c
-  }, [votes])
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (phase !== 'try') return
+    setUserClicks(c => c + 1)
+    const type = Math.random() > 0.5 ? 'yes' : 'no' as const
+    setClickBursts(prev => [...prev.slice(-10), {
+      id: burstId.current++,
+      x: e.clientX,
+      y: e.clientY,
+      type,
+    }])
+    // Remove burst after animation
+    setTimeout(() => {
+      setClickBursts(prev => prev.slice(1))
+    }, 600)
+  }, [phase])
 
-  const noCount = useMemo(() => {
-    let c = 0
-    for (const v of votes.values()) if (v === 'no') c++
-    return c
-  }, [votes])
+  const sourceCounts = meta?.assetCounts ?? {}
+  const sourceList = Object.entries(sourceCounts)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
+    .slice(0, 12)
 
   return (
-    <main className="min-h-screen bg-terminal relative">
-      <StatsBar
-        total={prices.length}
-        yesCount={yesCount}
-        noCount={noCount}
-        isLoading={isLoading}
-      />
-
-      {/* Floating hero text over the grid */}
-      <div className="fixed inset-0 z-30 pointer-events-none flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-6xl sm:text-8xl md:text-9xl font-bold text-white/90 tracking-tighter drop-shadow-[0_0_40px_rgba(0,0,0,0.8)]">
-            Agi<span className="text-accent">Arena</span>
-          </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-white/60 mt-4 font-mono drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
-            Set your conviction across {prices.length > 0 ? prices.length.toLocaleString() : '10,000+'} markets
-          </p>
-          <p className="text-sm sm:text-base text-white/40 mt-2 font-mono drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
-            Click any tile &middot; YES / NO / neutral &middot; Deploy your AI agent to battle
-          </p>
-        </div>
+    <main
+      className="min-h-screen bg-terminal relative overflow-hidden cursor-crosshair select-none"
+      onClick={handleClick}
+    >
+      {/* Market rain */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {drops.map(drop => (
+          <div
+            key={drop.id}
+            className="absolute font-mono text-[10px] sm:text-xs whitespace-nowrap"
+            style={{
+              left: `${drop.x}%`,
+              top: `${drop.y}%`,
+              opacity: drop.opacity,
+              color: drop.source === 'crypto' ? '#4ade80'
+                : drop.source === 'stocks' ? '#60a5fa'
+                : drop.source === 'polymarket' ? '#c084fc'
+                : drop.source === 'weather' ? '#22d3ee'
+                : drop.source === 'defi' ? '#facc15'
+                : 'rgba(255,255,255,0.3)',
+            }}
+          >
+            {drop.symbol.length > 12 ? drop.symbol.slice(0, 12) + '..' : drop.symbol}
+          </div>
+        ))}
       </div>
 
-      {/* The Wall: 10K micro-tile grid */}
-      <div className="pt-14">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-            <div className="text-center font-mono">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 border-2 border-white/10 rounded-full" />
-                <div className="absolute inset-0 w-20 h-20 border-2 border-transparent border-t-accent rounded-full animate-spin" />
-              </div>
-              <p className="text-xl text-white/60">Loading The Wall...</p>
-              <p className="text-sm text-white/30 mt-2">Fetching 10,000+ live markets</p>
-            </div>
+      {/* Click bursts */}
+      {clickBursts.map(burst => (
+        <div
+          key={burst.id}
+          className="fixed z-30 pointer-events-none animate-ping"
+          style={{ left: burst.x - 20, top: burst.y - 20 }}
+        >
+          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold
+            ${burst.type === 'yes' ? 'border-green-400 text-green-400' : 'border-red-400 text-red-400'}`}>
+            {burst.type === 'yes' ? 'Y' : 'N'}
           </div>
-        ) : (
-          <div
-            ref={gridRef}
-            className="grid gap-[1px] p-[1px]"
-            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-          >
-            {prices.map((price) => {
-              const key = `${price.source}:${price.assetId}`
-              return (
-                <MicroTile
-                  key={key}
-                  price={price}
-                  vote={votes.get(key) ?? null}
-                  onVote={handleVote}
-                />
-              )
-            })}
+        </div>
+      ))}
+
+      {/* Back link */}
+      <div className="fixed top-4 left-4 z-50">
+        <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">
+          &larr; Back
+        </Link>
+      </div>
+
+      {/* Center content */}
+      <div className="relative z-20 flex flex-col items-center justify-center min-h-screen px-4">
+
+        {/* Giant counter */}
+        <div className="mb-6">
+          <span className="font-mono text-7xl sm:text-8xl md:text-[10rem] font-bold text-white tabular-nums tracking-tighter">
+            {displayCount.toLocaleString()}
+          </span>
+        </div>
+        <p className="text-lg sm:text-xl text-white/50 font-mono mb-2">
+          live markets. right now.
+        </p>
+
+        {/* Source breakdown tickers */}
+        <div className="flex flex-wrap justify-center gap-2 max-w-3xl mb-12">
+          {sourceList.map(([source, count]) => (
+            <span
+              key={source}
+              className="px-2 py-1 bg-white/[0.03] border border-white/[0.08] font-mono text-[10px] text-white/30"
+            >
+              {source} <span className="text-white/50">{(count as number).toLocaleString()}</span>
+            </span>
+          ))}
+        </div>
+
+        {/* Phase: Try */}
+        {phase === 'try' && (
+          <div className="text-center animate-pulse">
+            <p className="text-xl sm:text-2xl text-white/70 font-mono mb-2">
+              Go ahead. Try to set YES or NO on each one.
+            </p>
+            <p className="text-sm text-white/30 font-mono">
+              Click anywhere &middot; You've set {userClicks} of {totalAssets.toLocaleString()}
+            </p>
+            {userClicks > 0 && (
+              <div className="mt-4 w-64 mx-auto">
+                <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent transition-all duration-300 rounded-full"
+                    style={{ width: `${Math.max(0.1, (userClicks / totalAssets) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-white/20 font-mono mt-1">
+                  {((userClicks / totalAssets) * 100).toFixed(4)}% done
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Phase: Rain (initial) */}
+        {phase === 'rain' && (
+          <div className="text-center">
+            <p className="text-lg text-white/40 font-mono animate-pulse">
+              Counting markets across {Object.keys(sourceCounts).length} sources...
+            </p>
+          </div>
+        )}
+
+        {/* Phase: Reveal */}
+        {phase === 'reveal' && (
+          <div className="text-center space-y-6">
+            <div className="space-y-2">
+              <p className="text-2xl sm:text-4xl font-bold text-white font-mono">
+                You can&apos;t.
+              </p>
+              {userClicks > 0 && (
+                <p className="text-sm text-white/30 font-mono">
+                  {userClicks} clicks. {totalAssets.toLocaleString()} to go. At this rate: {Math.ceil(totalAssets / Math.max(userClicks, 1) * 5 / 60)} hours.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-lg sm:text-xl text-white/60 font-mono">
+                But your AI Agent can.
+              </p>
+              <p className="text-sm text-white/40 font-mono">
+                Every market. Every second. Simultaneously.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="mt-8 px-10 py-4 bg-accent text-white font-mono font-bold text-lg
+                shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
+                hover:bg-red-700 transition-all"
+            >
+              Deploy Your AI Agent &rarr;
+            </button>
+
+            <p className="text-xs text-white/20 font-mono">
+              npx agiarena init &middot; Claude Code + WIND tokens
+            </p>
           </div>
         )}
       </div>
-
-      {/* Bottom gradient fade */}
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-20 pointer-events-none" />
-
-      {/* Bottom CTA */}
-      {(yesCount + noCount) > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
-          <button
-            type="button"
-            className="px-8 py-4 bg-accent text-white font-mono font-bold text-lg
-              shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_60px_rgba(196,0,0,0.7)]
-              hover:bg-red-700 transition-all animate-pulse"
-          >
-            Deploy Your Agent &rarr; {(yesCount + noCount).toLocaleString()} positions
-          </button>
-        </div>
-      )}
     </main>
   )
 }

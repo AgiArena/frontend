@@ -1,413 +1,325 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { useMarketSnapshot, type SnapshotPrice } from '@/hooks/useMarketSnapshot'
+import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE SIGNAL" — Tinder-style rapid card swipe through markets
-// Swipe right = YES, left = NO, or skip
-// A constellation grows in the background with each decision
+// "THE SCALE" — Start zoomed in on 1 market. Familiar. Then zoom out.
+// And out. And out. Until you see the full 159K grid as tiny specks.
+// "This is what your AI Agent sees. All at once. Every second."
 // ---------------------------------------------------------------------------
 
-type Decision = 'yes' | 'no'
-
-interface Star {
-  x: number
-  y: number
-  size: number
-  color: string
-  opacity: number
+const SOURCE_INFO: Record<string, { color: string; emoji: string }> = {
+  crypto: { color: '#4ade80', emoji: '' },
+  stocks: { color: '#60a5fa', emoji: '' },
+  weather: { color: '#22d3ee', emoji: '' },
+  polymarket: { color: '#c084fc', emoji: '' },
+  defi: { color: '#facc15', emoji: '' },
+  twitch: { color: '#a78bfa', emoji: '' },
+  npm: { color: '#ef4444', emoji: '' },
+  crates_io: { color: '#fb923c', emoji: '' },
+  anilist: { color: '#818cf8', emoji: '' },
+  tmdb: { color: '#2dd4bf', emoji: '' },
+  steam: { color: '#6366f1', emoji: '' },
+  github: { color: '#f472b6', emoji: '' },
+  backpacktf: { color: '#f59e0b', emoji: '' },
+  hackernews: { color: '#ff6600', emoji: '' },
+  bchain: { color: '#fbbf24', emoji: '' },
+  twse: { color: '#34d399', emoji: '' },
 }
 
-function ConstellationBg({ stars }: { stars: Star[] }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+type Phase = 'single' | 'zoom-out' | 'full' | 'reveal'
 
+export default function HeroV3() {
+  const { data: meta } = useMarketSnapshotMeta()
+  const [phase, setPhase] = useState<Phase>('single')
+  const [zoomLevel, setZoomLevel] = useState(0) // 0 = single, 1-5 = progressively zoomed out
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animFrame = useRef<number>(0)
+
+  const totalAssets = meta?.totalAssets ?? 159240
+  const assetCounts = meta?.assetCounts ?? {}
+
+  // Build source color palette for canvas dots
+  const sourceColors = useMemo(() => {
+    const entries = Object.entries(assetCounts)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+    const colors: Array<{ source: string; count: number; color: string }> = []
+    for (const [source, count] of entries) {
+      colors.push({
+        source,
+        count: count as number,
+        color: SOURCE_INFO[source]?.color ?? '#555555',
+      })
+    }
+    return colors
+  }, [assetCounts])
+
+  // Auto-advance phases
   useEffect(() => {
+    const timers = [
+      setTimeout(() => setPhase('zoom-out'), 3000),
+      setTimeout(() => setZoomLevel(1), 3500),
+      setTimeout(() => setZoomLevel(2), 4500),
+      setTimeout(() => setZoomLevel(3), 5500),
+      setTimeout(() => setZoomLevel(4), 6500),
+      setTimeout(() => setZoomLevel(5), 7500),
+      setTimeout(() => { setPhase('full'); setZoomLevel(6) }, 8500),
+      setTimeout(() => setPhase('reveal'), 11000),
+    ]
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
+  // Draw the market universe on canvas
+  useEffect(() => {
+    if (phase !== 'full' && phase !== 'reveal') return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    canvas.width = canvas.offsetWidth * 2
-    canvas.height = canvas.offsetHeight * 2
-    ctx.scale(2, 2)
-    ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight)
+    const dpr = window.devicePixelRatio || 1
+    const w = canvas.offsetWidth
+    const h = canvas.offsetHeight
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    ctx.scale(dpr, dpr)
 
-    // Draw connecting lines between nearby stars
-    for (let i = 0; i < stars.length; i++) {
-      for (let j = i + 1; j < Math.min(i + 5, stars.length); j++) {
-        const dx = stars[i].x - stars[j].x
-        const dy = stars[i].y - stars[j].y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < 150) {
-          ctx.beginPath()
-          ctx.moveTo(stars[i].x, stars[i].y)
-          ctx.lineTo(stars[j].x, stars[j].y)
-          ctx.strokeStyle = `rgba(196, 0, 0, ${0.1 * (1 - dist / 150)})`
-          ctx.lineWidth = 0.5
-          ctx.stroke()
-        }
+    // Generate dot positions (deterministic from source colors)
+    const dots: Array<{ x: number; y: number; color: string; size: number }> = []
+    let seed = 42
+    function pseudoRandom() {
+      seed = (seed * 16807 + 0) % 2147483647
+      return seed / 2147483647
+    }
+
+    // Limit to 10K dots for performance, represent the full count
+    const maxDots = Math.min(totalAssets, 10000)
+    const scale = totalAssets / maxDots
+
+    let idx = 0
+    for (const { count, color } of sourceColors) {
+      const dotsForSource = Math.max(1, Math.round(count / scale))
+      for (let i = 0; i < dotsForSource && idx < maxDots; i++, idx++) {
+        dots.push({
+          x: pseudoRandom() * w,
+          y: pseudoRandom() * h,
+          color,
+          size: 0.8 + pseudoRandom() * 1.2,
+        })
       }
     }
 
-    // Draw stars
-    for (const star of stars) {
-      ctx.beginPath()
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
-      ctx.fillStyle = star.color
-      ctx.globalAlpha = star.opacity
-      ctx.fill()
+    // Animate dots fading in
+    let opacity = 0
+    function draw() {
+      if (!ctx) return
+      ctx.clearRect(0, 0, w, h)
+
+      opacity = Math.min(opacity + 0.02, 1)
+
+      for (const dot of dots) {
+        ctx.beginPath()
+        ctx.arc(dot.x, dot.y, dot.size, 0, Math.PI * 2)
+        ctx.fillStyle = dot.color
+        ctx.globalAlpha = opacity * (0.3 + Math.random() * 0.2)
+        ctx.fill()
+      }
       ctx.globalAlpha = 1
-    }
-  }, [stars])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none z-0"
-    />
-  )
-}
-
-function SwipeCard({
-  price,
-  onDecision,
-  onSkip,
-  exitDirection,
-}: {
-  price: SnapshotPrice
-  onDecision: (d: Decision) => void
-  onSkip: () => void
-  exitDirection: 'left' | 'right' | null
-}) {
-  const changePct = price.changePct ? parseFloat(price.changePct) : 0
-  const value = parseFloat(price.value)
-  const dragRef = useRef<{ startX: number; currentX: number } | null>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
-  const [dragOffset, setDragOffset] = useState(0)
-
-  function formatVal(v: number, source: string): string {
-    if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
-    if (source === 'weather') return `${v.toFixed(1)}`
-    if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
-    if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`
-    if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`
-    if (v >= 1) return `$${v.toFixed(2)}`
-    return `$${v.toFixed(4)}`
-  }
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    dragRef.current = { startX: e.clientX, currentX: e.clientX }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }, [])
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current) return
-    dragRef.current.currentX = e.clientX
-    setDragOffset(e.clientX - dragRef.current.startX)
-  }, [])
-
-  const handlePointerUp = useCallback(() => {
-    if (!dragRef.current) return
-    const offset = dragRef.current.currentX - dragRef.current.startX
-    dragRef.current = null
-    if (offset > 80) {
-      onDecision('yes')
-    } else if (offset < -80) {
-      onDecision('no')
-    }
-    setDragOffset(0)
-  }, [onDecision])
-
-  // Keyboard support
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === 'y') onDecision('yes')
-      else if (e.key === 'ArrowLeft' || e.key === 'n') onDecision('no')
-      else if (e.key === 'ArrowDown' || e.key === ' ') onSkip()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onDecision, onSkip])
-
-  const rotation = dragOffset * 0.05
-  const yesOpacity = Math.max(0, Math.min(1, dragOffset / 120))
-  const noOpacity = Math.max(0, Math.min(1, -dragOffset / 120))
-
-  const exitTransform = exitDirection === 'right'
-    ? 'translateX(120vw) rotate(30deg)'
-    : exitDirection === 'left'
-      ? 'translateX(-120vw) rotate(-30deg)'
-      : undefined
-
-  return (
-    <div
-      ref={cardRef}
-      className="w-[340px] sm:w-[400px] select-none touch-none transition-transform"
-      style={{
-        transform: exitTransform ?? `translateX(${dragOffset}px) rotate(${rotation}deg)`,
-        transition: exitTransform ? 'transform 0.4s ease-out' : dragRef.current ? 'none' : 'transform 0.3s ease-out',
-        opacity: exitTransform ? 0 : 1,
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
-      <div className="border-2 border-white/20 bg-black/80 backdrop-blur-md relative overflow-hidden">
-        {/* YES/NO overlays */}
-        <div
-          className="absolute inset-0 bg-green-500/20 flex items-center justify-center transition-opacity"
-          style={{ opacity: yesOpacity }}
-        >
-          <span className="text-6xl font-bold text-green-400 font-mono rotate-[-12deg] border-4 border-green-400 px-4 py-1">
-            YES
-          </span>
-        </div>
-        <div
-          className="absolute inset-0 bg-red-500/20 flex items-center justify-center transition-opacity"
-          style={{ opacity: noOpacity }}
-        >
-          <span className="text-6xl font-bold text-red-400 font-mono rotate-12 border-4 border-red-400 px-4 py-1">
-            NO
-          </span>
-        </div>
-
-        {/* Card content */}
-        <div className="p-8 relative z-10">
-          {/* Source badge */}
-          <div className="flex items-center justify-between mb-6">
-            <span className="px-2 py-1 bg-white/10 border border-white/20 font-mono text-xs text-white/50 uppercase">
-              {price.source}
-            </span>
-            <span className={`font-mono text-sm font-bold ${changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
-            </span>
-          </div>
-
-          {/* Symbol */}
-          <div className="text-center mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-mono">
-              {price.symbol !== '-' ? price.symbol : price.name.slice(0, 10)}
-            </h2>
-            <p className="text-sm text-white/40 font-mono mt-1 truncate">{price.name}</p>
-          </div>
-
-          {/* Price */}
-          <div className="text-center mb-8">
-            <span className="text-2xl font-bold text-white font-mono">
-              {formatVal(value, price.source)}
-            </span>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={() => onDecision('no')}
-              className="flex-1 py-3 border-2 border-red-500/40 text-red-400 font-mono font-bold text-sm
-                hover:bg-red-500/10 hover:border-red-500/60 transition-all active:scale-95"
-            >
-              NO &larr;
-            </button>
-            <button
-              type="button"
-              onClick={onSkip}
-              className="px-4 py-3 border border-white/20 text-white/30 font-mono text-xs
-                hover:bg-white/5 hover:text-white/50 transition-all"
-            >
-              SKIP
-            </button>
-            <button
-              type="button"
-              onClick={() => onDecision('yes')}
-              className="flex-1 py-3 border-2 border-green-500/40 text-green-400 font-mono font-bold text-sm
-                hover:bg-green-500/10 hover:border-green-500/60 transition-all active:scale-95"
-            >
-              &rarr; YES
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function HeroV3() {
-  const { data, isLoading } = useMarketSnapshot()
-  const [decisions, setDecisions] = useState<Map<string, Decision>>(new Map())
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [stars, setStars] = useState<Star[]>([])
-  const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null)
-  const [speed, setSpeed] = useState(0)
-  const lastDecisionTime = useRef(Date.now())
-  const speedTimer = useRef<ReturnType<typeof setInterval>>(undefined)
-
-  const prices = useMemo(() => data?.prices ?? [], [data?.prices])
-  const currentPrice = prices[currentIndex] ?? null
-
-  // Speed tracker — decisions per minute
-  useEffect(() => {
-    speedTimer.current = setInterval(() => {
-      const elapsed = (Date.now() - lastDecisionTime.current) / 1000
-      if (elapsed > 3) setSpeed(0)
-    }, 1000)
-    return () => clearInterval(speedTimer.current)
-  }, [])
-
-  const yesCount = useMemo(() => {
-    let c = 0
-    for (const v of decisions.values()) if (v === 'yes') c++
-    return c
-  }, [decisions])
-
-  const noCount = useMemo(() => {
-    let c = 0
-    for (const v of decisions.values()) if (v === 'no') c++
-    return c
-  }, [decisions])
-
-  const advance = useCallback(() => {
-    setExitDirection(null)
-    setCurrentIndex((i) => i + 1)
-  }, [])
-
-  const handleDecision = useCallback(
-    (d: Decision) => {
-      if (!currentPrice) return
-      const key = `${currentPrice.source}:${currentPrice.assetId}`
-
-      setDecisions((prev) => {
-        const next = new Map(prev)
-        next.set(key, d)
-        return next
-      })
-
-      // Add star to constellation
-      setStars((prev) => [
-        ...prev,
-        {
-          x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 800),
-          y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 600),
-          size: 1.5 + Math.random() * 2,
-          color: d === 'yes' ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)',
-          opacity: 0.5 + Math.random() * 0.5,
-        },
-      ])
-
-      // Speed
-      const now = Date.now()
-      const gap = now - lastDecisionTime.current
-      lastDecisionTime.current = now
-      if (gap > 0 && gap < 10000) {
-        setSpeed(Math.round(60000 / gap))
+      if (opacity < 1) {
+        animFrame.current = requestAnimationFrame(draw)
       }
+    }
+    animFrame.current = requestAnimationFrame(draw)
 
-      // Animate exit
-      setExitDirection(d === 'yes' ? 'right' : 'left')
-      setTimeout(advance, 300)
-    },
-    [currentPrice, advance],
-  )
+    return () => cancelAnimationFrame(animFrame.current)
+  }, [phase, sourceColors, totalAssets])
 
-  const handleSkip = useCallback(() => {
-    setCurrentIndex((i) => i + 1)
-  }, [])
-
-  const totalDecisions = decisions.size
-  const progressPct = prices.length > 0 ? (currentIndex / prices.length) * 100 : 0
+  // Zoom levels: number of visible "markets"
+  const zoomCounts = [1, 10, 100, 1000, 10000, 50000, totalAssets]
+  const currentCount = zoomCounts[Math.min(zoomLevel, zoomCounts.length - 1)]
 
   return (
-    <main className="min-h-screen bg-terminal relative overflow-hidden">
-      <ConstellationBg stars={stars} />
-
-      {/* Top bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="text-white/60 hover:text-white font-mono text-sm">
-            &larr; Back
-          </Link>
-          <div className="flex items-center gap-4 font-mono text-sm">
-            <span className="text-green-400">{yesCount} Y</span>
-            <span className="text-red-400">{noCount} N</span>
-            <span className="text-white/30">|</span>
-            <span className="text-white/40">{totalDecisions} decisions</span>
-            {speed > 0 && (
-              <span className="text-accent font-bold">{speed}/min</span>
-            )}
-          </div>
-        </div>
-        {/* Progress bar */}
-        <div className="h-[2px] bg-white/5">
-          <div
-            className="h-full bg-accent transition-all duration-300"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+    <main className="min-h-screen bg-terminal relative overflow-hidden select-none">
+      {/* Back link */}
+      <div className="fixed top-4 left-4 z-50">
+        <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">
+          &larr; Back
+        </Link>
       </div>
 
-      {/* Hero text */}
-      <div className="relative z-10 pt-24 pb-4 text-center">
-        <h1 className="text-5xl sm:text-7xl font-bold text-white tracking-tighter">
-          THE <span className="text-accent">SIGNAL</span>
-        </h1>
-        <p className="text-base sm:text-lg text-white/50 mt-3 font-mono">
-          Swipe through {prices.length > 0 ? prices.length.toLocaleString() : '10,000+'} markets &middot; Build your conviction &middot; Deploy
-        </p>
-        <div className="flex items-center justify-center gap-6 mt-3 font-mono text-xs text-white/30">
-          <span>&larr; or N = NO</span>
-          <span>&rarr; or Y = YES</span>
-          <span>SPACE = SKIP</span>
-          <span>Drag card to swipe</span>
-        </div>
-      </div>
+      {/* Canvas background for the universe view */}
+      {(phase === 'full' || phase === 'reveal') && (
+        <canvas
+          ref={canvasRef}
+          className="fixed inset-0 w-full h-full z-0"
+        />
+      )}
 
-      {/* Card area */}
-      <div className="relative z-10 flex items-center justify-center min-h-[60vh]">
-        {isLoading ? (
-          <div className="text-center font-mono">
-            <div className="relative mb-6 mx-auto w-fit">
-              <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
-              <div className="absolute inset-0 w-16 h-16 border-2 border-transparent border-t-accent rounded-full animate-spin" />
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+
+        {/* SINGLE MARKET PHASE */}
+        {phase === 'single' && (
+          <div className="text-center space-y-6">
+            <p className="text-sm text-white/30 font-mono">1 market</p>
+            <div className="border-2 border-green-500/30 bg-green-500/5 p-10 max-w-sm mx-auto">
+              <div className="text-xs text-green-400 font-mono uppercase mb-3">crypto</div>
+              <h2 className="text-4xl font-bold text-white font-mono">BTC</h2>
+              <p className="text-sm text-white/40 font-mono mt-1">Bitcoin</p>
+              <p className="text-2xl text-white/70 font-mono mt-4">$97,340</p>
+              <div className="flex gap-4 mt-6">
+                <div className="flex-1 py-2 border border-red-500/30 text-red-400 font-mono text-sm text-center">NO</div>
+                <div className="flex-1 py-2 border border-green-500/30 text-green-400 font-mono text-sm text-center">YES</div>
+              </div>
             </div>
-            <p className="text-lg text-white/60">Loading markets...</p>
-          </div>
-        ) : currentPrice ? (
-          <SwipeCard
-            key={`${currentPrice.source}:${currentPrice.assetId}`}
-            price={currentPrice}
-            onDecision={handleDecision}
-            onSkip={handleSkip}
-            exitDirection={exitDirection}
-          />
-        ) : (
-          <div className="text-center font-mono">
-            <p className="text-2xl text-white/60 mb-4">All markets reviewed</p>
-            <p className="text-sm text-white/30">
-              {totalDecisions.toLocaleString()} decisions made across {prices.length.toLocaleString()} markets
-            </p>
+            <p className="text-white/40 font-mono">Easy, right?</p>
           </div>
         )}
-      </div>
 
-      {/* Market counter */}
-      <div className="fixed bottom-0 left-0 right-0 z-40">
-        {totalDecisions > 0 && (
-          <div className="bg-black/90 backdrop-blur-sm border-t border-white/10 px-4 py-4">
-            <div className="max-w-4xl mx-auto flex items-center justify-between">
-              <div className="font-mono text-sm">
-                <span className="text-white/40">Market {(currentIndex + 1).toLocaleString()} of {prices.length.toLocaleString()}</span>
-              </div>
-              <button
-                type="button"
-                className="px-6 py-2.5 bg-accent text-white font-mono font-bold text-sm
-                  shadow-[0_0_30px_rgba(196,0,0,0.4)] hover:shadow-[0_0_50px_rgba(196,0,0,0.6)]
-                  hover:bg-red-700 transition-all"
+        {/* ZOOM OUT PHASE */}
+        {phase === 'zoom-out' && (
+          <div className="text-center space-y-8">
+            <p className="text-sm text-white/30 font-mono animate-pulse">
+              Zooming out...
+            </p>
+
+            {/* Progressively smaller grid */}
+            <div className="relative">
+              {/* Mini market grid visualization */}
+              <div
+                className="mx-auto grid gap-[1px] transition-all duration-700"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.min(currentCount, 20)}, 1fr)`,
+                  width: `${Math.min(400, Math.max(60, currentCount * 0.04))}px`,
+                }}
               >
-                Deploy Agent ({totalDecisions.toLocaleString()} positions) &rarr;
-              </button>
+                {Array.from({ length: Math.min(currentCount, 400) }).map((_, i) => {
+                  const colors = ['bg-green-500/30', 'bg-red-500/30', 'bg-blue-500/30', 'bg-purple-500/30', 'bg-cyan-500/30', 'bg-yellow-500/30']
+                  return (
+                    <div
+                      key={i}
+                      className={`aspect-square ${colors[i % colors.length]} transition-all duration-300`}
+                      style={{
+                        minWidth: `${Math.max(1, 20 - zoomLevel * 3)}px`,
+                        minHeight: `${Math.max(1, 20 - zoomLevel * 3)}px`,
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="font-mono">
+              <p className="text-3xl sm:text-5xl font-bold text-white tabular-nums">
+                {currentCount.toLocaleString()}
+              </p>
+              <p className="text-sm text-white/40 mt-2">
+                {currentCount === 1 ? 'market' : 'markets'}
+                {currentCount < totalAssets && (
+                  <span className="text-white/20"> &middot; still zooming...</span>
+                )}
+              </p>
+            </div>
+
+            {zoomLevel >= 3 && (
+              <p className="text-xs text-white/20 font-mono animate-pulse">
+                Can you still read them?
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* FULL UNIVERSE PHASE */}
+        {phase === 'full' && (
+          <div className="text-center space-y-6">
+            <p className="text-8xl sm:text-[10rem] font-bold text-white/90 font-mono tabular-nums tracking-tighter">
+              {totalAssets.toLocaleString()}
+            </p>
+            <p className="text-lg text-white/50 font-mono">
+              markets. every dot below is one.
+            </p>
+
+            {/* Source legend */}
+            <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto mt-4">
+              {sourceColors.slice(0, 10).map(({ source, count, color }) => (
+                <span
+                  key={source}
+                  className="flex items-center gap-1 px-2 py-1 bg-white/[0.03] border border-white/[0.06] font-mono text-[10px]"
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-white/30">{source}</span>
+                  <span className="text-white/50">{count.toLocaleString()}</span>
+                </span>
+              ))}
             </div>
           </div>
+        )}
+
+        {/* REVEAL PHASE */}
+        {phase === 'reveal' && (
+          <div className="text-center space-y-8 bg-black/70 backdrop-blur-md p-8 sm:p-12 border border-white/10 max-w-2xl">
+            <div className="space-y-4">
+              <p className="text-xl sm:text-2xl text-white/50 font-mono">
+                This is what your AI Agent sees.
+              </p>
+              <p className="text-3xl sm:text-5xl font-bold text-white font-mono">
+                All at once. Every second.
+              </p>
+            </div>
+
+            <div className="py-6 border-y border-white/10 space-y-3">
+              <div className="flex items-center justify-between font-mono text-sm">
+                <span className="text-white/40">Markets analyzed</span>
+                <span className="text-white font-bold">{totalAssets.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between font-mono text-sm">
+                <span className="text-white/40">Data sources</span>
+                <span className="text-white font-bold">{Object.keys(assetCounts).length}</span>
+              </div>
+              <div className="flex items-center justify-between font-mono text-sm">
+                <span className="text-white/40">Coverage</span>
+                <span className="text-white font-bold">Crypto, Stocks, Weather, Prediction Markets, DeFi, and {Math.max(0, Object.keys(assetCounts).length - 5)} more</span>
+              </div>
+              <div className="flex items-center justify-between font-mono text-sm">
+                <span className="text-white/40">Refresh rate</span>
+                <span className="text-accent font-bold">Every second</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm text-white/30 font-mono">
+                You can&apos;t process {totalAssets.toLocaleString()} markets.
+                <br />
+                Your AI Agent already has.
+              </p>
+
+              <button
+                type="button"
+                className="mt-4 px-10 py-4 bg-accent text-white font-mono font-bold text-lg
+                  shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
+                  hover:bg-red-700 transition-all"
+              >
+                Deploy Your AI Agent &rarr;
+              </button>
+
+              <p className="text-xs text-white/20 font-mono">
+                npx agiarena init &middot; Claude Code + WIND tokens
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Skip button during animations */}
+        {phase !== 'reveal' && (
+          <button
+            type="button"
+            onClick={() => setPhase('reveal')}
+            className="fixed bottom-6 right-6 text-white/20 hover:text-white/40 font-mono text-xs transition-all z-50"
+          >
+            Skip &rarr;
+          </button>
         )}
       </div>
     </main>
