@@ -5,9 +5,8 @@ import Link from 'next/link'
 import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE SCALE v1: SCROLL ZOOM" — User scrolls to zoom out through 159K markets.
-// Each zoom level shows a grid with YES/NO. Cards shrink until unclickable.
-// Scroll wheel = zoom. The deeper you scroll, the more absurd the scale.
+// "THE SCALE" — Scroll to zoom out from 1 market to 159K. Trade UP or DOWN.
+// Cards shrink until they become dots. Then: "You can't."
 // ---------------------------------------------------------------------------
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -15,6 +14,11 @@ const SOURCE_COLORS: Record<string, string> = {
   tmdb: '#2dd4bf', npm: '#ef4444', crypto: '#4ade80', defi: '#facc15',
   hackernews: '#ff6600', twse: '#34d399', anilist: '#818cf8', steam: '#6366f1',
   github: '#f472b6', stocks: '#60a5fa', backpacktf: '#f59e0b', bchain: '#fbbf24',
+  cloudflare: '#f87171', bonds: '#94a3b8', rates: '#a1a1aa', bls: '#78716c',
+  caiso: '#fca5a5', imf: '#67e8f9', opensky: '#86efac', tides: '#7dd3fc',
+  worldbank: '#fde68a', sec_13f: '#c4b5fd', finra: '#fdba74', futures: '#d8b4fe',
+  goes_xray: '#fcd34d', energy_charts: '#a5f3fc', opec: '#fda4af', pypi: '#93c5fd',
+  fourchan: '#86efac', zillow: '#f9a8d4',
 }
 
 const SAMPLE_MARKETS = [
@@ -34,15 +38,27 @@ const SAMPLE_MARKETS = [
   { sym: 'MSFT', src: 'stocks', val: '$415.60', chg: 0.3 },
   { sym: 'CS2', src: 'steam', val: '1.2M', chg: -2.0 },
   { sym: 'linux', src: 'github', val: '178K', chg: 0.05 },
+  { sym: 'XRP', src: 'crypto', val: '$2.41', chg: 1.3 },
+  { sym: 'AMZN', src: 'stocks', val: '$185.60', chg: -0.7 },
+  { sym: 'Fed Rate', src: 'polymarket', val: '67%', chg: -2.1 },
+  { sym: 'UNI', src: 'defi', val: '$2.8B', chg: 0.9 },
 ]
 
-// Zoom levels
 const LEVELS = [1, 4, 16, 64, 256, 1024, 4096, 16000, 60000, 159240]
-const LEVEL_LABELS = ['Meet the market', 'A few more', 'Getting busy', 'Starting to sweat',
-  "Can't read them anymore", 'Just colored dots now', 'A wall of noise',
-  'Still scrolling?', 'Almost there...', 'All of them']
+const LEVEL_LABELS = [
+  'Trade this one. Easy.',
+  'A few more. Still easy.',
+  'Getting crowded.',
+  'Starting to sweat?',
+  "Can you even read them?",
+  'Just dots now.',
+  'A wall of noise.',
+  'Still scrolling?',
+  'Almost there...',
+  'All of them.',
+]
 
-type Vote = 'yes' | 'no'
+type Vote = 'up' | 'down'
 
 export default function HeroV1() {
   const { data: meta } = useMarketSnapshotMeta()
@@ -74,16 +90,34 @@ export default function HeroV1() {
     return () => window.removeEventListener('wheel', onWheel)
   }, [])
 
+  // Touch swipe support
+  const touchStart = useRef(0)
+  useEffect(() => {
+    function onTouchStart(e: TouchEvent) { touchStart.current = e.touches[0].clientY }
+    function onTouchMove(e: TouchEvent) {
+      const delta = touchStart.current - e.touches[0].clientY
+      if (Math.abs(delta) > 40) {
+        touchStart.current = e.touches[0].clientY
+        setLevelIdx(prev => delta > 0
+          ? Math.min(prev + 1, LEVELS.length - 1)
+          : Math.max(prev - 1, 0))
+      }
+    }
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    return () => { window.removeEventListener('touchstart', onTouchStart); window.removeEventListener('touchmove', onTouchMove) }
+  }, [])
+
   // Show reveal when fully zoomed out
   useEffect(() => {
     if (isFullZoom) {
-      const t = setTimeout(() => setShowReveal(true), 2000)
+      const t = setTimeout(() => setShowReveal(true), 1500)
       return () => clearTimeout(t)
     }
     setShowReveal(false)
   }, [isFullZoom])
 
-  // Draw canvas dots when level is high enough
+  // Draw canvas dots for high zoom levels
   useEffect(() => {
     if (currentLevel < 1024) return
     const canvas = canvasRef.current
@@ -134,12 +168,10 @@ export default function HeroV1() {
     })
   }, [])
 
-  // Card size based on level
   const cardSize = currentLevel <= 1 ? 'large' : currentLevel <= 16 ? 'medium' : currentLevel <= 256 ? 'small' : 'dot'
   const gridCols = currentLevel <= 1 ? 1 : currentLevel <= 4 ? 2 : currentLevel <= 16 ? 4 :
     currentLevel <= 64 ? 8 : currentLevel <= 256 ? 16 : 32
 
-  // Generate visible markets
   const visibleMarkets = useMemo(() => {
     const count = Math.min(currentLevel, 256)
     return Array.from({ length: count }, (_, i) => {
@@ -148,12 +180,12 @@ export default function HeroV1() {
     })
   }, [currentLevel])
 
-  const yesCount = useMemo(() => { let c = 0; for (const v of votes.values()) if (v === 'yes') c++; return c }, [votes])
-  const noCount = useMemo(() => { let c = 0; for (const v of votes.values()) if (v === 'no') c++; return c }, [votes])
+  const upCount = useMemo(() => { let c = 0; for (const v of votes.values()) if (v === 'up') c++; return c }, [votes])
+  const downCount = useMemo(() => { let c = 0; for (const v of votes.values()) if (v === 'down') c++; return c }, [votes])
+  const totalVotes = upCount + downCount
 
-  // Source legend
   const sourceLegend = useMemo(() =>
-    Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 10),
+    Object.entries(assetCounts).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 12),
     [assetCounts])
 
   return (
@@ -164,34 +196,36 @@ export default function HeroV1() {
 
       {/* Level indicator */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-center">
-        <p className="font-mono text-sm text-white/60">{currentLevel.toLocaleString()} markets</p>
-        <p className="font-mono text-xs text-white/25">{LEVEL_LABELS[Math.min(levelIdx, LEVEL_LABELS.length - 1)]}</p>
+        <p className="font-mono text-lg text-white/70 tabular-nums font-bold">{currentLevel.toLocaleString()} markets</p>
+        <p className="font-mono text-xs text-white/30">{LEVEL_LABELS[Math.min(levelIdx, LEVEL_LABELS.length - 1)]}</p>
       </div>
 
       {/* Scroll indicator */}
-      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1">
-        {LEVELS.map((_, i) => (
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1.5">
+        {LEVELS.map((lvl, i) => (
           <div
             key={i}
-            className={`w-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-              i === levelIdx ? 'h-4 bg-accent' : i < levelIdx ? 'h-2 bg-white/30' : 'h-2 bg-white/10'
+            className={`rounded-full transition-all duration-300 cursor-pointer ${
+              i === levelIdx ? 'w-2 h-5 bg-accent' : i < levelIdx ? 'w-1.5 h-2.5 bg-white/30' : 'w-1.5 h-2.5 bg-white/10'
             }`}
             onClick={() => setLevelIdx(i)}
+            title={lvl.toLocaleString()}
           />
         ))}
-        <p className="font-mono text-[8px] text-white/20 mt-1 writing-mode-vertical" style={{ writingMode: 'vertical-rl' }}>
+        <p className="font-mono text-[8px] text-white/20 mt-1" style={{ writingMode: 'vertical-rl' }}>
           scroll to zoom
         </p>
       </div>
 
-      {/* Stats bar */}
-      {(yesCount + noCount) > 0 && (
-        <div className="fixed top-4 right-16 z-50 font-mono text-xs">
-          <span className="text-green-400">{yesCount}Y</span>
-          <span className="text-white/20 mx-1">/</span>
-          <span className="text-red-400">{noCount}N</span>
-          <span className="text-white/20 mx-1">of</span>
-          <span className="text-white/30">{totalAssets.toLocaleString()}</span>
+      {/* Trade counter */}
+      {totalVotes > 0 && (
+        <div className="fixed top-4 right-16 z-50 font-mono text-xs space-y-0.5 text-right">
+          <div>
+            <span className="text-green-400">{upCount}</span>
+            <span className="text-white/15 mx-0.5">/</span>
+            <span className="text-red-400">{downCount}</span>
+          </div>
+          <div className="text-white/20">{totalVotes} of {totalAssets.toLocaleString()}</div>
         </div>
       )}
 
@@ -213,6 +247,7 @@ export default function HeroV1() {
             {visibleMarkets.map((m) => {
               const vote = votes.get(m.id)
 
+              // Large card (1 market)
               if (cardSize === 'large') {
                 return (
                   <div key={m.id} className="border-2 border-white/20 bg-white/[0.02] p-8">
@@ -222,46 +257,58 @@ export default function HeroV1() {
                         {m.chg >= 0 ? '+' : ''}{m.chg.toFixed(1)}%
                       </span>
                     </div>
-                    <h2 className="text-3xl font-bold text-white font-mono text-center">{m.sym}</h2>
-                    <p className="text-lg text-white/50 font-mono text-center mt-2">{m.val}</p>
-                    <div className="flex gap-3 mt-6">
-                      <button type="button" onClick={() => handleVote(m.id, 'no')}
-                        className={`flex-1 py-3 border-2 font-mono font-bold transition-all ${vote === 'no' ? 'bg-red-500/20 border-red-500/50 text-red-300' : 'border-red-500/30 text-red-400/60 hover:border-red-500/60 hover:text-red-400'}`}>NO</button>
-                      <button type="button" onClick={() => handleVote(m.id, 'yes')}
-                        className={`flex-1 py-3 border-2 font-mono font-bold transition-all ${vote === 'yes' ? 'bg-green-500/20 border-green-500/50 text-green-300' : 'border-green-500/30 text-green-400/60 hover:border-green-500/60 hover:text-green-400'}`}>YES</button>
+                    <h2 className="text-4xl font-bold text-white font-mono text-center">{m.sym}</h2>
+                    <p className="text-xl text-white/50 font-mono text-center mt-2">{m.val}</p>
+                    <div className="flex gap-3 mt-8">
+                      <button type="button" onClick={() => handleVote(m.id, 'down')}
+                        className={`flex-1 py-3 border-2 font-mono font-bold text-lg transition-all active:scale-95 ${vote === 'down' ? 'bg-red-500/20 border-red-500/50 text-red-300' : 'border-red-500/30 text-red-400/60 hover:border-red-500/60 hover:text-red-400'}`}>
+                        DOWN
+                      </button>
+                      <button type="button" onClick={() => handleVote(m.id, 'up')}
+                        className={`flex-1 py-3 border-2 font-mono font-bold text-lg transition-all active:scale-95 ${vote === 'up' ? 'bg-green-500/20 border-green-500/50 text-green-300' : 'border-green-500/30 text-green-400/60 hover:border-green-500/60 hover:text-green-400'}`}>
+                        UP
+                      </button>
                     </div>
                   </div>
                 )
               }
 
+              // Medium cards (4-16)
               if (cardSize === 'medium') {
                 return (
-                  <div key={m.id} className={`border p-3 font-mono transition-all ${vote === 'yes' ? 'bg-green-500/15 border-green-500/40' : vote === 'no' ? 'bg-red-500/15 border-red-500/40' : 'bg-white/[0.02] border-white/[0.08]'}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[9px] uppercase" style={{ color: SOURCE_COLORS[m.src] || '#666' }}>{m.src}</span>
-                      <span className="text-xs font-bold text-white">{m.sym}</span>
+                  <div key={m.id} className={`border p-2.5 font-mono transition-all ${vote === 'up' ? 'bg-green-500/15 border-green-500/40' : vote === 'down' ? 'bg-red-500/15 border-red-500/40' : 'bg-white/[0.02] border-white/[0.08]'}`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-sm flex-shrink-0" style={{ backgroundColor: SOURCE_COLORS[m.src] || '#666' }} />
+                      <span className="text-xs font-bold text-white truncate">{m.sym}</span>
+                      <span className={`text-[9px] ml-auto ${m.chg >= 0 ? 'text-green-400/60' : 'text-red-400/60'}`}>
+                        {m.chg >= 0 ? '+' : ''}{m.chg.toFixed(1)}%
+                      </span>
                     </div>
                     <p className="text-[10px] text-white/40">{m.val}</p>
                     <div className="flex gap-1 mt-1.5">
-                      <button type="button" onClick={() => handleVote(m.id, 'yes')}
-                        className={`flex-1 py-0.5 text-[8px] font-bold border ${vote === 'yes' ? 'bg-green-500/30 border-green-500/50 text-green-300' : 'border-white/10 text-white/20 hover:text-green-400'}`}>Y</button>
-                      <button type="button" onClick={() => handleVote(m.id, 'no')}
-                        className={`flex-1 py-0.5 text-[8px] font-bold border ${vote === 'no' ? 'bg-red-500/30 border-red-500/50 text-red-300' : 'border-white/10 text-white/20 hover:text-red-400'}`}>N</button>
+                      <button type="button" onClick={() => handleVote(m.id, 'down')}
+                        className={`flex-1 py-0.5 text-[8px] font-bold border transition-all ${vote === 'down' ? 'bg-red-500/30 border-red-500/50 text-red-300' : 'border-white/10 text-white/20 hover:text-red-400 hover:border-red-500/30'}`}>
+                        DOWN
+                      </button>
+                      <button type="button" onClick={() => handleVote(m.id, 'up')}
+                        className={`flex-1 py-0.5 text-[8px] font-bold border transition-all ${vote === 'up' ? 'bg-green-500/30 border-green-500/50 text-green-300' : 'border-white/10 text-white/20 hover:text-green-400 hover:border-green-500/30'}`}>
+                        UP
+                      </button>
                     </div>
                   </div>
                 )
               }
 
-              // small: tiny tiles
+              // Small tiles (64-256) — click toggles up/down
               return (
                 <div
                   key={m.id}
                   className={`aspect-square flex items-center justify-center cursor-pointer transition-all ${
-                    vote === 'yes' ? 'bg-green-500/30' : vote === 'no' ? 'bg-red-500/30' : 'bg-white/[0.04] hover:bg-white/[0.08]'
+                    vote === 'up' ? 'bg-green-500/30' : vote === 'down' ? 'bg-red-500/30' : 'bg-white/[0.04] hover:bg-white/[0.08]'
                   }`}
                   style={{ border: `1px solid ${SOURCE_COLORS[m.src] || '#333'}22` }}
-                  onClick={() => handleVote(m.id, votes.get(m.id) === 'yes' ? 'no' : 'yes')}
-                  title={`${m.sym} (${m.src}) ${m.val}`}
+                  onClick={() => handleVote(m.id, votes.get(m.id) === 'up' ? 'down' : 'up')}
+                  title={`${m.sym} (${m.src}) ${m.val} — click to trade`}
                 >
                   <span className="font-mono text-[5px] text-white/20 truncate">{m.sym.slice(0, 3)}</span>
                 </div>
@@ -271,13 +318,18 @@ export default function HeroV1() {
         </div>
       )}
 
-      {/* Full zoom: count + sources */}
+      {/* Full zoom overlay text */}
       {currentLevel >= 1024 && !showReveal && (
         <div className="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
           <p className="text-7xl sm:text-[8rem] font-bold text-white/80 font-mono tabular-nums tracking-tighter">
             {currentLevel.toLocaleString()}
           </p>
           <p className="text-sm text-white/30 font-mono mt-2">markets — every dot is one</p>
+          {currentLevel >= 4096 && (
+            <p className="text-xs text-white/15 font-mono mt-4">
+              Go on. Trade them all.
+            </p>
+          )}
           {currentLevel >= 4096 && (
             <div className="flex flex-wrap justify-center gap-1.5 max-w-md mt-6">
               {sourceLegend.map(([source, count]) => (
@@ -299,14 +351,19 @@ export default function HeroV1() {
             <p className="text-5xl sm:text-7xl font-bold text-white font-mono">You can&apos;t.</p>
 
             <p className="text-sm text-white/30 font-mono">
-              {(yesCount + noCount)} vote{(yesCount + noCount) !== 1 ? 's' : ''}. {(totalAssets - (yesCount + noCount)).toLocaleString()} to go.
-              {(yesCount + noCount) > 0 && <> At this rate: {Math.round((totalAssets / (yesCount + noCount)) * 3 / 3600)} hours.</>}
+              {totalVotes > 0
+                ? <>{totalVotes} trade{totalVotes !== 1 ? 's' : ''}. {(totalAssets - totalVotes).toLocaleString()} to go. At this rate: {Math.round((totalAssets / totalVotes) * 3 / 3600)} hours.</>
+                : <>{totalAssets.toLocaleString()} markets. Zero trades. You just scrolled.</>
+              }
             </p>
 
             <div className="py-4 border-y border-white/10 space-y-2 font-mono text-sm">
               <div className="flex justify-between"><span className="text-white/40">Markets</span><span className="text-white font-bold">{totalAssets.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-white/40">Sources</span><span className="text-white font-bold">{Object.keys(assetCounts).length}</span></div>
               <div className="flex justify-between"><span className="text-white/40">Refresh</span><span className="text-accent font-bold">Every second</span></div>
+              {totalVotes > 0 && (
+                <div className="flex justify-between"><span className="text-white/40">Your trades</span><span className="text-white/30">{totalVotes}</span></div>
+              )}
             </div>
 
             <p className="text-3xl sm:text-4xl font-bold text-accent font-mono">But your AI Agent can.</p>
@@ -321,9 +378,14 @@ export default function HeroV1() {
       )}
 
       {/* Bottom hint */}
-      {!isFullZoom && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 font-mono text-xs text-white/20 animate-bounce">
-          Scroll down to zoom out
+      {!isFullZoom && levelIdx === 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30 text-center">
+          <p className="font-mono text-xs text-white/20 animate-bounce">Scroll down to see more</p>
+        </div>
+      )}
+      {!isFullZoom && levelIdx > 0 && levelIdx < 3 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30 text-center">
+          <p className="font-mono text-xs text-white/15">Keep scrolling</p>
         </div>
       )}
     </main>
