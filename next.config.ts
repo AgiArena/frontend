@@ -5,6 +5,7 @@ const DATA_NODE_URL = "http://116.203.156.98/datanode";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  turbopack: {},
   // Webpack config to handle WalletConnect's pino-pretty optional dependency
   webpack: (config) => {
     config.resolve.fallback = {
@@ -46,40 +47,8 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_URL}/api/leaderboard`,
       },
       {
-        source: "/api/leaderboard/live",
-        destination: `${BACKEND_URL}/api/leaderboard/live`,
-      },
-      {
         source: "/api/trades/recent",
         destination: `${BACKEND_URL}/api/trades/recent`,
-      },
-      {
-        source: "/api/bets/recent",
-        destination: `${BACKEND_URL}/api/bets/recent`,
-      },
-      {
-        source: "/api/bets/user/:path*",
-        destination: `${BACKEND_URL}/api/bets/user/:path*`,
-      },
-      {
-        source: "/api/bets/:betId",
-        destination: `${BACKEND_URL}/api/bets/:betId`,
-      },
-      {
-        source: "/api/sse/bets",
-        destination: `${BACKEND_URL}/api/sse/bets`,
-      },
-      {
-        source: "/api/agents/:path*",
-        destination: `${BACKEND_URL}/api/agents/:path*`,
-      },
-      {
-        source: "/api/referrals/register",
-        destination: `${BACKEND_URL}/api/referrals/register`,
-      },
-      {
-        source: "/api/referrals/:path*",
-        destination: `${BACKEND_URL}/api/referrals/:path*`,
       },
       {
         source: "/health",
