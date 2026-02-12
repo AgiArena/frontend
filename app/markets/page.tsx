@@ -9,8 +9,6 @@ import { Footer } from '@/components/layout/Footer'
 import {
   useMarketSnapshot,
   useMarketSnapshotMeta,
-  useMarketSnapshotBySources,
-  usePrefetchMarketSnapshot,
   type SnapshotPrice,
   type SourceSchedule,
 } from '@/hooks/useMarketSnapshot'
@@ -34,104 +32,6 @@ const COLS_BY_WIDTH: [number, number][] = [
 // Frontend display name overrides (sourceId → display name)
 const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   polymarket: 'Prediction Markets',
-  twitch: 'Twitch Live',
-  hackernews: 'Hacker News',
-  steam: 'Steam Games',
-  tmdb: 'Movies & TV',
-  backpacktf: 'Steam Marketplace',
-  cloudflare: 'Cloudflare Radar',
-  github: 'GitHub Repos',
-  npm: 'npm Packages',
-  pypi: 'PyPI Packages',
-  crates_io: 'Rust Crates',
-  bls: 'Labor Stats',
-  bchain: 'Bitcoin On-Chain',
-  goes_xray: 'Solar X-Ray',
-  tides: 'NOAA Tides',
-  usgs_water: 'USGS Water',
-  sec_13f: 'SEC 13F Filings',
-  watttime: 'Grid Carbon',
-  caiso: 'CA Energy Grid',
-  energy_charts: 'EU Energy',
-  opensky: 'Aviation Tracking',
-  anilist: 'Anime & Manga',
-  fourchan: '4chan Activity',
-  twse: 'Taiwan Stocks',
-}
-
-// Category groupings for hierarchical navigation
-interface CategoryGroup {
-  id: string
-  name: string
-  icon: string
-  sources: string[]
-}
-
-const CATEGORY_GROUPS: CategoryGroup[] = [
-  {
-    id: 'finance',
-    name: 'Finance',
-    icon: '💹',
-    sources: ['stocks', 'twse', 'crypto', 'defi', 'rates', 'bonds', 'ecb', 'futures', 'cftc'],
-  },
-  {
-    id: 'predictions',
-    name: 'Predictions',
-    icon: '🎯',
-    sources: ['polymarket'],
-  },
-  {
-    id: 'economics',
-    name: 'Economics',
-    icon: '📊',
-    sources: ['bls', 'worldbank', 'imf', 'fred', 'congress', 'sec_13f', 'finra'],
-  },
-  {
-    id: 'entertainment',
-    name: 'Entertainment',
-    icon: '🎮',
-    sources: ['twitch', 'steam', 'backpacktf', 'tmdb', 'anilist', 'hackernews', 'fourchan'],
-  },
-  {
-    id: 'technology',
-    name: 'Technology',
-    icon: '💻',
-    sources: ['github', 'npm', 'pypi', 'crates_io', 'cloudflare'],
-  },
-  {
-    id: 'environment',
-    name: 'Environment',
-    icon: '🌍',
-    sources: ['weather', 'tides', 'usgs_water', 'goes_xray'],
-  },
-  {
-    id: 'energy',
-    name: 'Energy',
-    icon: '⚡',
-    sources: ['eia', 'opec', 'watttime', 'caiso', 'energy_charts'],
-  },
-  {
-    id: 'commodities',
-    name: 'Commodities',
-    icon: '🛢️',
-    sources: ['opec', 'eia', 'zillow', 'bchain'],
-  },
-  {
-    id: 'transport',
-    name: 'Transport',
-    icon: '✈️',
-    sources: ['opensky'],
-  },
-]
-
-// Build reverse lookup: sourceId → categoryId
-const SOURCE_TO_CATEGORY: Record<string, string> = {}
-for (const group of CATEGORY_GROUPS) {
-  for (const source of group.sources) {
-    if (!SOURCE_TO_CATEGORY[source]) {
-      SOURCE_TO_CATEGORY[source] = group.id
-    }
-  }
 }
 
 // Subcategory display names (keyed by derived feed type)
@@ -146,21 +46,6 @@ const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
   chain_tvl: 'Chain TVL',
   protocol_tvl: 'Protocol TVL',
   dex_volume: 'DEX Volume',
-  // Twitch feed types
-  streamers: 'Live Streamers',
-  games: 'Games',
-  // HackerNews feed types
-  hn_score: 'Story Scores',
-  hn_comments: 'Comment Counts',
-  // TMDb feed types
-  tmdb_movie: 'Movies',
-  tmdb_tv: 'TV Shows',
-  // Cloudflare Radar feed types
-  cf_http: 'HTTP Metrics',
-  cf_iqi: 'Internet Quality',
-  cf_speed: 'Speed Tests',
-  cf_domain: 'Domain Rankings',
-  cf_service: 'Service Rankings',
   // Polymarket derived subcategories
   poly_sports: 'Sports',
   poly_politics: 'Politics & Elections',
@@ -188,29 +73,6 @@ function deriveFeedType(p: SnapshotPrice): string | null {
   }
   if (p.source === 'polymarket') {
     return classifyPolymarket(p.name)
-  }
-  if (p.source === 'twitch') {
-    if (p.assetId.startsWith('twitch_stream_')) return 'streamers'
-    if (p.assetId.startsWith('twitch_game_')) return 'games'
-    return null
-  }
-  if (p.source === 'hackernews') {
-    if (p.assetId.endsWith('_score')) return 'hn_score'
-    if (p.assetId.endsWith('_comments')) return 'hn_comments'
-    return null
-  }
-  if (p.source === 'tmdb') {
-    if (p.assetId.startsWith('tmdb_movie_')) return 'tmdb_movie'
-    if (p.assetId.startsWith('tmdb_tv_')) return 'tmdb_tv'
-    return null
-  }
-  if (p.source === 'cloudflare') {
-    if (p.assetId.startsWith('cf_http_')) return 'cf_http'
-    if (p.assetId.startsWith('cf_iqi_')) return 'cf_iqi'
-    if (p.assetId.startsWith('cf_speed_')) return 'cf_speed'
-    if (p.assetId.startsWith('cf_domain_')) return 'cf_domain'
-    if (p.assetId.startsWith('cf_service_')) return 'cf_service'
-    return null
   }
   return null
 }
@@ -249,7 +111,7 @@ function classifyPolymarket(name: string): string {
 }
 
 // Sources that should show subcategories (by data feed type)
-const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch', 'hackernews', 'tmdb', 'cloudflare'])
+const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi'])
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -258,25 +120,6 @@ const SUBCATEGORIZED_SOURCES = new Set(['weather', 'polymarket', 'defi', 'twitch
 function formatValue(v: number, source: string, assetId?: string): string {
   if (source === 'rates' || source === 'bls' || source === 'bonds') return `${v.toFixed(2)}%`
   if (source === 'ecb') return v.toFixed(4)
-  if (source === 'twitch') {
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M viewers`
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K viewers`
-    return `${Math.round(v)} viewers`
-  }
-  if (source === 'hackernews') {
-    const unit = assetId?.endsWith('_comments') ? 'comments' : 'pts'
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K ${unit}`
-    return `${Math.round(v)} ${unit}`
-  }
-  if (source === 'steam') {
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M playing`
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K playing`
-    return `${Math.round(v)} playing`
-  }
-  if (source === 'tmdb') {
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K pop`
-    return `${v.toFixed(1)} pop`
-  }
   if (source === 'weather') {
     // Format weather values with appropriate units
     if (assetId) {
@@ -288,25 +131,6 @@ function formatValue(v: number, source: string, assetId?: string): string {
       if (metric === 'ozone') return `${v.toFixed(1)}µg/m³`
     }
     return v.toFixed(1)
-  }
-  if (source === 'cloudflare') {
-    if (assetId?.startsWith('cf_domain_') || assetId?.startsWith('cf_service_')) {
-      return `#${Math.round(v).toLocaleString()}`
-    }
-    if (assetId?.startsWith('cf_http_')) return `${v.toFixed(1)}%`
-    if (assetId?.startsWith('cf_speed_')) return `${v.toFixed(1)} Mbps`
-    return v.toFixed(2)
-  }
-  if (source === 'github') {
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M ★`
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K ★`
-    return `${Math.round(v)} ★`
-  }
-  if (source === 'npm' || source === 'pypi' || source === 'crates_io') {
-    if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B dl`
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M dl`
-    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K dl`
-    return `${Math.round(v)} dl`
   }
   if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
@@ -349,73 +173,11 @@ function humanInterval(secs: number): string {
   return `${Math.round(secs / 86400)}d`
 }
 
-/** Build an external link for a price tile, if available */
-function getExternalLink(price: SnapshotPrice): string | null {
-  switch (price.source) {
-    case 'twitch':
-      if (price.assetId.startsWith('twitch_stream_'))
-        return `https://twitch.tv/${price.assetId.replace('twitch_stream_', '')}`
-      return null
-    case 'hackernews': {
-      const m = price.assetId.match(/^hn_(\d+)_/)
-      return m ? `https://news.ycombinator.com/item?id=${m[1]}` : null
-    }
-    case 'steam':
-      return `https://store.steampowered.com/app/${price.assetId.replace('steam_game_', '')}`
-    case 'tmdb':
-      if (price.assetId.startsWith('tmdb_movie_'))
-        return `https://www.themoviedb.org/movie/${price.assetId.replace('tmdb_movie_', '')}`
-      if (price.assetId.startsWith('tmdb_tv_'))
-        return `https://www.themoviedb.org/tv/${price.assetId.replace('tmdb_tv_', '')}`
-      return null
-    case 'crypto':
-      return `https://www.coingecko.com/en/coins/${price.assetId}`
-    case 'defi':
-      if (price.assetId.startsWith('protocol_'))
-        return `https://defillama.com/protocol/${price.assetId.replace('protocol_', '')}`
-      if (price.assetId.startsWith('chain_')) {
-        const chain = price.assetId.replace('chain_', '')
-        return `https://defillama.com/chain/${chain.charAt(0).toUpperCase() + chain.slice(1)}`
-      }
-      return null
-    case 'rates':
-      return `https://fred.stlouisfed.org/series/${price.assetId}`
-    case 'stocks':
-      return `https://finance.yahoo.com/quote/${price.assetId}`
-    case 'github': {
-      const gh = price.symbol.replace('GH:', '')
-      return gh.includes('/') ? `https://github.com/${gh}` : null
-    }
-    case 'npm': {
-      const pkg = price.symbol.replace('NPM:', '')
-      return `https://www.npmjs.com/package/${pkg}`
-    }
-    case 'pypi': {
-      const pkg = price.symbol.replace('PYPI:', '')
-      return `https://pypi.org/project/${pkg}/`
-    }
-    case 'crates_io':
-      return `https://crates.io/crates/${price.assetId.replace('crate_', '')}`
-    case 'backpacktf':
-      return `https://backpack.tf/stats/Unique/${encodeURIComponent(price.name)}/Tradable/Craftable`
-    case 'cloudflare':
-      if (price.assetId.startsWith('cf_domain_')) {
-        const domain = price.assetId.replace('cf_domain_', '').replace(/_/g, '.')
-        return `https://radar.cloudflare.com/domains/${domain}`
-      }
-      return 'https://radar.cloudflare.com/'
-    case 'bls':
-      return `https://data.bls.gov/timeseries/${price.assetId}`
-    default:
-      return null
-  }
-}
-
 const STATUS_COLORS: Record<string, string> = {
-  healthy: 'bg-green',
-  stale: 'bg-yellow',
-  pending: 'bg-accent',
-  disabled: 'bg-hover',
+  healthy: 'bg-green-500',
+  stale: 'bg-yellow-500',
+  pending: 'bg-blue-500',
+  disabled: 'bg-white/30',
 }
 
 function useColumnCount() {
@@ -432,16 +194,6 @@ function useColumnCount() {
     return () => window.removeEventListener('resize', update)
   }, [])
   return cols
-}
-
-/** Returns a tick counter that increments every second — forces re-renders of relative timestamps */
-function useLiveClock() {
-  const [tick, setTick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000)
-    return () => clearInterval(id)
-  }, [])
-  return tick
 }
 
 // ---------------------------------------------------------------------------
@@ -462,7 +214,7 @@ function CryptoLogo({ assetId, symbol, size = 16 }: { assetId: string; symbol: s
   if (hasError) {
     return (
       <div
-        className="rounded-full bg-hover flex items-center justify-center text-secondary font-bold"
+        className="rounded-full bg-white/10 flex items-center justify-center text-white/60 font-bold"
         style={{ width: size, height: size, fontSize: size * 0.5 }}
       >
         {symbol.charAt(0).toUpperCase()}
@@ -482,31 +234,30 @@ function CryptoLogo({ assetId, symbol, size = 16 }: { assetId: string; symbol: s
   )
 }
 
-function SourceCard({ source, assetCount, tick }: { source: SourceSchedule; assetCount: number; tick: number }) {
-  void tick // used to force re-render for live timestamps
+function SourceCard({ source, assetCount }: { source: SourceSchedule; assetCount: number }) {
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
-    <div className="border bg-surface rounded-xl p-3 min-w-[180px] flex-shrink-0 transition-colors duration-150 hover:border-hover">
+    <div className="border border-white/15 bg-white/5 p-3 min-w-[180px] flex-shrink-0">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-hover'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
-        <span className="font-mono text-sm font-bold text-primary">{displayName}</span>
+        <div className={`w-2 h-2 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
+        <span className="font-mono text-sm font-bold text-white">{displayName}</span>
       </div>
-      <div className="space-y-1 font-mono text-xs text-muted">
+      <div className="space-y-1 font-mono text-xs text-white/50">
         <div className="flex justify-between">
           <span>Assets</span>
-          <span className="text-secondary">{assetCount.toLocaleString()}</span>
+          <span className="text-white/80">{assetCount.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span>Last sync</span>
-          <span className="text-secondary tabular-nums">{relativeTime(source.lastSync)}</span>
+          <span className="text-white/80">{relativeTime(source.lastSync)}</span>
         </div>
         <div className="flex justify-between">
           <span>Next</span>
-          <span className="text-secondary tabular-nums">{relativeTime(source.estimatedNextUpdate)}</span>
+          <span className="text-white/80">{relativeTime(source.estimatedNextUpdate)}</span>
         </div>
         <div className="flex justify-between">
           <span>Interval</span>
-          <span className="text-secondary">{source.syncIntervalSecs < 60 ? 'rolling' : `every ${humanInterval(source.syncIntervalSecs)}`}</span>
+          <span className="text-white/80">every {humanInterval(source.syncIntervalSecs)}</span>
         </div>
       </div>
     </div>
@@ -519,74 +270,54 @@ function PriceTileInline({ price }: { price: SnapshotPrice }) {
   const isUp = changePct !== null && changePct >= 0
   const isDown = changePct !== null && changePct < 0
   const hasCryptoLogo = price.source === 'crypto'
-  const link = getExternalLink(price)
 
-  // Determine display label
-  let displaySymbol: string
+  let displaySymbol =
+    !price.symbol || price.symbol === '-'
+      ? price.name.replace(' TVL', '').slice(0, 10)
+      : price.symbol
+  // Weather: show city name (strip metric suffix from name like "Paris Temperature")
   if (price.source === 'weather') {
     const parts = price.name.split(' ')
+    // Remove the last word (metric label), keep city name
     displaySymbol = parts.length > 1 ? parts.slice(0, -1).join(' ') : price.name
     if (displaySymbol.length > 14) displaySymbol = displaySymbol.slice(0, 12) + '..'
-  } else if (price.source === 'hackernews') {
-    // Strip "(score)" / "(comments)" suffix from name, show story title
-    displaySymbol = price.name.replace(/\s*\((score|comments)\)\s*$/, '').slice(0, 30)
-  } else if (['steam', 'polymarket', 'tmdb', 'backpacktf', 'cloudflare', 'github', 'npm', 'pypi', 'crates_io'].includes(price.source)) {
-    // Show the full name instead of symbol ID
-    displaySymbol = price.name.slice(0, 30)
-  } else {
-    displaySymbol =
-      !price.symbol || price.symbol === '-'
-        ? price.name.replace(' TVL', '').slice(0, 10)
-        : price.symbol
   }
 
-  const Wrapper = link ? 'a' : 'div'
-  const wrapperProps = link
-    ? { href: link, target: '_blank', rel: 'noopener noreferrer' }
-    : {}
-
   return (
-    <Wrapper
-      {...wrapperProps}
-      className={`p-2 rounded-lg border relative group transition-colors duration-150 ${link ? 'cursor-pointer' : 'cursor-default'} ${
+    <div
+      className={`p-2 border cursor-default relative group ${
         isUp
-          ? 'border-green/25 bg-green-muted hover:border-hover'
+          ? 'border-green-500/30 bg-green-500/5'
           : isDown
-            ? 'border-red-loss/25 bg-red-loss-muted hover:border-hover'
-            : 'border bg-surface hover:border-hover'
+            ? 'border-red-500/30 bg-red-500/5'
+            : 'border-white/10 bg-white/5'
       }`}
-      title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}${link ? `\n${link}` : ''}`}
+      title={`${price.name}\n${formatValue(value, price.source, price.assetId)}${changePct !== null ? `\n24h: ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : ''}${price.marketCap ? `\n${formatMarketCap(price.marketCap)}` : ''}`}
     >
       <div className="flex items-center gap-1.5">
         {hasCryptoLogo && <CryptoLogo assetId={price.assetId} symbol={price.symbol} size={16} />}
-        <div className="font-mono text-xs font-bold text-primary truncate">{displaySymbol}</div>
-        {link && (
-          <svg className="w-2.5 h-2.5 text-muted flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group- group-hover:text-secondary" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 1h7v7M11 1L4 8" />
-          </svg>
-        )}
+        <div className="font-mono text-xs font-bold text-white truncate">{displaySymbol}</div>
       </div>
-      <div className="font-mono text-[10px] text-secondary truncate">
+      <div className="font-mono text-[10px] text-white/60 truncate">
         {formatValue(value, price.source, price.assetId)}
       </div>
       {changePct !== null && (
-        <div className={`font-mono text-[10px] ${isUp ? 'text-green' : 'text-red-loss'}`}>
+        <div className={`font-mono text-[10px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>
           {isUp ? '\u2191' : '\u2193'}{Math.abs(changePct).toFixed(1)}%
         </div>
       )}
-    </Wrapper>
+    </div>
   )
 }
 
-function SectionHeader({ source, count, tick }: { source: SourceSchedule; count: number; tick: number }) {
-  void tick
+function SectionHeader({ source, count }: { source: SourceSchedule; count: number }) {
   const displayName = SOURCE_DISPLAY_OVERRIDES[source.sourceId] || source.displayName
   return (
-    <div className="flex items-center gap-3 px-3 py-2 bg-surface border-b border">
-      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-hover'} ${source.status === 'healthy' ? 'animate-pulse' : ''}`} />
-      <span className="text-sm font-semibold text-primary">{displayName}</span>
-      <span className="font-data text-xs text-muted">{count.toLocaleString()} assets</span>
-      <span className="font-data text-xs text-muted tabular-nums">
+    <div className="flex items-center gap-3 px-3 py-2 bg-white/5 border-b border-white/10 sticky top-0 z-10">
+      <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[source.status] || 'bg-white/30'}`} />
+      <span className="font-mono text-sm font-bold text-white">{displayName}</span>
+      <span className="font-mono text-xs text-white/40">{count.toLocaleString()} assets</span>
+      <span className="font-mono text-xs text-white/30">
         synced {relativeTime(source.lastSync)} &middot; every {humanInterval(source.syncIntervalSecs)}
       </span>
     </div>
@@ -595,9 +326,9 @@ function SectionHeader({ source, count, tick }: { source: SourceSchedule; count:
 
 function SubSectionHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 bg-surface border-b border">
-      <span className="text-xs text-secondary">{label}</span>
-      <span className="font-data text-[10px] text-muted">{count.toLocaleString()}</span>
+    <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border-b border-white/5">
+      <span className="font-mono text-xs text-white/60">{label}</span>
+      <span className="font-mono text-[10px] text-white/30">{count.toLocaleString()}</span>
     </div>
   )
 }
@@ -607,100 +338,26 @@ function SubSectionHeader({ label, count }: { label: string; count: number }) {
 // ---------------------------------------------------------------------------
 
 export default function MarketPage() {
-  // Progressive loading: meta loads instantly (~1KB), filtered snapshot loads fast
+  // Progressive loading: meta loads instantly (~1KB), full snapshot loads in background (~3MB)
   const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
+  const { data, isLoading: snapshotLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
-  // Default to 'entertainment' category (hackernews, twitch, steam, etc) for faster initial load
-  const [selectedCategory, setSelectedCategory] = useState<string | null>('entertainment')
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const cols = useColumnCount()
-  const tick = useLiveClock()
-
-  // Determine which sources to fetch based on selected category
-  const sourcesToFetch = useMemo(() => {
-    if (!selectedCategory) return [] // Empty = fetch all via full snapshot
-    const group = CATEGORY_GROUPS.find((g) => g.id === selectedCategory)
-    return group ? group.sources : []
-  }, [selectedCategory])
-
-  // Progressive fetch: only fetch selected category's sources when category is selected
-  const { data: filteredData, isLoading: filteredLoading, isError: filteredError, error: filteredErrorMsg } = useMarketSnapshotBySources(sourcesToFetch)
-  // Full snapshot for "All" view (lazy - only fetched when user clicks "All")
-  const { data: fullData, isLoading: fullLoading, isError: fullError, error: fullErrorMsg } = useMarketSnapshot()
-
-  // Prefetch other categories in background after initial load
-  const prefetchSnapshot = usePrefetchMarketSnapshot()
-  const [hasPrefetched, setHasPrefetched] = useState(false)
-
-  useEffect(() => {
-    // Once initial data is loaded, prefetch other categories in background
-    if (filteredData && !hasPrefetched) {
-      setHasPrefetched(true)
-
-      // Prefetch order: Finance first, then others
-      const prefetchOrder = [
-        'finance',       // stocks, crypto, defi, etc
-        'technology',    // github, npm, pypi, etc
-        'predictions',   // polymarket
-        'economics',     // bls, worldbank, etc
-        'environment',   // weather, tides, etc
-        'energy',        // eia, opec, etc
-        'commodities',   // opec, eia, zillow, etc
-        'transport',     // opensky
-      ]
-
-      // Stagger prefetches to not overwhelm the server
-      prefetchOrder.forEach((categoryId, index) => {
-        if (categoryId === selectedCategory) return // Skip current category
-        const group = CATEGORY_GROUPS.find((g) => g.id === categoryId)
-        if (group) {
-          setTimeout(() => {
-            prefetchSnapshot(group.sources)
-          }, (index + 1) * 500) // 500ms delay between each
-        }
-      })
-    }
-  }, [filteredData, hasPrefetched, selectedCategory, prefetchSnapshot])
-
-  // Use filtered data when category is selected, full data otherwise
-  const data = selectedCategory && sourcesToFetch.length > 0 ? filteredData : fullData
-  const snapshotLoading = selectedCategory && sourcesToFetch.length > 0 ? filteredLoading : fullLoading
-  const isError = selectedCategory && sourcesToFetch.length > 0 ? filteredError : fullError
-  const error = selectedCategory && sourcesToFetch.length > 0 ? filteredErrorMsg : fullErrorMsg
 
   // Use meta for instant display, full data once loaded
+  const totalAssets = data?.totalAssets ?? meta?.totalAssets ?? 0
   const sources = data?.sources ?? meta?.sources ?? []
   const generatedAtRaw = data?.generatedAt ?? meta?.generatedAt ?? null
   const pricesLoaded = !!data?.prices?.length
-  // Global total from meta (stable, for header display)
-  const totalAssetsGlobal = meta?.totalAssets ?? 0
-  // Current view count (filtered category)
-  const totalAssetsInView = pricesLoaded ? data!.prices.length : 0
-  // For backward compat
-  const totalAssets = totalAssetsGlobal
 
   // Source schedule map for quick lookup
   const sourceMap = useMemo(() => {
     return new Map(sources.map((s) => [s.sourceId, s]))
   }, [sources])
 
-  // Count assets per source — always use meta for category nav counts (stable across filters)
-  // Use full data counts when available, else meta counts
-  const assetCountBySourceForNav = useMemo(() => {
-    // For category navigation, prefer fullData counts (or meta) to keep all categories visible
-    if (fullData?.prices) {
-      const counts: Record<string, number> = {}
-      for (const p of fullData.prices) {
-        counts[p.source] = (counts[p.source] || 0) + 1
-      }
-      return counts
-    }
-    return (meta?.assetCounts ?? {}) as Record<string, number>
-  }, [fullData?.prices, meta?.assetCounts])
-
-  // Count assets in current view (for display only)
+  // Count assets per source — from full data if available, else from meta counts
   const assetCountBySource = useMemo(() => {
     if (data?.prices) {
       const counts: Record<string, number> = {}
@@ -712,27 +369,10 @@ export default function MarketPage() {
     return (meta?.assetCounts ?? {}) as Record<string, number>
   }, [data?.prices, meta?.assetCounts])
 
-  // Enabled sources for tabs — hide sources with 0 assets (use stable nav counts)
+  // Enabled sources for tabs — hide sources with 0 assets
   const enabledSources = useMemo(() => {
-    return sources.filter((s) => s.enabled && (assetCountBySourceForNav[s.sourceId] ?? 0) > 0)
-  }, [sources, assetCountBySourceForNav])
-
-  // Category groups with their asset counts (use stable nav counts)
-  const categoryGroupsWithCounts = useMemo(() => {
-    return CATEGORY_GROUPS.map((group) => {
-      const groupSources = group.sources.filter((s) => (assetCountBySourceForNav[s] ?? 0) > 0)
-      const totalAssets = groupSources.reduce((sum, s) => sum + (assetCountBySourceForNav[s] || 0), 0)
-      return { ...group, sources: groupSources, totalAssets }
-    }).filter((g) => g.totalAssets > 0)
-  }, [assetCountBySourceForNav])
-
-  // Sources in the selected category (for secondary filter)
-  const sourcesInCategory = useMemo(() => {
-    if (!selectedCategory) return enabledSources
-    const group = categoryGroupsWithCounts.find((g) => g.id === selectedCategory)
-    if (!group) return enabledSources
-    return enabledSources.filter((s) => group.sources.includes(s.sourceId))
-  }, [selectedCategory, categoryGroupsWithCounts, enabledSources])
+    return sources.filter((s) => s.enabled && (assetCountBySource[s.sourceId] ?? 0) > 0)
+  }, [sources, assetCountBySource])
 
   // Derive feed-type subcategories for sources that support them
   const enrichedPrices = useMemo(() => {
@@ -746,39 +386,14 @@ export default function MarketPage() {
     })
   }, [data?.prices])
 
-  // Compute available subcategories for the selected source
-  const availableSubcategories = useMemo(() => {
-    if (!selectedSource || !SUBCATEGORIZED_SOURCES.has(selectedSource)) return []
-    const counts: Record<string, number> = {}
-    for (const p of enrichedPrices) {
-      if (p.source === selectedSource && p.category) {
-        counts[p.category] = (counts[p.category] || 0) + 1
-      }
-    }
-    return Object.entries(counts).sort(([, a], [, b]) => b - a)
-  }, [enrichedPrices, selectedSource])
-
   // Group, filter, sort prices into sections → flat virtual rows
   const { virtualRows, totalFiltered } = useMemo(() => {
     if (!enrichedPrices.length) return { virtualRows: [] as VirtualRow[], totalFiltered: 0 }
 
     // Filter
     let prices = enrichedPrices
-
-    // Filter by category first
-    if (selectedCategory) {
-      const group = CATEGORY_GROUPS.find((g) => g.id === selectedCategory)
-      if (group) {
-        prices = prices.filter((p) => group.sources.includes(p.source))
-      }
-    }
-
-    // Then filter by specific source if selected
     if (selectedSource) {
       prices = prices.filter((p) => p.source === selectedSource)
-    }
-    if (selectedSubcategory) {
-      prices = prices.filter((p) => p.category === selectedSubcategory)
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -810,11 +425,7 @@ export default function MarketPage() {
 
     // Build flat virtual rows: header + (optional subcategories) + tile rows per source
     const rows: VirtualRow[] = []
-    // Use sources in current category if filtered, otherwise all enabled
-    const relevantSources = selectedCategory
-      ? sourcesInCategory
-      : enabledSources
-    const sourceOrder = relevantSources.map((s) => s.sourceId)
+    const sourceOrder = enabledSources.map((s) => s.sourceId)
 
     for (const sourceId of sourceOrder) {
       const list = grouped.get(sourceId)
@@ -863,7 +474,7 @@ export default function MarketPage() {
     }
 
     return { virtualRows: rows, totalFiltered }
-  }, [enrichedPrices, selectedCategory, selectedSource, selectedSubcategory, search, cols, enabledSources, sourcesInCategory, sourceMap])
+  }, [enrichedPrices, selectedSource, search, cols, enabledSources, sourceMap])
 
   // Virtual scrolling
   const virtualizer = useVirtualizer({
@@ -881,172 +492,142 @@ export default function MarketPage() {
     overscan: 10,
   })
 
-  void tick // force re-render every second for live timestamps
   const generatedAt = generatedAtRaw
-    ? relativeTime(generatedAtRaw)
+    ? new Date(generatedAtRaw).toLocaleTimeString()
     : '-'
 
   return (
-    <main className="min-h-screen bg-primary flex flex-col">
+    <main className="min-h-screen bg-terminal flex flex-col">
       <Header />
 
-      <div className="flex-1 overflow-hidden bg-primary" >
-        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col bg-primary" >
+      <div className="flex-1 overflow-hidden">
+        <div className="max-w-[1800px] mx-auto px-4 py-4 h-full flex flex-col">
           {/* Page header */}
           <div className="mb-3 flex-shrink-0">
-            <Link href="/" className="text-secondary hover:text-primary text-sm mb-1 inline-block">
+            <Link href="/" className="text-white/60 hover:text-white font-mono text-sm mb-1 inline-block">
               &larr; Back
             </Link>
             <div className="flex items-baseline gap-4">
-              <h1 className="text-2xl font-semibold text-primary tracking-tight">Market Data</h1>
-              {totalAssetsGlobal > 0 && (
-                <span className="text-muted font-mono text-sm tabular-nums flex items-center gap-1.5">
-                  {totalAssetsGlobal.toLocaleString()} assets
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
-                  updated {generatedAt}
+              <h1 className="text-2xl font-bold text-white font-mono">Market Data</h1>
+              {totalAssets > 0 && (
+                <span className="text-white/40 font-mono text-sm">
+                  {totalAssets.toLocaleString()} assets &middot; Generated {generatedAt}
                 </span>
               )}
               {metaLoading && (
-                <span className="text-muted font-mono text-sm animate-pulse">
+                <span className="text-white/40 font-mono text-sm animate-pulse">
                   Connecting...
                 </span>
               )}
             </div>
           </div>
 
-          {/* Source schedule cards — show from meta (instant) or full data, filtered by category */}
-          {(selectedCategory ? sourcesInCategory : enabledSources).length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0 scrollbar-hide bg-primary" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {(selectedCategory ? sourcesInCategory : enabledSources).map((source) => (
+          {/* Source schedule cards — show from meta (instant) or full data */}
+          {enabledSources.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 flex-shrink-0">
+              {enabledSources.map((source) => (
                 <SourceCard
                   key={source.sourceId}
                   source={source}
                   assetCount={assetCountBySource[source.sourceId] || 0}
-                  tick={tick}
                 />
               ))}
             </div>
           )}
 
           {/* Filter bar */}
-          <div className="mb-3 flex-shrink-0 space-y-2">
-            {/* Search + Category tabs */}
-            <div className="flex items-start gap-3">
-              <input
-                type="text"
-                placeholder="Search symbol or name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-input border rounded-lg text-primary text-sm px-4 py-2 focus:outline-none focus:ring-1 focus:ring-accent/10 focus:border-accent-border placeholder:text-muted w-56 flex-shrink-0"
-              />
-              <div className="flex flex-wrap gap-1.5 min-w-0">
-                {categoryGroupsWithCounts.map((group) => (
-                  <button
-                    key={group.id}
-                    type="button"
-                    onClick={() => { setSelectedCategory(group.id); setSelectedSource(null); setSelectedSubcategory(null) }}
-                    className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex items-center gap-1.5 transition-colors duration-150 ${
-                      selectedCategory === group.id
-                        ? 'bg-accent-muted text-accent border border-accent-border'
-                        : 'text-secondary rounded-full hover:bg-hover hover:text-primary'
-                    }`}
-                  >
-                    <span>{group.icon}</span>
-                    {group.name}
-                    <span className="text-xs text-muted">
-                      ({group.totalAssets.toLocaleString()})
-                    </span>
-                  </button>
-                ))}
-              </div>
+          <div className="flex items-center gap-3 mb-3 flex-shrink-0">
+            <input
+              type="text"
+              placeholder="Search symbol or name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-white/5 border border-white/15 text-white font-mono text-sm px-3 py-1.5 rounded focus:outline-none focus:border-white/40 w-64"
+            />
+            <div className="flex gap-1 border-b border-white/20 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedSource(null)}
+                className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
+                  selectedSource === null
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-white/60 hover:text-white'
+                }`}
+              >
+                All
+                <span className="ml-1 text-xs text-white/40">
+                  ({totalAssets.toLocaleString()})
+                </span>
+              </button>
+              {enabledSources.map((s) => (
+                <button
+                  key={s.sourceId}
+                  type="button"
+                  onClick={() => setSelectedSource(s.sourceId)}
+                  className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
+                    selectedSource === s.sourceId
+                      ? 'border-accent text-accent'
+                      : 'border-transparent text-white/60 hover:text-white'
+                  }`}
+                >
+                  {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                  <span className="ml-1 text-xs text-white/40">
+                    ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                  </span>
+                </button>
+              ))}
             </div>
-
-            {/* Source filter chips — shown when a category is selected */}
-            {selectedCategory && sourcesInCategory.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 pl-[calc(14rem+0.75rem)] animate-[fadeSlideIn_0.25s_ease-out]">
-                <button
-                  type="button"
-                  onClick={() => { setSelectedSource(null); setSelectedSubcategory(null) }}
-                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
-                    selectedSource === null
-                      ? 'bg-accent-muted text-accent border border-accent-border'
-                      : 'bg-surface text-muted border border hover:text-primary hover:border'
-                  }`}
-                >
-                  All Sources
-                </button>
-                {sourcesInCategory.map((s, i) => (
-                  <button
-                    key={s.sourceId}
-                    type="button"
-                    onClick={() => { setSelectedSource(s.sourceId); setSelectedSubcategory(null) }}
-                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
-                      selectedSource === s.sourceId
-                        ? 'bg-accent-muted text-accent border border-accent-border'
-                        : 'bg-surface text-muted border border hover:text-primary hover:border'
-                    }`}
-                    style={{ animationDelay: `${i * 30}ms` }}
-                  >
-                    {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
-                    <span className="ml-1 text-muted">({(assetCountBySource[s.sourceId] || 0).toLocaleString()})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Subcategory filter chips — shown when a subcategorized source is selected */}
-            {selectedSource && availableSubcategories.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 pl-[calc(14rem+0.75rem)] animate-[fadeSlideIn_0.25s_ease-out]">
-                <button
-                  type="button"
-                  onClick={() => setSelectedSubcategory(null)}
-                  className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
-                    selectedSubcategory === null
-                      ? 'bg-hover text-primary border border-hover'
-                      : 'bg-surface text-muted border border hover:text-primary hover:border'
-                  }`}
-                >
-                  All Types
-                </button>
-                {availableSubcategories.map(([key, count], i) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSelectedSubcategory(key)}
-                    className={`px-2.5 py-1 rounded-full font-mono text-xs transition-all duration-200  ${
-                      selectedSubcategory === key
-                        ? 'bg-hover text-primary border border-hover'
-                        : 'bg-surface text-muted border border hover:text-primary hover:border'
-                    }`}
-                    style={{ animationDelay: `${i * 30}ms` }}
-                  >
-                    {FEED_TYPE_DISPLAY_NAMES[key] || key}
-                    <span className="ml-1 text-muted">({count.toLocaleString()})</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Virtualized grid */}
-          <div className="flex-1 border rounded-xl bg-surface overflow-hidden min-h-0">
+          <div className="flex-1 border border-white/20 bg-black/30 overflow-hidden min-h-0">
             {isError ? (
-              <div className="py-20 text-center text-red-loss/80 font-mono bg-primary">
-                <p className="text-lg mb-2">Failed to load</p>
-                <p className="text-sm text-muted">{error?.message}</p>
+              <div className="flex flex-col items-center justify-center h-full gap-6 py-20">
+                <div className="text-center font-mono">
+                  <p className="text-xl text-red-400/80 mb-2">Data Node Unavailable</p>
+                  <p className="text-sm text-white/40 mb-4 max-w-md">
+                    The market data node is not responding. This usually means the snapshot service needs a restart.
+                  </p>
+                  <p className="text-xs text-white/20 mb-6">{error?.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="px-6 py-2 bg-accent/20 border border-accent/40 text-accent font-mono text-sm hover:bg-accent/30 transition-all"
+                  >
+                    Retry
+                  </button>
+                </div>
+                {/* Still show meta info if available */}
+                {enabledSources.length > 0 && (
+                  <div className="mt-4 text-center">
+                    <p className="text-xs text-white/30 font-mono mb-3">
+                      Last known: {totalAssets.toLocaleString()} assets across {enabledSources.length} sources
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+                      {enabledSources.map((s) => {
+                        const count = assetCountBySource[s.sourceId] || 0
+                        return (
+                          <span key={s.sourceId} className="px-2 py-1 bg-white/5 border border-white/10 font-mono text-xs text-white/40">
+                            {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}: {count.toLocaleString()}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : !pricesLoaded ? (
-              <div className="flex flex-col items-center justify-center h-full gap-6 bg-primary">
+              <div className="flex flex-col items-center justify-center h-full gap-6">
                 {/* Animated loading indicator */}
                 <div className="relative">
-                  <div className="w-16 h-16 border-2 border rounded-full" />
+                  <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
                   <div className="absolute inset-0 w-16 h-16 border-2 border-transparent border-t-accent rounded-full animate-spin" />
                 </div>
                 <div className="text-center font-mono">
-                  <p className="text-lg text-secondary mb-1">
-                    Loading {totalAssetsGlobal > 0 ? totalAssetsGlobal.toLocaleString() : '50,000+'} markets
+                  <p className="text-lg text-white/80 mb-1">
+                    Loading {totalAssets > 0 ? totalAssets.toLocaleString() : '50,000+'} markets
                   </p>
-                  <p className="text-sm text-muted">
+                  <p className="text-sm text-white/40">
                     {enabledSources.length > 0
                       ? `${enabledSources.length} sources across stocks, crypto, DeFi, weather, and more`
                       : 'Fetching market data from data node...'}
@@ -1058,7 +639,7 @@ export default function MarketPage() {
                     {enabledSources.map((s) => {
                       const count = assetCountBySource[s.sourceId] || 0
                       return (
-                        <span key={s.sourceId} className="px-2 py-1 bg-surface border border font-mono text-xs text-muted">
+                        <span key={s.sourceId} className="px-2 py-1 bg-white/5 border border-white/10 font-mono text-xs text-white/50">
                           {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}: {count.toLocaleString()}
                         </span>
                       )
@@ -1067,15 +648,12 @@ export default function MarketPage() {
                 )}
               </div>
             ) : virtualRows.length > 0 ? (
-              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin bg-primary" >
+              <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden">
                 <div
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
                     width: '100%',
                     position: 'relative',
-                    
-                    // Hide until virtualizer has calculated positions (prevents stacking flash)
-                    visibility: virtualizer.getTotalSize() > 0 ? 'visible' : 'hidden',
                   }}
                 >
                   {virtualizer.getVirtualItems().map((virtualItem) => {
@@ -1093,7 +671,7 @@ export default function MarketPage() {
                             transform: `translateY(${virtualItem.start}px)`,
                           }}
                         >
-                          <SectionHeader source={row.source} count={row.count} tick={tick} />
+                          <SectionHeader source={row.source} count={row.count} />
                         </div>
                       )
                     }
@@ -1117,7 +695,6 @@ export default function MarketPage() {
                     return (
                       <div
                         key={virtualItem.key}
-                        className="animate-[tileEnter_0.3s_ease-out]"
                         style={{
                           position: 'absolute',
                           top: 0,
@@ -1142,7 +719,7 @@ export default function MarketPage() {
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center text-muted font-mono">
+              <div className="py-20 text-center text-white/40 font-mono">
                 <p className="text-lg mb-2">No data found</p>
                 <p className="text-sm">
                   {search ? 'Try a different search term' : 'Data sync may be in progress'}
@@ -1152,7 +729,7 @@ export default function MarketPage() {
           </div>
 
           {/* Footer stats */}
-          <div className="flex justify-between items-center mt-2 text-xs font-mono text-muted flex-shrink-0">
+          <div className="flex justify-between items-center mt-2 text-xs font-mono text-white/40 flex-shrink-0">
             <span>
               {pricesLoaded
                 ? <>
