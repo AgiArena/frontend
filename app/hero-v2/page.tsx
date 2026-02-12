@@ -1,316 +1,295 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useMarketSnapshotMeta } from '@/hooks/useMarketSnapshot'
 
 // ---------------------------------------------------------------------------
-// "THE CHALLENGE" — 60-second challenge: How many can YOU set?
-// Timer counts down. Markets flash past one by one. User smashes YES/NO.
-// At the end: "You did 47. Our AI agents cover 159,240. Every second."
+// "THE FEED" — Bloomberg-terminal style. Markets scroll in continuously.
+// Each row has YES/NO. Markets spawn faster than you can vote.
+// A "pending" queue grows. You fall behind. Then: the punchline.
 // ---------------------------------------------------------------------------
 
-const SAMPLE_MARKETS = [
+interface FeedMarket {
+  id: number
+  symbol: string
+  name: string
+  source: string
+  value: string
+  changePct: number
+  timestamp: number
+}
+
+const FEED_DATA: Array<{ symbol: string; name: string; source: string; value: string }> = [
   { symbol: 'BTC', name: 'Bitcoin', source: 'crypto', value: '$97,340' },
   { symbol: 'ETH', name: 'Ethereum', source: 'crypto', value: '$3,421' },
   { symbol: 'SOL', name: 'Solana', source: 'crypto', value: '$187.50' },
   { symbol: 'AAPL', name: 'Apple Inc.', source: 'stocks', value: '$198.11' },
-  { symbol: 'TSLA', name: 'Tesla Inc.', source: 'stocks', value: '$412.30' },
-  { symbol: 'NVDA', name: 'NVIDIA Corp.', source: 'stocks', value: '$721.05' },
-  { symbol: 'paris:temp', name: 'Paris Temperature', source: 'weather', value: '12.3C' },
-  { symbol: 'ETH TVL', name: 'Ethereum Total Value Locked', source: 'defi', value: '$62.1B' },
-  { symbol: 'BTC $200K?', name: 'Will Bitcoin reach $200,000?', source: 'polymarket', value: '42%' },
-  { symbol: 'DOGE', name: 'Dogecoin', source: 'crypto', value: '$0.1842' },
+  { symbol: 'TSLA', name: 'Tesla', source: 'stocks', value: '$412.30' },
+  { symbol: 'NVDA', name: 'NVIDIA', source: 'stocks', value: '$721.05' },
+  { symbol: 'paris:temp', name: 'Paris Temp', source: 'weather', value: '12.3°C' },
+  { symbol: 'BTC $200K?', name: 'Bitcoin reaches $200K', source: 'polymarket', value: '42%' },
+  { symbol: 'ETH TVL', name: 'Ethereum TVL', source: 'defi', value: '$62.1B' },
+  { symbol: 'DOGE', name: 'Dogecoin', source: 'crypto', value: '$0.184' },
   { symbol: 'MSFT', name: 'Microsoft', source: 'stocks', value: '$415.60' },
+  { symbol: 'xQc', name: 'xQc viewers', source: 'twitch', value: '45.2K' },
+  { symbol: 'react', name: 'React downloads', source: 'npm', value: '24.1M' },
+  { symbol: 'NBA Finals', name: 'NBA Finals winner', source: 'polymarket', value: '31%' },
   { symbol: 'tokyo:rain', name: 'Tokyo Rainfall', source: 'weather', value: '2.1mm' },
-  { symbol: 'react', name: 'React npm downloads', source: 'npm', value: '24.1M' },
-  { symbol: 'xQc', name: 'xQc Twitch viewers', source: 'twitch', value: '45.2K' },
-  { symbol: 'rust:tokio', name: 'Tokio crate downloads', source: 'crates_io', value: '198M' },
-  { symbol: 'NBA Finals', name: 'Who wins NBA Finals 2026?', source: 'polymarket', value: '31%' },
+  { symbol: 'serde', name: 'Serde crate', source: 'crates_io', value: '198M' },
   { symbol: 'AVAX', name: 'Avalanche', source: 'crypto', value: '$38.20' },
-  { symbol: 'UNI', name: 'Uniswap', source: 'defi', value: '$12.45' },
-  { symbol: 'Fed Rate', name: 'Next Fed rate decision?', source: 'polymarket', value: '67%' },
+  { symbol: 'UNI', name: 'Uniswap vol', source: 'defi', value: '$2.8B' },
   { symbol: 'AMZN', name: 'Amazon', source: 'stocks', value: '$185.20' },
-  { symbol: 'london:wind', name: 'London Wind Speed', source: 'weather', value: '18km/h' },
-  { symbol: 'one_piece', name: 'One Piece rating', source: 'anilist', value: '8.69' },
-  { symbol: 'tf2:unusual', name: 'TF2 Unusual Hat', source: 'backpacktf', value: '$42.50' },
-  { symbol: 'Dune 3', name: 'Dune 3 box office prediction', source: 'tmdb', value: '$680M' },
+  { symbol: 'Dune 3', name: 'Dune 3 boxoffice', source: 'tmdb', value: '$680M' },
+  { symbol: 'CS2', name: 'Counter-Strike 2', source: 'steam', value: '1.2M' },
+  { symbol: 'linux', name: 'Linux stars', source: 'github', value: '178K' },
+  { symbol: 'JJK', name: 'Jujutsu Kaisen', source: 'anilist', value: '8.6' },
   { symbol: 'XRP', name: 'Ripple', source: 'crypto', value: '$2.41' },
-  { symbol: 'GOOG', name: 'Alphabet Inc.', source: 'stocks', value: '$171.22' },
+  { symbol: 'london:wind', name: 'London Wind', source: 'weather', value: '18km/h' },
+  { symbol: 'Fed Rate', name: 'Next Fed decision', source: 'polymarket', value: '67%' },
+  { symbol: 'GOOG', name: 'Alphabet', source: 'stocks', value: '$171.22' },
   { symbol: 'ADA', name: 'Cardano', source: 'crypto', value: '$0.642' },
-  { symbol: 'nyc:pm25', name: 'NYC Air Quality PM2.5', source: 'weather', value: '8.2ug' },
-  { symbol: 'AAVE', name: 'Aave Protocol', source: 'defi', value: '$142.10' },
-  { symbol: 'shroud', name: 'shroud Twitch viewers', source: 'twitch', value: '12.8K' },
+  { symbol: 'LINK', name: 'Chainlink', source: 'crypto', value: '$18.30' },
+  { symbol: 'DOT', name: 'Polkadot', source: 'crypto', value: '$7.85' },
 ]
 
-type Phase = 'intro' | 'challenge' | 'result'
-
-const CHALLENGE_SECONDS = 30
-
 const SOURCE_COLORS: Record<string, string> = {
-  crypto: 'text-green-400 border-green-500/30',
-  stocks: 'text-blue-400 border-blue-500/30',
-  weather: 'text-cyan-400 border-cyan-500/30',
-  polymarket: 'text-purple-400 border-purple-500/30',
-  defi: 'text-yellow-400 border-yellow-500/30',
-  twitch: 'text-violet-400 border-violet-500/30',
-  npm: 'text-red-300 border-red-500/30',
-  crates_io: 'text-orange-400 border-orange-500/30',
-  anilist: 'text-blue-300 border-blue-500/30',
-  backpacktf: 'text-amber-400 border-amber-500/30',
-  tmdb: 'text-teal-400 border-teal-500/30',
+  crypto: 'text-green-400', stocks: 'text-blue-400', weather: 'text-cyan-400',
+  polymarket: 'text-purple-400', defi: 'text-yellow-400', twitch: 'text-violet-400',
+  npm: 'text-red-300', crates_io: 'text-orange-400', tmdb: 'text-teal-400',
+  steam: 'text-indigo-400', github: 'text-pink-400', anilist: 'text-blue-300',
 }
+
+type Vote = 'yes' | 'no'
 
 export default function HeroV2() {
   const { data: meta } = useMarketSnapshotMeta()
-  const [phase, setPhase] = useState<Phase>('intro')
-  const [timeLeft, setTimeLeft] = useState(CHALLENGE_SECONDS)
-  const [score, setScore] = useState(0)
-  const [currentMarketIdx, setCurrentMarketIdx] = useState(0)
-  const [lastAction, setLastAction] = useState<'yes' | 'no' | null>(null)
-  const [streak, setStreak] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined)
+  const [feed, setFeed] = useState<FeedMarket[]>([])
+  const [votes, setVotes] = useState<Map<number, Vote>>(new Map())
+  const [showReveal, setShowReveal] = useState(false)
+  const [spawnRate, setSpawnRate] = useState(1500) // ms between spawns — gets faster
+  const nextId = useRef(0)
+  const feedRef = useRef<HTMLDivElement>(null)
+  const spawnTimer = useRef<ReturnType<typeof setInterval>>(undefined)
+  const revealTriggered = useRef(false)
 
   const totalAssets = meta?.totalAssets ?? 159240
-  const currentMarket = SAMPLE_MARKETS[currentMarketIdx % SAMPLE_MARKETS.length]
+  const assetCounts = meta?.assetCounts ?? {}
 
-  // Keyboard controls during challenge
+  // Spawn markets into the feed — accelerating
   useEffect(() => {
-    if (phase !== 'challenge') return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === 'y' || e.key === 'Y') {
-        handleVote('yes')
-      } else if (e.key === 'ArrowLeft' || e.key === 'n' || e.key === 'N') {
-        handleVote('no')
+    let seed = 7
+    function rng() { seed = (seed * 16807) % 2147483647; return seed / 2147483647 }
+
+    function spawn() {
+      const template = FEED_DATA[nextId.current % FEED_DATA.length]
+      const market: FeedMarket = {
+        id: nextId.current++,
+        ...template,
+        changePct: (rng() - 0.5) * 20,
+        timestamp: Date.now(),
       }
+      setFeed(prev => [market, ...prev].slice(0, 100))
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  })
 
-  const startChallenge = useCallback(() => {
-    setPhase('challenge')
-    setScore(0)
-    setTimeLeft(CHALLENGE_SECONDS)
-    setCurrentMarketIdx(0)
-    setStreak(0)
+    // Initial batch
+    for (let i = 0; i < 5; i++) spawn()
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current)
-          setPhase('result')
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }, [])
+    spawnTimer.current = setInterval(spawn, spawnRate)
 
+    return () => clearInterval(spawnTimer.current)
+  }, [spawnRate])
+
+  // Accelerate spawn rate over time
   useEffect(() => {
-    return () => clearInterval(timerRef.current)
+    const accel = setInterval(() => {
+      setSpawnRate(prev => Math.max(300, prev - 100))
+    }, 5000)
+    return () => clearInterval(accel)
   }, [])
 
-  const handleVote = useCallback((type: 'yes' | 'no') => {
-    if (phase !== 'challenge') return
-    setScore(s => s + 1)
-    setLastAction(type)
-    setStreak(s => s + 1)
-    setCurrentMarketIdx(i => i + 1)
-    setTimeout(() => setLastAction(null), 150)
-  }, [phase])
+  // Trigger reveal
+  useEffect(() => {
+    if (votes.size >= 10 && !revealTriggered.current) {
+      revealTriggered.current = true
+      setTimeout(() => setShowReveal(true), 600)
+    }
+  }, [votes.size])
 
-  const ratePerHour = score > 0 ? Math.round(score * (3600 / CHALLENGE_SECONDS)) : 0
-  const hoursToFinish = ratePerHour > 0 ? (totalAssets / ratePerHour).toFixed(1) : '???'
-  const aiAdvantage = score > 0 ? Math.round(totalAssets / score) : totalAssets
+  const handleVote = useCallback((id: number, type: Vote) => {
+    setVotes(prev => {
+      const next = new Map(prev)
+      next.set(id, type)
+      return next
+    })
+  }, [])
+
+  const yesCount = useMemo(() => {
+    let c = 0; for (const v of votes.values()) if (v === 'yes') c++; return c
+  }, [votes])
+  const noCount = useMemo(() => {
+    let c = 0; for (const v of votes.values()) if (v === 'no') c++; return c
+  }, [votes])
+  const totalVotes = yesCount + noCount
+  const pending = feed.length - totalVotes
+  const pctDone = ((totalVotes / totalAssets) * 100)
+  const hoursToFinish = totalVotes > 0 ? Math.ceil((totalAssets - totalVotes) / totalVotes * 5 / 60) : null
 
   return (
-    <main className="min-h-screen bg-terminal relative overflow-hidden select-none">
-      {/* Back link */}
-      <div className="fixed top-4 left-4 z-50">
-        <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">
-          &larr; Back
-        </Link>
+    <main className="min-h-screen bg-terminal flex flex-col">
+      {/* Top bar */}
+      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <Link href="/" className="text-white/40 hover:text-white font-mono text-sm">&larr; Back</Link>
+            <div className="flex items-center gap-3 font-mono text-sm">
+              <span className="text-green-400">{yesCount} Y</span>
+              <span className="text-red-400">{noCount} N</span>
+              <span className="text-white/20">|</span>
+              <span className="text-white/40">{totalVotes}/{totalAssets.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Pending queue warning */}
+          {pending > 3 && (
+            <div className="flex items-center justify-between bg-accent/10 border border-accent/30 px-3 py-1.5 font-mono text-xs">
+              <span className="text-accent">
+                {pending} markets waiting for your decision
+              </span>
+              <span className="text-white/30">
+                New market every {(spawnRate / 1000).toFixed(1)}s
+              </span>
+            </div>
+          )}
+
+          {/* Progress */}
+          <div className="mt-2 h-[3px] bg-white/5">
+            <div className="h-full bg-accent transition-all" style={{ width: `${Math.max(0.05, pctDone)}%` }} />
+          </div>
+          <p className="text-center font-mono text-[10px] text-white/15 mt-1">
+            {pctDone.toFixed(4)}% of {totalAssets.toLocaleString()} markets
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center min-h-screen px-4">
-
-        {/* INTRO PHASE */}
-        {phase === 'intro' && (
-          <div className="text-center space-y-8">
-            <div>
-              <h1 className="text-5xl sm:text-7xl font-bold text-white tracking-tighter font-mono">
-                THE <span className="text-accent">CHALLENGE</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-white/50 font-mono mt-4">
-                {totalAssets.toLocaleString()} markets are live right now.
-              </p>
-              <p className="text-base text-white/30 font-mono mt-2">
-                How many can <span className="text-white/70">you</span> set in {CHALLENGE_SECONDS} seconds?
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm text-white/40 font-mono">
-                Smash YES or NO as fast as you can. Arrow keys or Y/N.
-              </p>
-              <button
-                type="button"
-                onClick={startChallenge}
-                className="px-10 py-4 bg-accent text-white font-mono font-bold text-xl
-                  shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_60px_rgba(196,0,0,0.7)]
-                  hover:bg-red-700 transition-all"
-              >
-                START
-              </button>
-            </div>
-
-            {/* Source preview */}
-            <div className="max-w-2xl mx-auto">
-              <p className="text-xs text-white/20 font-mono mb-3">Markets from:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {Object.entries(meta?.assetCounts ?? {})
-                  .sort(([, a], [, b]) => (b as number) - (a as number))
-                  .slice(0, 10)
-                  .map(([source, count]) => (
-                    <span key={source} className="px-2 py-1 bg-white/[0.03] border border-white/[0.08] font-mono text-[10px] text-white/30">
-                      {source}: {(count as number).toLocaleString()}
-                    </span>
-                  ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* CHALLENGE PHASE */}
-        {phase === 'challenge' && (
-          <div className="w-full max-w-lg space-y-6">
-            {/* Timer + Score header */}
-            <div className="flex items-center justify-between font-mono">
-              <div className="text-4xl sm:text-5xl font-bold tabular-nums"
-                style={{ color: timeLeft <= 5 ? '#C40000' : timeLeft <= 10 ? '#facc15' : '#ffffff' }}>
-                {timeLeft}s
-              </div>
-              <div className="text-right">
-                <div className="text-3xl sm:text-4xl font-bold text-white tabular-nums">{score}</div>
-                <div className="text-xs text-white/30">of {totalAssets.toLocaleString()}</div>
-              </div>
-            </div>
-
-            {/* Progress bar (hilariously tiny) */}
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent transition-all duration-200 rounded-full"
-                style={{ width: `${Math.max(0.05, (score / totalAssets) * 100)}%` }}
-              />
-            </div>
-            <p className="text-center text-[10px] text-white/20 font-mono">
-              {((score / totalAssets) * 100).toFixed(4)}% complete
-            </p>
-
-            {/* Current market card */}
-            <div className={`
-              border-2 bg-black/80 p-8 transition-all duration-100
-              ${lastAction === 'yes' ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.3)]'
-                : lastAction === 'no' ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]'
-                : 'border-white/20'
-              }
-            `}>
-              <div className="flex items-center justify-between mb-4">
-                <span className={`px-2 py-1 border font-mono text-xs uppercase ${SOURCE_COLORS[currentMarket.source] || 'text-white/40 border-white/20'}`}>
-                  {currentMarket.source}
-                </span>
-                {streak > 3 && (
-                  <span className="text-accent font-mono text-sm font-bold">{streak}x streak</span>
-                )}
-              </div>
-              <div className="text-center mb-4">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white font-mono">{currentMarket.symbol}</h2>
-                <p className="text-sm text-white/40 font-mono mt-1">{currentMarket.name}</p>
-                <p className="text-lg text-white/60 font-mono mt-2">{currentMarket.value}</p>
-              </div>
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => handleVote('no')}
-                  className="flex-1 py-4 border-2 border-red-500/40 text-red-400 font-mono font-bold text-xl
-                    hover:bg-red-500/10 hover:border-red-500 transition-all active:scale-95 active:bg-red-500/20"
-                >
-                  NO
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleVote('yes')}
-                  className="flex-1 py-4 border-2 border-green-500/40 text-green-400 font-mono font-bold text-xl
-                    hover:bg-green-500/10 hover:border-green-500 transition-all active:scale-95 active:bg-green-500/20"
-                >
-                  YES
-                </button>
-              </div>
-            </div>
-
-            <p className="text-center text-xs text-white/20 font-mono">
-              &larr; N = NO &middot; Y &rarr; = YES
-            </p>
-          </div>
-        )}
-
-        {/* RESULT PHASE */}
-        {phase === 'result' && (
-          <div className="text-center space-y-8 max-w-2xl">
-            {/* User's score */}
+      {/* Reveal overlay */}
+      {showReveal && (
+        <div className="fixed inset-0 z-40 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="text-center space-y-6 max-w-xl">
             <div className="space-y-2">
-              <p className="text-white/40 font-mono text-sm">In {CHALLENGE_SECONDS} seconds, you set</p>
-              <p className="text-6xl sm:text-8xl font-bold text-white font-mono tabular-nums">{score}</p>
-              <p className="text-white/40 font-mono text-sm">markets</p>
-            </div>
-
-            {/* The punchline */}
-            <div className="py-6 border-y border-white/10 space-y-4">
-              <p className="text-lg text-white/50 font-mono">
-                At this rate: <span className="text-white/70">{ratePerHour.toLocaleString()}/hour</span>
-              </p>
-              <p className="text-lg text-white/50 font-mono">
-                To cover all {totalAssets.toLocaleString()} markets: <span className="text-accent font-bold">{hoursToFinish} hours</span>
-              </p>
-              <p className="text-2xl sm:text-3xl font-bold text-white font-mono mt-4">
-                Our AI agents do it in <span className="text-accent">1 second.</span>
+              <p className="text-3xl sm:text-5xl font-bold text-white font-mono">
+                You can&apos;t.
               </p>
               <p className="text-sm text-white/30 font-mono">
-                {aiAdvantage}x faster. Across {Object.keys(meta?.assetCounts ?? {}).length} data sources. 24/7.
+                {totalVotes} done. {pending} already piled up. {(totalAssets - totalVotes).toLocaleString()} to go.
+                {hoursToFinish !== null && <> At this rate: <span className="text-accent">{hoursToFinish} hours</span>.</>}
+              </p>
+              <p className="text-xs text-white/20 font-mono">
+                Markets keep coming. You fell behind in {(votes.size * spawnRate / 1000).toFixed(0)}s.
               </p>
             </div>
 
-            {/* CTA */}
-            <div className="space-y-4">
-              <button
-                type="button"
-                className="px-10 py-4 bg-accent text-white font-mono font-bold text-lg
-                  shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
-                  hover:bg-red-700 transition-all"
-              >
-                Deploy Your AI Agent &rarr;
-              </button>
-              <p className="text-xs text-white/20 font-mono">
-                npx agiarena init &middot; Claude Code + WIND tokens
+            <div className="space-y-1">
+              <p className="text-lg sm:text-xl text-white/60 font-mono">
+                But your AI Agent can.
               </p>
+              <p className="text-sm text-white/40 font-mono">
+                Every market. Every second. Simultaneously.
+              </p>
+              <p className="text-xs text-white/20 font-mono mt-2">
+                {totalAssets.toLocaleString()} markets across {Object.keys(assetCounts).length} sources. 24/7.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="mt-6 px-10 py-4 bg-accent text-white font-mono font-bold text-lg
+                shadow-[0_0_40px_rgba(196,0,0,0.5)] hover:shadow-[0_0_80px_rgba(196,0,0,0.7)]
+                hover:bg-red-700 transition-all"
+            >
+              Deploy Your AI Agent &rarr;
+            </button>
+
+            <div className="flex items-center justify-center gap-4">
+              <p className="text-xs text-white/20 font-mono">npx agiarena init</p>
               <button
                 type="button"
-                onClick={() => {
-                  revealTriggered.current = false
-                  startChallenge()
-                }}
-                className="text-sm text-white/30 hover:text-white/50 font-mono transition-all"
+                onClick={() => setShowReveal(false)}
+                className="text-xs text-white/30 hover:text-white/50 font-mono underline"
               >
-                Try again?
+                Keep trying (good luck)
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Feed */}
+      <div className="flex-1 overflow-y-auto" ref={feedRef}>
+        <div className="max-w-3xl mx-auto px-4 py-2 space-y-[1px]">
+          {feed.map((m) => {
+            const vote = votes.get(m.id)
+            const isUp = m.changePct >= 0
+            return (
+              <div
+                key={m.id}
+                className={`
+                  flex items-center border font-mono transition-all duration-150
+                  ${vote === 'yes'
+                    ? 'bg-green-500/10 border-green-500/30'
+                    : vote === 'no'
+                      ? 'bg-red-500/10 border-red-500/30'
+                      : 'bg-white/[0.02] border-white/[0.06]'
+                  }
+                  ${!vote ? 'animate-[pulse-red-bet_0.5s_ease-out]' : ''}
+                `}
+              >
+                {/* YES */}
+                <button
+                  type="button"
+                  onClick={() => handleVote(m.id, 'yes')}
+                  disabled={!!vote}
+                  className={`w-14 h-full flex-shrink-0 flex items-center justify-center border-r text-xs font-bold transition-all
+                    ${vote === 'yes'
+                      ? 'bg-green-500/20 border-green-500/30 text-green-300'
+                      : vote ? 'border-white/5 text-white/10'
+                      : 'border-white/10 text-white/15 hover:bg-green-500/10 hover:text-green-400'
+                    }`}
+                >
+                  Y
+                </button>
+
+                {/* Market info */}
+                <div className="flex-1 flex items-center gap-3 px-3 py-2.5 min-w-0">
+                  <span className={`text-[10px] uppercase w-16 flex-shrink-0 ${SOURCE_COLORS[m.source] || 'text-white/30'}`}>
+                    {m.source.length > 8 ? m.source.slice(0, 7) : m.source}
+                  </span>
+                  <span className="text-xs font-bold text-white truncate flex-1">{m.symbol}</span>
+                  <span className="text-[10px] text-white/40 flex-shrink-0">{m.value}</span>
+                  <span className={`text-[10px] flex-shrink-0 w-14 text-right ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                    {isUp ? '+' : ''}{m.changePct.toFixed(1)}%
+                  </span>
+                </div>
+
+                {/* NO */}
+                <button
+                  type="button"
+                  onClick={() => handleVote(m.id, 'no')}
+                  disabled={!!vote}
+                  className={`w-14 h-full flex-shrink-0 flex items-center justify-center border-l text-xs font-bold transition-all
+                    ${vote === 'no'
+                      ? 'bg-red-500/20 border-red-500/30 text-red-300'
+                      : vote ? 'border-white/5 text-white/10'
+                      : 'border-white/10 text-white/15 hover:bg-red-500/10 hover:text-red-400'
+                    }`}
+                >
+                  N
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </main>
   )
 }
-
-// Needed for the "Try again" reference (shared with v1 pattern but unused here)
-const revealTriggered = { current: false }
