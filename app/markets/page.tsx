@@ -34,6 +34,27 @@ const SOURCE_DISPLAY_OVERRIDES: Record<string, string> = {
   polymarket: 'Prediction Markets',
 }
 
+// Category groups — group sources into clean tabs
+const CATEGORY_GROUPS: { id: string; label: string; sources: string[] }[] = [
+  { id: 'crypto', label: 'Crypto', sources: ['crypto', 'bchain', 'defi'] },
+  { id: 'stocks', label: 'Stocks', sources: ['stocks', 'twse', 'finra'] },
+  { id: 'predictions', label: 'Predictions', sources: ['polymarket'] },
+  { id: 'macro', label: 'Macro', sources: ['rates', 'bls', 'ecb', 'bonds', 'imf', 'worldbank', 'sec_13f'] },
+  { id: 'commodities', label: 'Commodities', sources: ['futures', 'cftc', 'opec', 'eia', 'energy_charts', 'caiso'] },
+  { id: 'weather', label: 'Weather', sources: ['weather', 'tides', 'goes_xray'] },
+  { id: 'tech', label: 'Tech', sources: ['npm', 'pypi', 'crates_io', 'github', 'cloudflare', 'hackernews'] },
+  { id: 'entertainment', label: 'Entertainment', sources: ['tmdb', 'anilist', 'twitch', 'steam', 'backpacktf', 'fourchan'] },
+  { id: 'transport', label: 'Transport', sources: ['opensky'] },
+]
+
+// Reverse lookup: source → category
+const SOURCE_TO_CATEGORY: Record<string, string> = {}
+for (const cat of CATEGORY_GROUPS) {
+  for (const src of cat.sources) {
+    SOURCE_TO_CATEGORY[src] = cat.id
+  }
+}
+
 // Subcategory display names (keyed by derived feed type)
 const FEED_TYPE_DISPLAY_NAMES: Record<string, string> = {
   // Weather metrics
@@ -342,7 +363,7 @@ export default function MarketPage() {
   const { data: meta, isLoading: metaLoading } = useMarketSnapshotMeta()
   const { data, isLoading: snapshotLoading, isError, error } = useMarketSnapshot()
   const [search, setSearch] = useState('')
-  const [selectedSource, setSelectedSource] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const cols = useColumnCount()
 
@@ -369,10 +390,30 @@ export default function MarketPage() {
     return (meta?.assetCounts ?? {}) as Record<string, number>
   }, [data?.prices, meta?.assetCounts])
 
-  // Enabled sources for tabs — hide sources with 0 assets
+  // Enabled sources — hide sources with 0 assets
   const enabledSources = useMemo(() => {
     return sources.filter((s) => s.enabled && (assetCountBySource[s.sourceId] ?? 0) > 0)
   }, [sources, assetCountBySource])
+
+  // Category tabs with counts — only show categories that have active sources
+  const enabledCategories = useMemo(() => {
+    return CATEGORY_GROUPS
+      .map((cat) => {
+        const count = cat.sources.reduce(
+          (sum, src) => sum + (assetCountBySource[src] || 0),
+          0,
+        )
+        return { ...cat, count }
+      })
+      .filter((cat) => cat.count > 0)
+  }, [assetCountBySource])
+
+  // Sources in the selected category (or all if no category selected)
+  const selectedSourceIds = useMemo(() => {
+    if (!selectedCategory) return null
+    const cat = CATEGORY_GROUPS.find((c) => c.id === selectedCategory)
+    return cat ? new Set(cat.sources) : null
+  }, [selectedCategory])
 
   // Derive feed-type subcategories for sources that support them
   const enrichedPrices = useMemo(() => {
@@ -392,8 +433,8 @@ export default function MarketPage() {
 
     // Filter
     let prices = enrichedPrices
-    if (selectedSource) {
-      prices = prices.filter((p) => p.source === selectedSource)
+    if (selectedSourceIds) {
+      prices = prices.filter((p) => selectedSourceIds.has(p.source))
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -474,7 +515,7 @@ export default function MarketPage() {
     }
 
     return { virtualRows: rows, totalFiltered }
-  }, [enrichedPrices, selectedSource, search, cols, enabledSources, sourceMap])
+  }, [enrichedPrices, selectedSourceIds, search, cols, enabledSources, sourceMap])
 
   // Virtual scrolling
   const virtualizer = useVirtualizer({
@@ -547,9 +588,9 @@ export default function MarketPage() {
             <div className="flex gap-1 border-b border-white/20 overflow-x-auto">
               <button
                 type="button"
-                onClick={() => setSelectedSource(null)}
+                onClick={() => setSelectedCategory(null)}
                 className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                  selectedSource === null
+                  selectedCategory === null
                     ? 'border-accent text-accent'
                     : 'border-transparent text-white/60 hover:text-white'
                 }`}
@@ -559,20 +600,20 @@ export default function MarketPage() {
                   ({totalAssets.toLocaleString()})
                 </span>
               </button>
-              {enabledSources.map((s) => (
+              {enabledCategories.map((cat) => (
                 <button
-                  key={s.sourceId}
+                  key={cat.id}
                   type="button"
-                  onClick={() => setSelectedSource(s.sourceId)}
+                  onClick={() => setSelectedCategory(cat.id)}
                   className={`px-3 py-2 border-b-2 transition-all font-mono text-sm whitespace-nowrap ${
-                    selectedSource === s.sourceId
+                    selectedCategory === cat.id
                       ? 'border-accent text-accent'
                       : 'border-transparent text-white/60 hover:text-white'
                   }`}
                 >
-                  {SOURCE_DISPLAY_OVERRIDES[s.sourceId] || s.displayName}
+                  {cat.label}
                   <span className="ml-1 text-xs text-white/40">
-                    ({(assetCountBySource[s.sourceId] || 0).toLocaleString()})
+                    ({cat.count.toLocaleString()})
                   </span>
                 </button>
               ))}
